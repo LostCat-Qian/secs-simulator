@@ -1,0 +1,50 @@
+{
+  "name": "secs-simulator",
+  "version": "0.0.1",
+  "description": "A SECS simulator based on electron-egg and secs4js.",
+  "main": "./public/electron/main.js",
+  "scripts": {
+    "dev": "ee-bin dev",
+    "build": "npm run build-frontend && npm run build-electron && ee-bin encrypt",
+    "start": "ee-bin start",
+    "dev-frontend": "ee-bin dev --serve=frontend",
+    "dev-electron": "ee-bin dev --serve=electron",
+    "build-frontend": "ee-bin build --cmds=frontend && ee-bin move --flag=frontend_dist",
+    "build-electron": "ee-bin build --cmds=electron",
+    "encrypt": "ee-bin encrypt",
+    "icon": "ee-bin icon",
+    "re-sqlite": "electron-rebuild -f -w better-sqlite3",
+    "build-w": "ee-bin build --cmds=win64",
+    "build-we": "ee-bin build --cmds=win_e",
+    "build-m": "ee-bin build --cmds=mac",
+    "build-m-arm64": "ee-bin build --cmds=mac_arm64",
+    "build-l": "ee-bin build --cmds=linux"
+  },
+  "repository": "https://github.com/LostCat-Qian/secs-simulator.git",
+  "keywords": [
+    "Electron",
+    "electron-egg",
+    "ElectronEgg",
+    "secs",
+    "simulator",
+    "secs-simulator",
+    "secsgem",
+    "secs-i",
+    "secs-ii",
+    "secs-gem"
+  ],
+  "author": "Ran Qian <1151264028@qq.com>",
+  "license": "Apache",
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
+    "@types/node": "^22.19.1",
+    "debug": "^4.4.0",
+    "ee-bin": "^4.2.0",
+    "electron": "^39.2.6",
+    "electron-builder": "^26.3.5"
+  },
+  "dependencies": {
+    "ee-core": "^4.1.5",
+    "electron-updater": "^6.7.3"
+  }
+}
