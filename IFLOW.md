@@ -11,10 +11,20 @@ SECS Simulator 是一个基于 ElectronEgg 和 secs4js 的 SECS（Semiconductor 
 - **技术栈**：
   - 主进程：Node.js + Electron 39.2.6 + ee-core 4.1.5
   - 前端：Vue 3.5.26 + Vite 5.4.21 + Vue Router 4.6.4 + TypeScript 5.9.3
+  - UI 组件：Arco Design 2.57.0
+  - 代码编辑器：Monaco Editor 0.55.1
   - 通信：IPC (Inter-Process Communication)
 - **工程化**：采用前后端分离的开发理念，支持热更新
 - **安全性**：支持字节码加密、压缩和混淆加密
 - **功能丰富**：内置配置管理、通信、插件、数据库、升级、打包、工具等功能
+
+### 主要功能
+
+- **引擎管理**：创建、编辑、删除、启动和停止 SECS 通信引擎
+- **文件管理**：管理和预览 SECS 脚本文件
+- **日志查看**：实时查看和监控 SECS 通信日志
+- **自动回复**：配置和管理 SECS 消息的自动回复规则
+- **代码编辑**：集成 Monaco Editor 提供强大的代码编辑功能
 
 ### 项目结构
 
@@ -36,12 +46,24 @@ secs-simulator/
 │   ├── src/
 │   │   ├── api/            # API 接口定义（TypeScript）
 │   │   ├── assets/         # 静态资源（样式、图片等）
+│   │   │   └── global.less  # 全局样式
 │   │   ├── components/     # 全局组件
+│   │   │   └── global/     # 全局组件注册
 │   │   ├── router/         # 路由配置
 │   │   │   ├── index.ts    # 路由实例
 │   │   │   └── routerMap.ts # 路由映射
 │   │   ├── utils/          # 工具函数（包含 ipcRenderer.ts）
 │   │   └── views/          # 页面组件
+│   │       ├── home/       # 主页面
+│   │       │   ├── Index.vue
+│   │       │   └── components/ # 主页面组件
+│   │       │       ├── AddEngineModal.vue    # 添加/编辑引擎模态框
+│   │       │       ├── AutoReplyPanel.vue    # 自动回复面板
+│   │       │       ├── EngineList.vue        # 引擎列表
+│   │       │       ├── FilePreview.vue       # 文件预览
+│   │       │       ├── FileTree.vue          # 文件树
+│   │       │       └── LogPanel.vue          # 日志面板
+│   │       └── example/     # 示例页面
 │   ├── .env.development    # 开发环境变量
 │   ├── .env.production     # 生产环境变量
 │   ├── index.html          # HTML 模板
@@ -55,6 +77,7 @@ secs-simulator/
 ├── build/                   # 构建配置
 │   ├── icons/              # 应用图标
 │   ├── extraResources/     # 额外资源
+│   │   └── dll/            # DLL 文件
 │   └── script/             # 安装脚本
 ├── cmd/                     # 构建配置文件
 │   ├── builder.json        # Windows 构建配置
@@ -126,6 +149,28 @@ npm run build-l
 npm run re-sqlite
 ```
 
+### 前端命令
+
+```bash
+# 前端开发服务器
+npm run dev
+
+# 前端生产构建（带类型检查）
+npm run build
+
+# 前端仅构建（不进行类型检查）
+npm run build-only
+
+# 前端预构建（staging 环境）
+npm run build-staging
+
+# 类型检查
+npm run type-check
+
+# 预览构建结果
+npm run preview
+```
+
 ## 开发规范
 
 ### 主进程开发
@@ -170,6 +215,12 @@ npm run re-sqlite
    - 全局组件注册在 `frontend/src/components/global/index.ts`（自动导入）
    - 页面组件放在 `frontend/src/views/` 目录下
    - 使用 Vue 3 Composition API（`<script setup>`）和 TypeScript
+   - 使用 Arco Design 组件库提供 UI 组件
+
+6. **样式开发**：
+   - 使用 Less 预处理器
+   - 全局样式位于 `frontend/src/assets/global.less`
+   - 支持自定义主题变量（如 `@border-color-base`）
 
 ### IPC 通信规范
 
@@ -194,6 +245,7 @@ async test(args, event) {
 - 遵循 JavaScript/TypeScript 最佳实践
 - 使用 TypeScript 严格模式进行类型检查
 - 使用 Vue 3 Composition API 和 `<script setup>` 语法
+- 使用 Arco Design 组件库保持 UI 一致性
 
 ## 配置说明
 
@@ -260,6 +312,9 @@ async test(args, event) {
 
 - `vue@^3.5.26`：Vue 3 框架
 - `vue-router@^4.6.4`：路由管理
+- `@arco-design/web-vue@^2.57.0`：Arco Design UI 组件库
+- `monaco-editor@^0.55.1`：代码编辑器
+- `@guolao/vue-monaco-editor@^1.6.0`：Monaco Editor 的 Vue 封装
 
 ### 前端开发依赖
 
@@ -309,20 +364,29 @@ npm run dev
 **主进程开发流程**：
 1. 在 `electron/service/` 创建 Service 类处理业务逻辑
 2. 在 `electron/controller/` 创建 Controller 类处理前端请求
-3. 在 `frontend/src/api/index.js` 定义 IPC 通信频道
+3. 在 `frontend/src/api/index.ts` 定义 IPC 通信频道
 4. 在前端页面调用 API
 
 **前端开发流程**：
 1. 在 `frontend/src/views/` 创建页面组件（使用 TypeScript）
 2. 在 `frontend/src/router/routerMap.ts` 添加路由配置
 3. 使用 Composition API 和 TypeScript 编写组件逻辑
-4. 通过 IPC 与主进程通信
+4. 使用 Arco Design 组件构建 UI
+5. 通过 IPC 与主进程通信
+
+**组件开发流程**：
+1. 创建组件文件（使用 `<script setup>` 和 TypeScript）
+2. 使用 Arco Design 组件库的组件
+3. 定义组件 Props 和 Emits 接口
+4. 实现组件逻辑和样式
+5. 在父组件中导入和使用
 
 ### 3. 调试
 
 - **主进程调试**：在 `config.default.js` 中设置 `openDevTools: true`
 - **前端调试**：使用浏览器开发者工具（F12）
 - **日志查看**：查看 `logs/` 目录下的日志文件
+- **类型检查**：运行 `npm run type-check` 进行 TypeScript 类型检查
 
 ### 4. 构建和打包
 
@@ -360,6 +424,9 @@ npm run build-l
 9. **Node 集成**：默认启用 Node.js 集成（`nodeIntegration: true`），渲染进程可直接使用 Node API
 10. **资源处理**：小于 4096 字节的资源会被内联为 Base64，超过此大小的资源会单独打包
 11. **TypeScript**：前端使用 TypeScript 开发，确保类型安全，开发时可使用 `npm run type-check` 进行类型检查
+12. **Arco Design**：使用 Arco Design 组件库时，请遵循组件库的使用规范和最佳实践
+13. **Monaco Editor**：使用 Monaco Editor 时，注意资源加载和性能优化
+14. **Less 样式**：自定义主题变量时，请在 `vite.config.ts` 中的 `css.preprocessorOptions.less.modifyVars` 中配置
 
 ## 项目信息
 
@@ -377,3 +444,5 @@ npm run build-l
 - GitHub：https://github.com/dromara/electron-egg
 - Gitee：https://gitee.com/dromara/electron-egg
 - ee-core：https://github.com/wallace5303/ee-core
+- Arco Design：https://arco.design/vue
+- Monaco Editor：https://microsoft.github.io/monaco-editor/
