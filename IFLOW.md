@@ -1,8 +1,8 @@
-# ElectronEgg 项目说明
+# SECS Simulator 项目说明
 
 ## 项目概述
 
-ElectronEgg 是一个快速、跨平台、企业级桌面软件开发框架。该框架基于 Electron 构建，采用前后端分离的架构设计，支持 JavaScript 和 TypeScript，旨在让所有开发者都能快速上手开发桌面软件。
+SECS Simulator 是一个基于 ElectronEgg 和 secs4js 的 SECS（Semiconductor Equipment Communications Standard）模拟器。该框架基于 Electron 构建，采用前后端分离的架构设计，支持 JavaScript 和 TypeScript，旨在为半导体设备通信提供功能完整的模拟测试环境。
 
 ### 核心特性
 
@@ -10,7 +10,7 @@ ElectronEgg 是一个快速、跨平台、企业级桌面软件开发框架。�
 - **架构灵活**：支持单业务进程/模块化/多任务（进程、线程、渲染进程）架构
 - **技术栈**：
   - 主进程：Node.js + Electron 39.2.6 + ee-core 4.1.5
-  - 前端：Vue 3.5.12 + Vite 5.4.11 + Vue Router 4
+  - 前端：Vue 3.5.26 + Vite 5.4.21 + Vue Router 4.6.4 + TypeScript 5.9.3
   - 通信：IPC (Inter-Process Communication)
 - **工程化**：采用前后端分离的开发理念，支持热更新
 - **安全性**：支持字节码加密、压缩和混淆加密
@@ -19,7 +19,7 @@ ElectronEgg 是一个快速、跨平台、企业级桌面软件开发框架。�
 ### 项目结构
 
 ```
-electron-egg/
+secs-simulator/
 ├── electron/                 # Electron 主进程代码
 │   ├── main.js              # 应用入口文件
 │   ├── config/              # 配置文件
@@ -34,18 +34,18 @@ electron-egg/
 │   └── service/             # 业务逻辑层
 ├── frontend/                # 前端代码
 │   ├── src/
-│   │   ├── api/            # API 接口定义
+│   │   ├── api/            # API 接口定义（TypeScript）
 │   │   ├── assets/         # 静态资源（样式、图片等）
 │   │   ├── components/     # 全局组件
 │   │   ├── router/         # 路由配置
-│   │   │   ├── index.js    # 路由实例
-│   │   │   └── routerMap.js # 路由映射
-│   │   ├── utils/          # 工具函数（包含 ipcRenderer.js）
+│   │   │   ├── index.ts    # 路由实例
+│   │   │   └── routerMap.ts # 路由映射
+│   │   ├── utils/          # 工具函数（包含 ipcRenderer.ts）
 │   │   └── views/          # 页面组件
 │   ├── .env.development    # 开发环境变量
 │   ├── .env.production     # 生产环境变量
 │   ├── index.html          # HTML 模板
-│   └── vite.config.js      # Vite 配置
+│   └── vite.config.ts      # Vite 配置（TypeScript）
 ├── public/                  # 公共资源
 │   ├── dist/               # 前端构建输出
 │   ├── electron/           # Electron 构建输出（不提交版本控制）
@@ -150,14 +150,14 @@ npm run re-sqlite
    - 在代码中通过 `import.meta.env.VITE_XXX` 访问
 
 2. **API 通信**：
-   - 在 `frontend/src/api/index.js` 中定义 IPC 通信频道
-   - 使用 `frontend/src/utils/ipcRenderer.js` 中的 `ipc.invoke()` 进行异步通信
+   - 在 `frontend/src/api/index.ts` 中定义 IPC 通信频道（使用 TypeScript 接口）
+   - 使用 `frontend/src/utils/ipcRenderer.ts` 中的 `ipc.invoke()` 进行异步通信
    - 示例：`const result = await ipc.invoke('controller/example/test', params);`
 
 3. **路由管理**：
    - 路由配置位于 `frontend/src/router/` 目录
-   - 使用 Vue Router 4，采用 Hash 模式（createWebHashHistory）
-   - `routerMap.js` 定义路由映射，支持懒加载
+   - 使用 Vue Router 4.6.4，采用 Hash 模式（createWebHashHistory）
+   - `routerMap.ts` 定义路由映射，支持懒加载和类型安全
 
 4. **Vite 配置**：
    - 开发服务器：`vite --host --port 8080`
@@ -167,15 +167,15 @@ npm run re-sqlite
    - 生产环境自动压缩代码（terser）
 
 5. **组件开发**：
-   - 全局组件注册在 `frontend/src/components/global/index.js`
+   - 全局组件注册在 `frontend/src/components/global/index.ts`（自动导入）
    - 页面组件放在 `frontend/src/views/` 目录下
-   - 使用 Vue 3 Composition API（`<script setup>`）
+   - 使用 Vue 3 Composition API（`<script setup>`）和 TypeScript
 
 ### IPC 通信规范
 
 前端与主进程通过 IPC 进行通信：
 
-```javascript
+```typescript
 // 前端调用
 import { ipc } from '@/utils/ipcRenderer';
 const result = await ipc.invoke('controller/example/test', params);
@@ -190,9 +190,10 @@ async test(args, event) {
 ### 代码风格
 
 - 主进程使用 CommonJS 模块系统（`require/module.exports`）
-- 前端使用 ES6 模块系统（`import/export`）
+- 前端使用 ES6 模块系统（`import/export`）和 TypeScript
 - 遵循 JavaScript/TypeScript 最佳实践
-- 使用 ESLint 进行代码检查（如已配置）
+- 使用 TypeScript 严格模式进行类型检查
+- 使用 Vue 3 Composition API 和 `<script setup>` 语法
 
 ## 配置说明
 
@@ -209,12 +210,15 @@ async test(args, event) {
 - `httpServer`：HTTP 服务器配置（端口 7071）
 - `mainServer`：主服务器配置
 
-### 前端配置（vite.config.js）
+### 前端配置（vite.config.ts）
 
 - **基础配置**：
   - `base: './'`：相对路径部署
   - `publicDir: 'public'`：静态资源目录
   - 路径别名：`@` → `src`
+
+- **插件配置**：
+  - `@vitejs/plugin-vue`：Vue 3 支持
 
 - **CSS 配置**：
   - Less 预处理器支持
@@ -254,17 +258,20 @@ async test(args, event) {
 
 ### 前端依赖
 
-- `vue@^3.5.12`：Vue 3 框架
-- `vue-router@^4.0.14`：路由管理
+- `vue@^3.5.26`：Vue 3 框架
+- `vue-router@^4.6.4`：路由管理
 
 ### 前端开发依赖
 
-- `vite@^5.4.11`：构建工具
-- `@vitejs/plugin-vue@^4.2.3`：Vue 3 插件
-- `@vue/compiler-sfc@^3.2.33`：Vue 单文件组件编译器
-- `less@^4.1.2`：Less 预处理器
+- `vite@^5.4.21`：构建工具
+- `@vitejs/plugin-vue@^4.6.2`：Vue 3 插件
+- `@vue/compiler-sfc@^3.5.26`：Vue 单文件组件编译器
+- `typescript@^5.9.3`：TypeScript 编译器
+- `vue-tsc@^3.2.1`：Vue TypeScript 类型检查
+- `less@^4.5.1`：Less 预处理器
 - `less-loader@^10.2.0`：Less 加载器
-- `terser@^5.19.1`：JavaScript 压缩工具
+- `terser@^5.44.1`：JavaScript 压缩工具
+- `@types/node@^25.0.3`：Node.js 类型定义
 
 ## 预加载模块
 
@@ -306,9 +313,9 @@ npm run dev
 4. 在前端页面调用 API
 
 **前端开发流程**：
-1. 在 `frontend/src/views/` 创建页面组件
-2. 在 `frontend/src/router/routerMap.js` 添加路由配置
-3. 使用 Composition API 编写组件逻辑
+1. 在 `frontend/src/views/` 创建页面组件（使用 TypeScript）
+2. 在 `frontend/src/router/routerMap.ts` 添加路由配置
+3. 使用 Composition API 和 TypeScript 编写组件逻辑
 4. 通过 IPC 与主进程通信
 
 ### 3. 调试
@@ -352,6 +359,17 @@ npm run build-l
 8. **上下文隔离**：默认禁用上下文隔离（`contextIsolation: false`），如需启用请同时配置 `bridge.js`
 9. **Node 集成**：默认启用 Node.js 集成（`nodeIntegration: true`），渲染进程可直接使用 Node API
 10. **资源处理**：小于 4096 字节的资源会被内联为 Base64，超过此大小的资源会单独打包
+11. **TypeScript**：前端使用 TypeScript 开发，确保类型安全，开发时可使用 `npm run type-check` 进行类型检查
+
+## 项目信息
+
+- **项目名称**：secs-simulator
+- **项目描述**：基于 ElectronEgg 和 secs4js 的 SECS 模拟器
+- **版本**：0.0.1
+- **作者**：Ran Qian <1151264028@qq.com>
+- **许可证**：Apache
+- **仓库地址**：https://github.com/LostCat-Qian/secs-simulator.git
+- **关键词**：Electron, electron-egg, ElectronEgg, secs, simulator, secs-simulator, secsgem, secs-i, secs-ii, secs-gem
 
 ## 相关资源
 

@@ -8,9 +8,14 @@ import type { RouteRecordRaw } from 'vue-router'
 const constantRouterMap: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'Example',
-    redirect: { name: 'ExampleHelloIndex' },
+    name: 'Home',
+    redirect: { name: 'HomeIndex' },
     children: [
+      {
+        path: '/',
+        name: 'HomeIndex',
+        component: () => import('@/views/home/Index.vue')
+      },
       {
         path: '/example',
         name: 'ExampleHelloIndex',

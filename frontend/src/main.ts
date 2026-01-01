@@ -4,26 +4,17 @@ import './style.css'
 // import './assets/global.less'
 import globalComponents from './components/global'
 import Router from './router/index'
-
-// Vuetify
-import 'vuetify/styles'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
-import '@mdi/font/css/materialdesignicons.css'
-
-const vuetify = createVuetify({
-  components,
-  directives
-})
+import ArcoVue from '@arco-design/web-vue'
+import '@arco-design/web-vue/dist/arco.css'
 
 const app = createApp(App)
 
-// components
-for (const i in components) {
+// global components
+for (const i in globalComponents) {
   app.component(i, globalComponents[i])
 }
 
+app.use(ArcoVue)
+
 app.use(Router)
-app.use(vuetify)
 app.mount('#app')
