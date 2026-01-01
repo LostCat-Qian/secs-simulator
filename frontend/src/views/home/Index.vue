@@ -13,13 +13,8 @@
 
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
-            <FileTree 
-              :tree-data="fileTreeData" 
-              :engines="engineList"
-              @edit="handleEditFile"
-              @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo"
-            />
+            <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
+              @sendTo="handleSendFileTo" />
           </div>
 
           <!-- File Preview Area -->
@@ -32,7 +27,25 @@
       <a-layout-content class="main-content">
         <!-- Logs Area -->
         <div class="logs-wrapper">
-          <LogPanel :logs="realTimeLogs" @clear="clearLogs" />
+          <div class="logs-header">
+            <span class="title">Logs</span>
+          </div>
+          <div class="logs-container">
+            <template v-if="logPanels.length === 1">
+              <div class="log-panel-item single-panel">
+                <LogPanel :title="logPanels[0].title" :logs="logPanels[0].logs" @clear="clearLogs(logPanels[0].id)"
+                  @close="closeLogPanel(logPanels[0].id)" />
+              </div>
+            </template>
+            <template v-else>
+              <a-resize-box v-for="(panel, index) in logPanels" :key="panel.id" :directions="['right']"
+                class="log-panel-item" :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }"
+                :min-width="200">
+                <LogPanel :title="panel.title" :logs="panel.logs" @clear="clearLogs(panel.id)"
+                  @close="closeLogPanel(panel.id)" />
+              </a-resize-box>
+            </template>
+          </div>
         </div>
 
         <!-- Auto Reply Area -->
@@ -48,13 +61,94 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Modal, TreeNodeData } from '@arco-design/web-vue';
+import { Modal, TreeNodeData, Message } from '@arco-design/web-vue';
 import EngineList from './components/EngineList.vue';
 import FileTree from './components/FileTree.vue';
 import FilePreview from './components/FilePreview.vue';
 import LogPanel from './components/LogPanel.vue';
 import AutoReplyPanel from './components/AutoReplyPanel.vue';
 import AddEngineModal from './components/AddEngineModal.vue';
+
+// Log Panel Management
+interface LogPanelData {
+  id: string;
+  title: string;
+  engineId?: string;
+  engineName?: string;
+  width: string;
+  logs: Array<{
+    time: string;
+    level: string;
+    message: string;
+  }>;
+}
+
+const logPanels = ref<LogPanelData[]>([
+  {
+    id: '1',
+    title: 'Real-time Logs',
+    engineId: '',
+    engineName: 'All Engines',
+    width: '100%',
+    logs: [
+      { time: '14:30:05', level: 'INFO', message: 'Connection established with EQ_CVD_001' },
+      { time: '14:30:06', level: 'INFO', message: 'Received S1F13 message from equipment' },
+      { time: '14:30:07', level: 'DEBUG', message: 'Processing S1F14 reply message' },
+      { time: '14:30:08', level: 'WARN', message: 'T3 timeout detected, retrying...' },
+      { time: '14:30:09', level: 'INFO', message: 'S1F14 message sent successfully' },
+      { time: '14:30:11', level: 'ERROR', message: 'Connection lost, attempting to reconnect...' }
+    ]
+  }
+]);
+
+let panelCounter = 1;
+
+const redistributePanelWidths = () => {
+  const count = logPanels.value.length;
+  if (count === 1) {
+    logPanels.value[0].width = '100%';
+  } else {
+    const percentage = 100 / count;
+    logPanels.value.forEach(panel => {
+      panel.width = `${percentage}%`;
+    });
+  }
+};
+
+const addLogPanel = (engine: { name: string; active: boolean }) => {
+  panelCounter++;
+  const newPanel: LogPanelData = {
+    id: String(panelCounter),
+    title: `${engine.name} Logs`,
+    engineId: String(engineList.value.indexOf(engine)),
+    engineName: engine.name,
+    width: '0%',
+    logs: []
+  };
+  logPanels.value.push(newPanel);
+  redistributePanelWidths();
+  Message.success(`Log Panel ${panelCounter} added for ${engine.name}`);
+};
+
+const closeLogPanel = (panelId: string) => {
+  if (logPanels.value.length <= 1) {
+    Message.warning('At least one log panel must remain');
+    return;
+  }
+  const index = logPanels.value.findIndex(panel => panel.id === panelId);
+  if (index > -1) {
+    logPanels.value.splice(index, 1);
+    redistributePanelWidths();
+    Message.success('Log panel closed');
+  }
+};
+
+const clearLogs = (panelId: string) => {
+  const panel = logPanels.value.find(p => p.id === panelId);
+  if (panel) {
+    panel.logs = [];
+  }
+};
 
 // Data State
 const engineList = ref([
@@ -104,15 +198,6 @@ const filePreviewContent = ref(`// Engine Configuration
   "timeout": 30,
   "retryCount": 3
 }`);
-
-const realTimeLogs = ref([
-  { time: '14:30:05', level: 'INFO', message: 'Connection established with EQ_CVD_001' },
-  { time: '14:30:06', level: 'INFO', message: 'Received S1F13 message from equipment' },
-  { time: '14:30:07', level: 'DEBUG', message: 'Processing S1F14 reply message' },
-  { time: '14:30:08', level: 'WARN', message: 'T3 timeout detected, retrying...' },
-  { time: '14:30:09', level: 'INFO', message: 'S1F14 message sent successfully' },
-  { time: '14:30:11', level: 'ERROR', message: 'Connection lost, attempting to reconnect...' }
-]);
 
 const tableData = ref([
   { tool: 'HIRATA', handlerSfName: 'SIF3', id: '#0^0', replySfName: 'SIF4-105', delayTime: '0 ms', status: 'Active' },
@@ -181,11 +266,8 @@ const selectEngine = (item: any) => {
 
 const openEngine = (item: any) => {
   selectEngine(item);
+  addLogPanel(item);
   console.log('Opening engine:', item.name);
-};
-
-const clearLogs = () => {
-  realTimeLogs.value = [];
 };
 
 const addAutoReply = () => {
@@ -255,5 +337,44 @@ const handleSendFileTo = (data: { file: TreeNodeData; engineName: string }) => {
   flex: 1;
   overflow: hidden;
   border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-2);
+
+  .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-1);
+  }
+}
+
+.logs-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background-color: var(--color-bg-1);
+
+  .log-panel-item {
+    height: 100%;
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+
+    &:last-child {
+      border-right: none;
+    }
+
+    &.single-panel {
+      flex: 1;
+      width: 100% !important;
+    }
+  }
 }
 </style>
