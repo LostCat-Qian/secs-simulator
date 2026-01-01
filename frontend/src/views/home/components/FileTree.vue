@@ -9,7 +9,40 @@
       <a-tree :data="filteredTreeData" :default-expand-all="true" block-node show-line
         :field-names="{ key: 'key', title: 'title', children: 'children' }">
         <template #title="node">
-          <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
+          <div class="tree-node-content">
+            <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
+            <!-- 只为文件节点（非文件夹）显示下拉菜单 -->
+            <a-dropdown v-if="!node.isFolder" @select="(value: string) => handleMenuSelect(value, node)" trigger="click"
+              :popup-max-height="false">
+              <a-button size="mini" class="menu-btn" @mousedown.stop>
+                <template #icon><icon-more /></template>
+              </a-button>
+              <template #content>
+                <a-doption value="edit">
+                  <template #icon><icon-edit /></template>
+                  Edit
+                </a-doption>
+                <a-doption value="delete">
+                  <template #icon><icon-delete /></template>
+                  Delete
+                </a-doption>
+                <a-dsubmenu value="sendto">
+                  <template #icon><icon-export /></template>
+                  Send To
+                  <template #content>
+                    <a-doption v-for="engine in engines" :key="engine.name" :value="`sendto-${engine.name}`">
+                      <template #icon><icon-send /></template>
+                      {{ engine.name }}
+                    </a-doption>
+                    <a-doption v-if="engines.length === 0" disabled>
+                      <template #icon><icon-close-circle /></template>
+                      No Engines Available
+                    </a-doption>
+                  </template>
+                </a-dsubmenu>
+              </template>
+            </a-dropdown>
+          </div>
         </template>
       </a-tree>
     </div>
@@ -18,11 +51,15 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { TreeNodeData } from '@arco-design/web-vue';
+import { TreeNodeData, Message } from '@arco-design/web-vue';
+import { IconMore, IconEdit, IconDelete, IconExport, IconSend, IconCloseCircle } from '@arco-design/web-vue/es/icon';
 
 const props = defineProps<{
   treeData: Array<TreeNodeData>;
+  engines: Array<{ name: string; active: boolean }>;
 }>();
+
+const emit = defineEmits(['edit', 'delete', 'sendTo']);
 
 const searchKey = ref('');
 
@@ -71,6 +108,18 @@ const filterTreeData = (data: TreeNodeData[], keyword: string): TreeNodeData[] =
 const filteredTreeData = computed(() => {
   return filterTreeData(props.treeData, searchKey.value);
 });
+
+// 处理菜单选择
+const handleMenuSelect = (value: string, node: TreeNodeData) => {
+  if (value === 'edit') {
+    emit('edit', node);
+  } else if (value === 'delete') {
+    emit('delete', node);
+  } else if (value.startsWith('sendto-')) {
+    const engineName = value.replace('sendto-', '');
+    emit('sendTo', { file: node, engineName });
+  }
+};
 </script>
 
 <style scoped lang="less">
@@ -111,6 +160,37 @@ const filteredTreeData = computed(() => {
     font-weight: 600;
     padding: 0 2px;
     border-radius: 2px;
+  }
+
+  .tree-node-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-right: 8px;
+
+    .tree-node-title {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .menu-btn {
+      opacity: 0;
+      transition: opacity 0.2s;
+      padding: 0 8px;
+      height: 24px;
+      font-size: 12px;
+      border-radius: var(--border-radius-small);
+
+      &:hover {
+        color: var(--color-primary-6);
+        border-color: var(--color-primary-6);
+      }
+    }
+  }
+
+  :deep(.arco-tree-node:hover) .menu-btn {
+    opacity: 1;
   }
 }
 </style>

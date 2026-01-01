@@ -13,7 +13,13 @@
 
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
-            <FileTree :tree-data="fileTreeData" />
+            <FileTree 
+              :tree-data="fileTreeData" 
+              :engines="engineList"
+              @edit="handleEditFile"
+              @delete="handleDeleteFile"
+              @sendTo="handleSendFileTo"
+            />
           </div>
 
           <!-- File Preview Area -->
@@ -184,6 +190,30 @@ const clearLogs = () => {
 
 const addAutoReply = () => {
   console.log('Add auto reply clicked');
+};
+
+// File Tree operations
+const handleEditFile = (node: TreeNodeData) => {
+  Modal.info({
+    title: 'Edit File',
+    content: `Edit file: ${node.title}`,
+  });
+};
+
+const handleDeleteFile = (node: TreeNodeData) => {
+  Modal.confirm({
+    title: 'Delete File',
+    content: `Are you sure you want to delete ${node.title}?`,
+    onOk: () => {
+      console.log('Delete file:', node.key);
+      // TODO: Implement actual delete logic
+    }
+  });
+};
+
+const handleSendFileTo = (data: { file: TreeNodeData; engineName: string }) => {
+  console.log('Send file to engine:', data.file.title, '->', data.engineName);
+  // TODO: Implement actual send logic
 };
 </script>
 
