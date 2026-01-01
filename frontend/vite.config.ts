@@ -41,7 +41,23 @@ export default defineConfig(() => {
           drop_console: false,
           drop_debugger: true
         }
+      },
+      // Configure worker bundling
+      rollupOptions: {
+        output: {
+          assetFileNames: 'assets/[name].[hash][extname]',
+          chunkFileNames: 'assets/[name].[hash].js',
+          entryFileNames: 'assets/[name].[hash].js',
+        }
       }
+    },
+    // Worker configuration
+    worker: {
+      format: 'es'
+    },
+    // Optimize dependencies
+    optimizeDeps: {
+      include: ['monaco-editor']
     }
   }
 })
