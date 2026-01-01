@@ -1,7 +1,7 @@
 <template>
   <a-modal :visible="visible" @update:visible="val => $emit('update:visible', val)" :title="modalTitle" width="90vw"
     :footer="true" @cancel="handleCancel" :mask-closable="false" :body-style="{ padding: 0, height: '70vh' }">
-    <div class="editor-container">
+    <div class="editor-container" tabindex="0">
       <vue-monaco-editor v-model:value="editorContent" :language="language" :theme="theme" :options="editorOptions" />
     </div>
 
@@ -41,8 +41,8 @@ const originalContent = ref('');
 
 // Editor configuration
 const theme = ref('vs-dark');
-// All files use log format for parsing
-const language = ref('log');
+// All files use shell format for parsing (provides better highlighting for log files)
+const language = ref('shell');
 
 const editorOptions = {
   automaticLayout: true,
@@ -66,7 +66,18 @@ const editorOptions = {
   autoIndent: 'advanced',
   bracketPairColorization: {
     enabled: true
-  }
+  },
+  // Enable clipboard support
+  domReadOnly: false,
+  readOnly: false,
+  // Ensure keyboard events are captured
+  contextmenu: true,
+  // Accessibility support for clipboard
+  accessibilitySupport: 'auto' as const,
+  // Enable all clipboard operations
+  clipboard: true,
+  // Allow focus
+  enableDropOperations: true
 };
 
 const modalTitle = computed(() => `Edit: ${props.fileName || 'Untitled'}`);
@@ -108,6 +119,11 @@ const handleSave = () => {
 .editor-container {
   height: 70vh;
   width: 100%;
+  outline: none;
+
+  &:focus {
+    outline: none;
+  }
 }
 
 .footer-actions {

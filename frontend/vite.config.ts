@@ -6,9 +6,7 @@ import path from 'node:path'
 export default defineConfig(() => {
   return {
     // 项目插件
-    plugins: [
-      vue()
-    ],
+    plugins: [vue()],
     // 基础配置
     base: './',
     publicDir: 'public',
@@ -47,13 +45,13 @@ export default defineConfig(() => {
         output: {
           assetFileNames: 'assets/[name].[hash][extname]',
           chunkFileNames: 'assets/[name].[hash].js',
-          entryFileNames: 'assets/[name].[hash].js',
+          entryFileNames: 'assets/[name].[hash].js'
         }
       }
     },
     // Worker configuration
     worker: {
-      format: 'es'
+      format: 'es' as const
     },
     // Optimize dependencies
     optimizeDeps: {
