@@ -1,8 +1,11 @@
 <template>
   <div class="file-preview-section">
+    <!-- Header -->
     <div class="header">
       <span class="title">File Preview</span>
     </div>
+
+    <!-- Content Area -->
     <div class="content-container">
       <pre class="content">{{ content }}</pre>
     </div>
@@ -10,6 +13,9 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Component to preview file content.
+ */
 defineProps<{
   content: string;
 }>();

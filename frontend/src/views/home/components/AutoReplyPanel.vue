@@ -1,19 +1,35 @@
 <template>
   <div class="auto-reply-section">
+    <!-- Header -->
     <div class="header">
       <span class="title">Auto Reply Setting</span>
       <div class="actions">
-        <a-input-search :model-value="searchText" @update:model-value="(val: string) => $emit('update:searchText', val)"
-          placeholder="Search..." size="small" style="width: 200px" />
+        <a-input-search
+          :model-value="searchText"
+          @update:model-value="(val: string) => $emit('update:searchText', val)"
+          placeholder="Search..."
+          size="small"
+          style="width: 200px"
+        />
         <a-button type="primary" size="small" @click="$emit('add')">
           <template #icon><icon-plus /></template>
           Add
         </a-button>
       </div>
     </div>
+
+    <!-- Data Table -->
     <div class="table-container">
-      <a-table :data="data" :pagination="false" :bordered="false" stripe size="small" :row-class="rowClass"
-        :scroll="{ y: '100%' }" style="height: 100%">
+      <a-table
+        :data="data"
+        :pagination="false"
+        :bordered="false"
+        stripe
+        size="small"
+        :row-class="rowClass"
+        :scroll="{ y: '100%' }"
+        style="height: 100%"
+      >
         <template #columns>
           <a-table-column title="Tool" data-index="tool" :width="100" />
           <a-table-column title="Handler SF Name" data-index="handlerSfName" :width="150" />
@@ -36,13 +52,32 @@
 <script setup lang="ts">
 import { IconPlus } from '@arco-design/web-vue/es/icon';
 
+/**
+ * Interface for Auto Reply Item
+ */
+interface AutoReplyItem {
+  tool: string;
+  handlerSfName: string;
+  id: string;
+  replySfName: string;
+  delayTime: string;
+  status: string;
+}
+
 defineProps<{
-  data: Array<any>;
+  data: AutoReplyItem[];
   searchText: string;
 }>();
 
-defineEmits(['add', 'update:searchText']);
+defineEmits<{
+  (e: 'add'): void;
+  (e: 'update:searchText', value: string): void;
+}>();
 
+/**
+ * Returns the color associated with the status.
+ * @param status The status string
+ */
 const getStatusColor = (status: string) => {
   const map: Record<string, string> = {
     'Active': 'green',
@@ -52,7 +87,11 @@ const getStatusColor = (status: string) => {
   return map[status] || 'gray';
 };
 
+/**
+ * Custom row class for styling specific rows (e.g., highlighting the first row).
+ */
 const rowClass = (_record: any, rowIndex: number) => {
+  // Example: Highlight the first row
   return rowIndex === 0 ? 'highlight-row' : '';
 };
 </script>
@@ -89,6 +128,7 @@ const rowClass = (_record: any, rowIndex: number) => {
   padding: 12px;
   overflow: hidden;
 
+  /* Highlight Row Style */
   :deep(.highlight-row) .arco-table-td {
     background-color: var(--color-primary-light-1);
   }

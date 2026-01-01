@@ -1,7 +1,8 @@
 <template>
-  <a-modal :visible="visible" @update:visible="val => $emit('update:visible', val)" :title="modalTitle"
-    width="800px" @cancel="handleCancel" @ok="handleOk" :mask-closable="false">
+  <a-modal :visible="visible" @update:visible="val => $emit('update:visible', val)" :title="modalTitle" width="800px"
+    @cancel="handleCancel" @ok="handleOk" :mask-closable="false">
     <a-form :model="form" layout="vertical" class="engine-form">
+      <!-- Engine Properties -->
       <a-divider orientation="left">Engine Properties</a-divider>
       <a-row :gutter="16">
         <a-col :span="8">
@@ -24,6 +25,7 @@
         </a-col>
       </a-row>
 
+      <!-- Communication Configuration -->
       <a-divider orientation="left">Communication Configuration</a-divider>
       <a-row :gutter="16">
         <a-col :span="12">
@@ -99,6 +101,7 @@
         </a-col>
       </a-row>
 
+      <!-- Timeout Parameters -->
       <a-divider orientation="left">Timeout Parameters (T0-T8)</a-divider>
       <a-row :gutter="16">
         <a-col :span="8" v-for="i in 9" :key="i">
@@ -108,6 +111,7 @@
         </a-col>
       </a-row>
 
+      <!-- Advanced Settings -->
       <a-divider orientation="left">Advance setting</a-divider>
       <a-row :gutter="16">
         <a-col :span="8">
@@ -153,7 +157,10 @@ const props = defineProps<{
   initialData?: any;
 }>();
 
-const emit = defineEmits(['update:visible', 'submit']);
+const emit = defineEmits<{
+  (e: 'update:visible', visible: boolean): void;
+  (e: 'submit', data: any): void;
+}>();
 
 const defaultForm = {
   name: 'TOOL',
@@ -186,6 +193,9 @@ const form = ref({ ...defaultForm });
 
 const modalTitle = computed(() => props.initialData ? 'Edit Engine Properties' : 'Engine Properties');
 
+/**
+ * Watch for visibility changes to reset or populate the form.
+ */
 watch(() => props.visible, (val) => {
   if (val) {
     if (props.initialData) {
@@ -200,9 +210,14 @@ watch(() => props.visible, (val) => {
       } else {
         name = props.initialData.name;
       }
-      form.value = { ...defaultForm, deviceId, name };
+
+      form.value = {
+        ...defaultForm,
+        ...props.initialData,
+        name,
+        deviceId
+      };
     } else {
-      // Reset form when opening in add mode
       form.value = { ...defaultForm };
     }
   }
@@ -213,11 +228,20 @@ const handleCancel = () => {
 };
 
 const handleOk = () => {
-  emit('submit', form.value);
-  emit('update:visible', false);
+  // Combine device ID and name for the list display
+  // In a real app, you might want to keep them separate
+  const submitData = {
+    ...form.value,
+    // Original requirement seemed to combine them in the list
+    // name: `${form.value.deviceId}. ${form.value.name}` 
+  };
+  // But let's return the form data as is and let parent handle formatting
+  emit('submit', submitData);
 };
 </script>
 
 <style scoped>
-/* Minimal custom style, rely on Arco's defaults */
+.engine-form {
+  padding: 0 10px;
+}
 </style>

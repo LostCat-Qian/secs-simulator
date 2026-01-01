@@ -1,5 +1,6 @@
 <template>
   <div class="log-section">
+    <!-- Header -->
     <div class="header">
       <span class="title" :title="title">{{ title }}</span>
       <div class="actions">
@@ -11,11 +12,18 @@
         </a-button>
       </div>
     </div>
+
+    <!-- Log Content -->
     <div class="log-container">
       <div v-for="(log, index) in logs" :key="index" class="log-item">
         <span class="log-time">{{ log.time }}</span>
         <span :class="['log-level', `level-${log.level.toLowerCase()}`]">[{{ log.level }}]</span>
         <span class="log-message">{{ log.message }}</span>
+      </div>
+
+      <!-- Empty State -->
+      <div v-if="logs.length === 0" class="empty-log">
+        No logs available
       </div>
     </div>
   </div>
@@ -24,16 +32,24 @@
 <script setup lang="ts">
 import { IconRefresh, IconClose } from '@arco-design/web-vue/es/icon';
 
+/**
+ * Interface for Log Entry
+ */
+interface LogEntry {
+  time: string;
+  level: string;
+  message: string;
+}
+
 defineProps<{
   title?: string;
-  logs: Array<{
-    time: string;
-    level: string;
-    message: string;
-  }>;
+  logs: LogEntry[];
 }>();
 
-defineEmits(['clear', 'close']);
+defineEmits<{
+  (e: 'clear'): void;
+  (e: 'close'): void;
+}>();
 </script>
 
 <style scoped lang="less">
@@ -48,6 +64,12 @@ defineEmits(['clear', 'close']);
     height: 24px;
     min-width: 24px;
     font-size: 12px;
+    color: var(--color-text-2);
+
+    &:hover {
+      color: var(--color-text-1);
+      background-color: var(--color-fill-3);
+    }
   }
 }
 
@@ -58,6 +80,7 @@ defineEmits(['clear', 'close']);
   padding: 6px 8px;
   border-bottom: 1px solid var(--color-border);
   gap: 8px;
+  background-color: var(--color-bg-2);
 
   .title {
     font-size: 13px;
@@ -82,7 +105,7 @@ defineEmits(['clear', 'close']);
   flex: 1;
   overflow: auto;
   padding: 12px 16px;
-  background-color: #121212; // Keep dark background for logs as it's standard for terminals
+  background-color: #121212; // Dark background for logs
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
 
@@ -125,6 +148,13 @@ defineEmits(['clear', 'close']);
       flex: 1;
       word-break: break-all;
     }
+  }
+
+  .empty-log {
+    color: #4E5969;
+    text-align: center;
+    margin-top: 20px;
+    font-style: italic;
   }
 }
 </style>

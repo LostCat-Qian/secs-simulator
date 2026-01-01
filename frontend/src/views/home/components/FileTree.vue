@@ -1,19 +1,28 @@
 <template>
   <div class="file-tree-section">
+    <!-- Header -->
     <div class="header">
       <span class="title">File Tree</span>
     </div>
+
+    <!-- Tree Content -->
     <div class="tree-container">
+      <!-- Search Input -->
       <a-input-search style="margin-bottom: 8px; width: 100%" v-model="searchKey" placeholder="Search files..."
         allow-clear />
+
+      <!-- Tree View -->
       <a-tree :data="filteredTreeData" :default-expand-all="true" block-node show-line
         :field-names="{ key: 'key', title: 'title', children: 'children' }">
         <template #title="node">
           <div class="tree-node-content">
+            <!-- Node Title with Highlight -->
             <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
-            <!-- 只为文件节点（非文件夹）显示下拉菜单 -->
-            <a-dropdown v-if="!node.isFolder" @select="(value: string) => handleMenuSelect(value, node)" trigger="click"
-              :popup-max-height="false">
+
+            <!-- Context Menu for Files (Not Folders) -->
+            <a-dropdown v-if="!node.isFolder"
+              @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)"
+              trigger="click" :popup-max-height="false">
               <a-button size="mini" class="menu-btn" @mousedown.stop>
                 <template #icon><icon-more /></template>
               </a-button>
@@ -51,7 +60,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { TreeNodeData, Message } from '@arco-design/web-vue';
+import { TreeNodeData } from '@arco-design/web-vue';
 import { IconMore, IconEdit, IconDelete, IconExport, IconSend, IconCloseCircle } from '@arco-design/web-vue/es/icon';
 
 const props = defineProps<{
@@ -59,23 +68,39 @@ const props = defineProps<{
   engines: Array<{ name: string; active: boolean }>;
 }>();
 
-const emit = defineEmits(['edit', 'delete', 'sendTo']);
+const emit = defineEmits<{
+  (e: 'edit', node: TreeNodeData): void;
+  (e: 'delete', node: TreeNodeData): void;
+  (e: 'sendTo', payload: { file: TreeNodeData; engineName: string }): void;
+}>();
 
 const searchKey = ref('');
 
-// 高亮显示搜索关键词
+/**
+ * Escapes special characters for RegExp.
+ * @param string The string to escape
+ */
+const escapeRegExp = (string: string): string => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+/**
+ * Highlights keywords in the text.
+ * @param text The text to highlight
+ * @param keyword The keyword to search for
+ */
 const highlightText = (text: string, keyword: string): string => {
   if (!keyword) return text;
   const regex = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
   return text.replace(regex, '<span class="highlight">$1</span>');
 };
 
-// 转义正则表达式特殊字符
-const escapeRegExp = (string: string): string => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
-
-// 过滤树数据，保留匹配的节点及其父节点
+/**
+ * Filters the tree data based on the keyword.
+ * Retains nodes that match the keyword or have children that match.
+ * @param data The tree data
+ * @param keyword The search keyword
+ */
 const filterTreeData = (data: TreeNodeData[], keyword: string): TreeNodeData[] => {
   if (!keyword) return data;
 
@@ -83,15 +108,15 @@ const filterTreeData = (data: TreeNodeData[], keyword: string): TreeNodeData[] =
 
   return data
     .map(node => {
-      // 检查当前节点是否匹配
+      // Check if current node matches
       const isMatch = node.title?.toLowerCase().includes(lowerKeyword);
 
-      // 递归过滤子节点
+      // Recursively filter children
       const filteredChildren = node.children
         ? filterTreeData(node.children, keyword)
         : [];
 
-      // 如果当前节点匹配，或者有匹配的子节点，则保留该节点
+      // Keep node if it matches OR if it has matching children
       if (isMatch || filteredChildren.length > 0) {
         return {
           ...node,
@@ -104,12 +129,16 @@ const filterTreeData = (data: TreeNodeData[], keyword: string): TreeNodeData[] =
     .filter((node): node is TreeNodeData => node !== null);
 };
 
-// 计算过滤后的树数据
+// Computed property for the filtered tree
 const filteredTreeData = computed(() => {
   return filterTreeData(props.treeData, searchKey.value);
 });
 
-// 处理菜单选择
+/**
+ * Handles menu selection from the dropdown.
+ * @param value The action value
+ * @param node The tree node
+ */
 const handleMenuSelect = (value: string, node: TreeNodeData) => {
   if (value === 'edit') {
     emit('edit', node);
@@ -146,6 +175,7 @@ const handleMenuSelect = (value: string, node: TreeNodeData) => {
   overflow: auto;
   padding: 8px;
 
+  /* Custom Tree Node Styles */
   :deep(.arco-tree-node) {
     line-height: 28px;
   }
@@ -154,6 +184,7 @@ const handleMenuSelect = (value: string, node: TreeNodeData) => {
     font-size: 13px;
   }
 
+  /* Search Highlight Style */
   :deep(.highlight) {
     background-color: var(--color-warning-light-1);
     color: var(--color-warning-6);
@@ -172,6 +203,9 @@ const handleMenuSelect = (value: string, node: TreeNodeData) => {
     .tree-node-title {
       flex: 1;
       min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .menu-btn {
@@ -181,15 +215,17 @@ const handleMenuSelect = (value: string, node: TreeNodeData) => {
       height: 24px;
       font-size: 12px;
       border-radius: var(--border-radius-small);
+      color: var(--color-text-3);
 
       &:hover {
         color: var(--color-primary-6);
-        border-color: var(--color-primary-6);
+        background-color: var(--color-fill-2);
       }
     }
   }
 
-  :deep(.arco-tree-node:hover) .menu-btn {
+  :deep(.arco-tree-node:hover) .menu-btn,
+  .menu-btn:focus-within {
     opacity: 1;
   }
 }
