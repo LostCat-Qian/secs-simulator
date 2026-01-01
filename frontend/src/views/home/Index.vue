@@ -21,7 +21,9 @@
 
           <!-- File Preview Area -->
           <div class="file-preview-wrapper">
-            <FilePreview :content="filePreviewContent" />
+            <a-resize-box :directions="['top']" class="file-preview-box">
+              <FilePreview :content="filePreviewContent" />
+            </a-resize-box>
           </div>
         </div>
       </a-layout-sider>
@@ -42,12 +44,18 @@
               </div>
             </template>
             <!-- Multiple Log Panels -->
-            <template v-else>
+            <template v-else-if="logPanels.length > 1">
               <a-resize-box v-for="panel in logPanels" :key="panel.id" :directions="['right']" class="log-panel-item"
                 :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }" :min-width="200">
                 <LogPanel :title="panel.title" :logs="panel.logs" @clear="clearLogs(panel.id)"
                   @close="closeLogPanel(panel.id)" />
               </a-resize-box>
+            </template>
+            <!-- No Log Panels -->
+            <template v-else>
+              <div class="empty-logs">
+                <a-empty description="No logs opened" />
+              </div>
             </template>
           </div>
         </div>
@@ -228,10 +236,6 @@ const addLogPanel = (engine: EngineData) => {
  * @param panelId The ID of the panel to close
  */
 const closeLogPanel = (panelId: string) => {
-  if (logPanels.value.length <= 1) {
-    Message.warning('At least one log panel must remain');
-    return;
-  }
   const index = logPanels.value.findIndex(panel => panel.id === panelId);
   if (index > -1) {
     logPanels.value.splice(index, 1);
@@ -401,18 +405,18 @@ const addAutoReply = () => {
   flex-shrink: 0;
 }
 
+.file-preview-box {
+  height: 200px;
+  min-height: 200px;
+  flex-shrink: 0;
+}
+
 .file-tree-wrapper {
   flex: 1;
   min-height: 0;
   overflow: hidden;
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
-}
-
-.file-preview-wrapper {
-  height: 200px;
-  flex-shrink: 0;
-  overflow: hidden;
 }
 
 /* Main Content Styles */
@@ -463,6 +467,14 @@ const addAutoReply = () => {
     width: 100%;
     flex: 1;
   }
+}
+
+.empty-logs {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-3);
 }
 
 .auto-reply-box {
