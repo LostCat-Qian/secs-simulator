@@ -17,6 +17,24 @@
     "!go/",
     "!python/"
   ],
+  "extraFiles": [
+    {
+      "from": "engines/",
+      "to": "engines"
+    },
+    {
+      "from": "sml/",
+      "to": "sml"
+    },
+    {
+      "from": "auto-reply-scripts/",
+      "to": "auto-reply-scripts"
+    },
+    {
+      "from": "secs-logs/",
+      "to": "secs-logs"
+    }
+  ],
   "extraResources": {
     "from": "build/extraResources/",
     "to": "extraResources"
@@ -43,7 +61,7 @@
     "artifactName": "${productName}-${os}-${version}-${arch}.${ext}",
     "target": [
       {
-        "target": "nsis"
+        "target": "portable"
       }
     ]
   }
