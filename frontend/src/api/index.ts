@@ -19,8 +19,11 @@ interface IpcApiRoute {
   saveEngineConfig: string
   // auto reply
   addScript: string
+  getScript: string
   deleteScript: string
+  updateScript: string
   isAutoReplyEnabled: string
+  listScripts: string
 }
 
 const ipcApiRoute: IpcApiRoute = {
@@ -40,8 +43,11 @@ const ipcApiRoute: IpcApiRoute = {
   saveEngineConfig: 'controller/engine/saveConfig', // save engine json config
   // auto reply
   addScript: 'controller/autoReply/addScript', // add auto reply script
+  getScript: 'controller/autoReply/getScript', // get auto reply script detail
   deleteScript: 'controller/autoReply/deleteScript', // delete auto reply script by name
-  isAutoReplyEnabled: 'controller/autoReply/isEnabled' // check if auto reply is enabled
+  updateScript: 'controller/autoReply/updateScript', // update auto reply script
+  isAutoReplyEnabled: 'controller/autoReply/isEnabled', // check if auto reply is enabled
+  listScripts: 'controller/autoReply/listScripts' // list auto reply scripts
 }
 
 export { ipcApiRoute }

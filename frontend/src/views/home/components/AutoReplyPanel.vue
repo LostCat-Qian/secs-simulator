@@ -24,23 +24,29 @@
         :data="data"
         :pagination="false"
         :bordered="false"
-        stripe
         size="small"
-        :row-class="rowClass"
         :scroll="{ y: '100%' }"
         style="height: 100%"
       >
         <template #columns>
           <a-table-column title="Tool" data-index="tool" :width="100" />
-          <a-table-column title="Handler SF Name" data-index="handlerSfName" :width="150" />
-          <a-table-column title="ID (201, 0~1)" data-index="id" :width="150" />
-          <a-table-column title="Reply SF Name" data-index="replySfName" :width="150" />
-          <a-table-column title="Delay Time" data-index="delayTime" :width="120" />
-          <a-table-column title="Status" data-index="status" :width="120">
+          <a-table-column title="SF Name" data-index="sf" :width="120" />
+          <a-table-column title="Delay (s)" data-index="delaySeconds" :width="120" />
+          <a-table-column title="Active" :width="120">
             <template #cell="{ record }">
-              <a-tag :color="getStatusColor(record.status)" size="small">
-                {{ record.status }}
+              <a-tag :color="record.active ? 'green' : 'gray'" size="small">
+                {{ record.active ? 'true' : 'false' }}
               </a-tag>
+            </template>
+          </a-table-column>
+          <a-table-column title="Actions" :width="180">
+            <template #cell="{ record }">
+              <a-button type="text" size="small" @click="$emit('edit', record)">
+                Edit
+              </a-button>
+              <a-button type="text" status="danger" size="small" @click="$emit('delete', record)">
+                Delete
+              </a-button>
             </template>
           </a-table-column>
         </template>
@@ -52,16 +58,12 @@
 <script setup lang="ts">
 import { IconPlus } from '@arco-design/web-vue/es/icon';
 
-/**
- * Interface for Auto Reply Item
- */
 interface AutoReplyItem {
+  name: string;
   tool: string;
-  handlerSfName: string;
-  id: string;
-  replySfName: string;
-  delayTime: string;
-  status: string;
+  sf: string;
+  delaySeconds: number;
+  active: boolean;
 }
 
 defineProps<{
@@ -72,28 +74,10 @@ defineProps<{
 defineEmits<{
   (e: 'add'): void;
   (e: 'update:searchText', value: string): void;
+  (e: 'edit', value: AutoReplyItem): void;
+  (e: 'delete', value: AutoReplyItem): void;
 }>();
 
-/**
- * Returns the color associated with the status.
- * @param status The status string
- */
-const getStatusColor = (status: string) => {
-  const map: Record<string, string> = {
-    'Active': 'green',
-    'Standby': 'gray',
-    'Listening': 'cyan',
-  };
-  return map[status] || 'gray';
-};
-
-/**
- * Custom row class for styling specific rows (e.g., highlighting the first row).
- */
-const rowClass = (_record: any, rowIndex: number) => {
-  // Example: Highlight the first row
-  return rowIndex === 0 ? 'highlight-row' : '';
-};
 </script>
 
 <style scoped lang="less">

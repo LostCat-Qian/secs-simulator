@@ -1,12 +1,13 @@
 <template>
-  <a-modal :visible="visible" @update:visible="val => $emit('update:visible', val)" :title="modalTitle" width="800px"
-    @cancel="handleCancel" @ok="handleOk" :mask-closable="false">
+  <a-modal :visible="visible" @update:visible="val => $emit('update:visible', val)" :title="modalTitle" width="70vw"
+    ok-text="Save" cancel-text="Cancel" @cancel="handleCancel" @ok="handleOk" :mask-closable="false">
     <a-form :model="form" layout="vertical" class="engine-form">
       <!-- Engine Properties -->
       <a-divider orientation="left">Engine Properties</a-divider>
       <a-row :gutter="16">
         <a-col :span="8">
-          <a-form-item label="Name" field="name">
+          <a-form-item label="Name" field="name" :validate-status="nameError ? 'error' : undefined"
+            :help="nameError || undefined">
             <a-input v-model="form.name" placeholder="TOOL" />
           </a-form-item>
         </a-col>
@@ -190,8 +191,9 @@ const defaultForm = {
 };
 
 const form = ref({ ...defaultForm });
+const nameError = ref('');
 
-const modalTitle = computed(() => props.initialData ? 'Edit Engine Properties' : 'Engine Properties');
+const modalTitle = computed(() => (props.initialData ? 'Edit Engine Properties' : 'Engine Properties'));
 
 /**
  * Watch for visibility changes to reset or populate the form.
@@ -227,15 +229,39 @@ const handleCancel = () => {
   emit('update:visible', false);
 };
 
+watch(
+  () => form.value.name,
+  (val) => {
+    const name = String(val || '');
+    if (!name) {
+      nameError.value = 'Engine name is required';
+    } else if (/\s/.test(name) || name.includes('-')) {
+      nameError.value = 'Engine name cannot contain spaces or "-"';
+    } else {
+      nameError.value = '';
+    }
+  },
+  { immediate: true }
+);
+
 const handleOk = () => {
-  // Combine device ID and name for the list display
-  // In a real app, you might want to keep them separate
+  const name = String(form.value.name || '');
+
+  if (!name || /\s/.test(name) || name.includes('-')) {
+    if (!nameError.value) {
+      if (!name) {
+        nameError.value = 'Engine name is required';
+      } else {
+        nameError.value = 'Engine name cannot contain spaces or "-"';
+      }
+    }
+    return;
+  }
+
   const submitData = {
-    ...form.value,
-    // Original requirement seemed to combine them in the list
-    // name: `${form.value.deviceId}. ${form.value.name}` 
+    ...form.value
   };
-  // But let's return the form data as is and let parent handle formatting
+
   emit('submit', submitData);
 };
 </script>

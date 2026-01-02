@@ -15,17 +15,9 @@
 
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
-            <FileTree
-              :tree-data="fileTreeData"
-              :engines="engineList"
-              @edit="handleEditFile"
-              @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo"
-              @selectFile="handlePreviewFile"
-              @addFile="handleAddFile"
-              @addRootFile="handleAddRootFile"
-              @addRootFolder="openAddRootFolderModal"
-            />
+            <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
+              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" @addFile="handleAddFile"
+              @addRootFile="handleAddRootFile" @addRootFolder="openAddRootFolderModal" />
           </div>
 
           <!-- File Preview Area -->
@@ -69,31 +61,62 @@
           </div>
         </div>
 
-        <!-- Auto Reply Area -->
         <a-resize-box :directions="['top']" class="auto-reply-box">
-          <AutoReplyPanel :data="tableData" v-model:searchText="searchText" @add="addAutoReply" />
+          <AutoReplyPanel :data="tableData" v-model:searchText="searchText" @add="addAutoReply" @edit="editAutoReply"
+            @delete="deleteAutoReply" />
         </a-resize-box>
       </a-layout-content>
     </a-layout>
 
     <AddEngineModal v-model:visible="addEngineModalVisible" :initial-data="editingEngine" @submit="handleAddEngine" />
 
-    <FileEditorModal
-      v-model:visible="fileEditorModalVisible"
-      :file-name="editingFileName"
-      :initial-content="editingFileContent"
-      :editable-name="isCreateMode"
-      @save="handleSaveFile"
-    />
+    <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
+      :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
 
-    <a-modal
-      v-model:visible="addRootFolderModalVisible"
-      title="Add Folder"
-      :mask-closable="false"
-      @ok="confirmAddRootFolder"
-      @cancel="cancelAddRootFolder"
-    >
+    <a-modal v-model:visible="addRootFolderModalVisible" title="Add Folder" :mask-closable="false" ok-text="OK"
+      cancel-text="Cancel" @ok="confirmAddRootFolder" @cancel="cancelAddRootFolder">
       <a-input v-model="newRootFolderName" placeholder="Enter folder name" />
+    </a-modal>
+
+    <a-modal v-model:visible="autoReplyModalVisible"
+      :title="editingAutoReplyName ? 'Edit Auto Reply Script' : 'Add Auto Reply Script'" :mask-closable="false"
+      width="80vw" ok-text="Save" cancel-text="Cancel" @ok="handleSaveAutoReply">
+      <a-form layout="vertical">
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-form-item label="Handle SF" field="handlerSf">
+              <a-input v-model="autoReplyForm.handlerSf" placeholder="S7F25" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="Tool" field="tool">
+              <a-select v-model="autoReplyForm.tool" placeholder="Select tool">
+                <a-option v-for="engine in engineList" :key="engine.name" :value="engine.name">
+                  {{ engine.name }}
+                </a-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="Active" field="active">
+              <a-switch v-model="autoReplyForm.active" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-form-item label="Delay Time (s)" field="delaySeconds">
+              <a-input-number v-model="autoReplyForm.delaySeconds" :min="0" :step="1" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-form-item label="Script">
+          <div class="auto-reply-editor-wrapper">
+            <vue-monaco-editor v-model:value="autoReplyForm.script" language="javascript" theme="vs-dark"
+              :options="autoReplyEditorOptions" />
+          </div>
+        </a-form-item>
+      </a-form>
     </a-modal>
   </div>
 </template>
@@ -110,6 +133,7 @@ import LogPanel from './components/LogPanel.vue';
 import AutoReplyPanel from './components/AutoReplyPanel.vue';
 import AddEngineModal from './components/AddEngineModal.vue';
 import FileEditorModal from './components/FileEditorModal.vue';
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 
 /**
  * Interface Definitions
@@ -134,6 +158,22 @@ interface EngineData {
   name: string;
   active: boolean;
   // Add other engine properties as needed
+}
+
+interface AutoReplyFormData {
+  tool: string;
+  handlerSf: string;
+  active: boolean;
+  delaySeconds: number;
+  script: string;
+}
+
+interface AutoReplyItem {
+  name: string;
+  tool: string;
+  sf: string;
+  delaySeconds: number;
+  active: boolean;
 }
 
 type SmlTreeNode = TreeNodeData & {
@@ -181,11 +221,18 @@ const logPanels = ref<LogPanelData[]>([
 
 // Auto Reply State
 const searchText = ref('');
-const tableData = ref([
-  { tool: 'EQ_CVD_001', handlerSfName: 'S1F13', id: '201', replySfName: 'S1F14', delayTime: '0.5s', status: 'Active' },
-  { tool: 'EQ_CVD_001', handlerSfName: 'S2F41', id: '0', replySfName: 'S2F42', delayTime: '1.0s', status: 'Standby' },
-  { tool: 'EQ_ETCH_02', handlerSfName: 'S6F11', id: '1', replySfName: 'S6F12', delayTime: '0s', status: 'Listening' },
-]);
+const tableData = ref<AutoReplyItem[]>([]);
+
+const autoReplyModalVisible = ref(false);
+const defaultAutoReplyScript = `function handler(msg, dir) {\n  return dir[0];\n}\n`;
+const autoReplyForm = ref<AutoReplyFormData>({
+  tool: '',
+  handlerSf: '',
+  active: true,
+  delaySeconds: 0,
+  script: defaultAutoReplyScript
+});
+const editingAutoReplyName = ref<string | null>(null);
 
 // Modal State
 const addEngineModalVisible = ref(false);
@@ -201,6 +248,15 @@ const creatingFolderPath = ref('');
 
 const addRootFolderModalVisible = ref(false);
 const newRootFolderName = ref('');
+
+const autoReplyEditorOptions = {
+  automaticLayout: true,
+  minimap: { enabled: true },
+  fontSize: 14,
+  lineNumbers: 'on',
+  scrollBeyondLastLine: false,
+  wordWrap: 'on'
+};
 
 // #endregion
 
@@ -319,6 +375,8 @@ const handleDeleteEngine = (engine: EngineData) => {
   Modal.confirm({
     title: 'Delete Engine',
     content: `Are you sure you want to delete ${engine.name}?`,
+    okText: 'Delete',
+    cancelText: 'Cancel',
     onOk: () => {
       const index = engineList.value.indexOf(engine);
       if (index > -1) {
@@ -577,6 +635,8 @@ const handleDeleteFile = (node: TreeNodeData) => {
   Modal.confirm({
     title: 'Delete File',
     content: `Are you sure you want to delete ${target.title}?`,
+    okText: 'Delete',
+    cancelText: 'Cancel',
     onOk: async () => {
       if (!ipc) {
         Message.error('Cannot delete file');
@@ -603,15 +663,148 @@ const handleSendFileTo = (payload: { file: TreeNodeData, engineName: string }) =
 
 // #endregion
 
+const loadAutoReplyScripts = async () => {
+  if (!ipc) {
+    return;
+  }
+  try {
+    const result = await ipc.invoke(ipcApiRoute.listScripts, null);
+    if (Array.isArray(result)) {
+      tableData.value = result.map((item: any) => ({
+        name: String(item.name || ''),
+        tool: String(item.tool || ''),
+        sf: String(item.sf || ''),
+        delaySeconds: Number.isFinite(Number(item.delaySeconds)) ? Number(item.delaySeconds) : 0,
+        active: Boolean(item.active)
+      }));
+    } else {
+      tableData.value = [];
+    }
+  } catch (error) {
+    console.error('Failed to load auto reply scripts:', error);
+    Message.error('Failed to load auto reply scripts');
+  }
+};
+
 onMounted(() => {
   loadFileTree();
+  loadAutoReplyScripts();
 });
 
 // #region --- Methods: Auto Reply ---
 
 const addAutoReply = () => {
-  console.log('Add auto reply');
-  Message.info('Add Auto Reply dialog would open here');
+  autoReplyForm.value = {
+    tool: engineList.value[0]?.name || '',
+    handlerSf: '',
+    active: true,
+    delaySeconds: 0,
+    script: defaultAutoReplyScript
+  };
+  editingAutoReplyName.value = null;
+  autoReplyModalVisible.value = true;
+};
+
+const editAutoReply = async (item: AutoReplyItem) => {
+  if (!ipc) {
+    Message.error('Cannot edit auto reply');
+    return;
+  }
+
+  try {
+    const result: any = await ipc.invoke(ipcApiRoute.getScript, { name: item.name });
+
+    autoReplyForm.value = {
+      tool: String(result.tool || item.tool || ''),
+      handlerSf: String(result.sf || item.sf || ''),
+      active: Boolean(typeof result.active === 'boolean' ? result.active : item.active),
+      delaySeconds: Number.isFinite(Number(result.delaySeconds))
+        ? Number(result.delaySeconds)
+        : item.delaySeconds,
+      script: String(result.code || '')
+    };
+
+    editingAutoReplyName.value = item.name;
+    autoReplyModalVisible.value = true;
+  } catch (error) {
+    console.error('Failed to load auto reply script detail:', error);
+    Message.error('Failed to load auto reply script detail');
+  }
+};
+
+const deleteAutoReply = (item: AutoReplyItem) => {
+  Modal.confirm({
+    title: 'Delete Auto Reply Script',
+    content: `Are you sure you want to delete script for ${item.tool} / ${item.sf}?`,
+    okText: 'Delete',
+    cancelText: 'Cancel',
+    async onOk() {
+      if (!ipc) {
+        Message.error('Cannot delete auto reply');
+        return;
+      }
+      try {
+        await ipc.invoke(ipcApiRoute.deleteScript, { name: item.name });
+        await loadAutoReplyScripts();
+        Message.success('Auto reply script deleted');
+      } catch (error) {
+        console.error('Failed to delete auto reply script:', error);
+        Message.error('Failed to delete auto reply script');
+      }
+    }
+  });
+};
+
+const handleSaveAutoReply = async () => {
+  const form = autoReplyForm.value;
+  if (!form.tool) {
+    Message.error('Tool is required');
+    return;
+  }
+  if (!form.handlerSf) {
+    Message.error('Handle SF is required');
+    return;
+  }
+  if (!form.script.trim()) {
+    Message.error('Script is required');
+    return;
+  }
+
+  if (!ipc) {
+    Message.error('Cannot save auto reply');
+    return;
+  }
+
+  try {
+    if (editingAutoReplyName.value) {
+      await ipc.invoke(ipcApiRoute.updateScript, {
+        originalName: editingAutoReplyName.value,
+        tool: form.tool,
+        handlerSf: form.handlerSf,
+        active: form.active,
+        delaySeconds: form.delaySeconds,
+        code: form.script
+      });
+      Message.success('Auto reply script updated');
+    } else {
+      await ipc.invoke(ipcApiRoute.addScript, {
+        tool: form.tool,
+        handlerSf: form.handlerSf,
+        active: form.active,
+        delaySeconds: form.delaySeconds,
+        code: form.script
+      });
+      Message.success('Auto reply script added');
+    }
+
+    await loadAutoReplyScripts();
+
+    editingAutoReplyName.value = null;
+    autoReplyModalVisible.value = false;
+  } catch (error) {
+    console.error('Failed to save auto reply script:', error);
+    Message.error('Failed to save auto reply script');
+  }
 };
 
 // #endregion
@@ -737,5 +930,18 @@ const addAutoReply = () => {
   min-height: 200px;
   flex-shrink: 0;
   border-top: 1px solid var(--color-border);
+}
+
+.auto-reply-editor-wrapper {
+  height: 380px;
+  border: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.auto-reply-editor-wrapper :deep(.monaco-editor),
+.auto-reply-editor-wrapper :deep(.monaco-editor .monaco-editor-background),
+.auto-reply-editor-wrapper :deep(.monaco-editor .overflow-guard) {
+  width: 100%;
+  height: 100%;
 }
 </style>
