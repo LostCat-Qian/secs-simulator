@@ -9,7 +9,7 @@ SECS Simulator 是一个基于 ElectronEgg 和 secs4js 的 SECS（Semiconductor 
 - **跨平台支持**：一套代码可打包为 Windows、macOS、Linux 版本，以及 UOS、Deepin、麒麟等国产系统版本
 - **架构灵活**：支持单业务进程/模块化/多任务（进程、线程、渲染进程）架构
 - **技术栈**：
-  - 主进程：Node.js + Electron 39.2.6 + ee-core 4.1.5
+  - 主进程：Node.js + Electron 39.2.6 + ee-core 4.1.5 + secs4js 0.4.4
   - 前端：Vue 3.5.26 + Vite 5.4.21 + Vue Router 4.6.4 + TypeScript 5.9.3
   - UI 组件：Arco Design 2.57.0
   - 代码编辑器：Monaco Editor 0.55.1 + @guolao/vue-monaco-editor 1.6.0
@@ -37,18 +37,18 @@ secs-simulator/
 │   │   ├── config.local.js   # 本地开发配置（不提交版本控制）
 │   │   └── config.prod.js    # 生产环境配置
 │   ├── controller/          # 控制器层（处理前端请求）
-│   │   ├── engine.js        # 引擎管理控制器
+│   │   ├── engine.js        # 引擎管理控制器（getConfig, delete, saveConfig）
 │   │   ├── autoReply.js     # 自动回复控制器
-│   │   ├── smlFile.js       # SML 文件管理控制器
+│   │   ├── smlFile.js       # SML 文件管理控制器（getFileTree, getFileContent, saveSmlFile, createSmlFile, deleteSmlFile）
 │   │   └── example.js       # 示例控制器
 │   ├── preload/             # 预加载脚本
 │   │   ├── index.js         # 预加载入口
 │   │   ├── bridge.js        # contextBridge 桥接
 │   │   └── lifecycle.js     # 生命周期钩子
 │   └── service/             # 业务逻辑层
-│       ├── engine.js        # 引擎服务
+│       ├── engine.js        # 引擎服务（getConfig, delete, saveConfig）
 │       ├── autoReply.js     # 自动回复服务
-│       ├── smlFile.js       # SML 文件服务
+│       ├── smlFile.js       # SML 文件服务（getFileTree, getFileContent, saveSmlFile, createSmlFile, deleteSmlFile）
 │       └── example.js       # 示例服务
 ├── frontend/                # 前端代码
 │   ├── src/
@@ -138,6 +138,7 @@ secs-simulator/
 │   └── script/             # 安装脚本
 │       └── installer.nsh   # NSIS 安装脚本
 ├── cmd/                     # 构建配置文件
+│   ├── bin.js              # 命令行工具入口
 │   ├── builder.json        # Windows 构建配置
 │   ├── builder-mac.json    # macOS 构建配置
 │   ├── builder-mac-arm64.json # macOS ARM64 构建配置
@@ -145,6 +146,8 @@ secs-simulator/
 ├── data/                    # 本地数据存储（不提交版本控制）
 ├── logs/                    # 应用日志文件（不提交版本控制）
 ├── run/                     # 运行时文件（不提交版本控制）
+├── .vscode/                 # VSCode 配置（不提交版本控制）
+│   └── launch.json         # 调试配置
 ├── .gitignore              # Git 忽略配置
 ├── package.json            # 主进程依赖配置
 ├── README.md               # 项目说明（英文）
@@ -363,11 +366,11 @@ async test(args, event) {
 
 - **开发环境**（`.env.development`）：
   - `VITE_TITLE`：应用标题
-  - `VITE_GO_URL`：后端 API 地址（http://localhost:8081）
+  - `VITE_GO_URL`：后端 API 地址
 
 - **生产环境**（`.env.production`）：
   - `VITE_TITLE`：应用标题
-  - `VITE_GO_URL`：生产环境 API 地址（http://www.test.com）
+  - `VITE_GO_URL`：生产环境 API 地址
 
 ### 引擎配置文件（engines/*.json）
 
@@ -424,6 +427,7 @@ function handler(msg, dir) {
 - `electron-updater@^6.7.3`：应用自动更新
 - `electron-builder@^26.3.5`：应用打包工具
 - `ee-bin@^4.2.0`：ElectronEgg 命令行工具
+- `secs4js@^0.4.4`：SECS 通信协议库
 
 ### 主进程开发依赖
 
@@ -513,6 +517,7 @@ npm run dev
 - **日志查看**：查看 `logs/` 目录下的日志文件
 - **SECS 日志**：查看 `secs-logs/` 目录下的 SECS 通信日志
 - **类型检查**：运行 `npm run type-check` 进行 TypeScript 类型检查
+- **VSCode 调试**：使用 `.vscode/launch.json` 配置进行断点调试
 
 ### 4. 构建和打包
 
@@ -534,18 +539,19 @@ npm run build-l
 
 ### 引擎管理
 
-- **创建引擎**：通过 `AddEngineModal` 组件创建新的 SECS 通信引擎
-- **编辑引擎**：修改现有引擎的配置参数
-- **删除引擎**：删除不需要的引擎
+- **获取引擎配置**：通过 `getConfig` 接口获取所有引擎配置文件
+- **保存引擎配置**：通过 `saveConfig` 接口保存或更新引擎配置（文件名自动从 config.name 生成）
+- **删除引擎**：通过 `delete` 接口删除指定引擎配置文件
 - **启动/停止引擎**：控制引擎的运行状态
 - **查看配置**：查看引擎的详细配置信息
 
 ### 文件管理
 
-- **SML 文件**：管理 SECS Message Language 格式的消息文件
-- **配置文件**：管理引擎配置文件（JSON 格式）
-- **日志文件**：查看和管理 SECS 通信日志
-- **文件树**：通过 `FileTree` 组件浏览和管理文件
+- **SML 文件树**：通过 `getFileTree` 接口获取 SML 目录树结构
+- **获取文件内容**：通过 `getFileContent` 接口读取 SML 文件内容
+- **保存文件**：通过 `saveSmlFile` 接口保存 SML 文件内容
+- **创建文件**：通过 `createSmlFile` 接口创建新的 SML 文件
+- **删除文件**：通过 `deleteSmlFile` 接口删除 SML 文件
 - **文件预览**：通过 `FilePreview` 组件预览文件内容
 - **文件编辑**：通过 `FileEditorModal` 组件编辑文件内容
 
@@ -564,6 +570,98 @@ npm run build-l
 - **延迟控制**：支持设置回复延迟时间
 - **状态管理**：管理自动回复规则的启用/禁用状态
 - **多引擎支持**：为不同引擎配置不同的自动回复规则
+
+## API 接口说明
+
+### SML 文件管理接口
+
+#### 1. getFileTree - 获取文件树
+- **频道**：`controller/smlFile/getFileTree`
+- **功能**：递归读取 `sml/` 目录，返回树形结构
+- **返回格式**：
+```javascript
+[
+  {
+    title: "Communication",
+    key: "Communication",
+    isFolder: true,
+    children: [
+      { title: "S1F1.txt", key: "Communication/S1F1.txt", isFolder: false }
+    ]
+  }
+]
+```
+
+#### 2. getFileContent - 获取文件内容
+- **频道**：`controller/smlFile/getFileContent`
+- **参数**：`{ filePath: "Communication/S1F1.txt" }`
+- **返回**：文件内容字符串
+
+#### 3. saveSmlFile - 保存文件
+- **频道**：`controller/smlFile/saveSmlFile`
+- **参数**：
+```javascript
+{
+  filePath: "Communication/S1F1.txt",
+  content: "文件内容"
+}
+```
+
+#### 4. createSmlFile - 创建文件
+- **频道**：`controller/smlFile/createSmlFile`
+- **参数**：
+```javascript
+{
+  filePath: "Communication/NewFile.txt",
+  content: "初始内容"
+}
+```
+
+#### 5. deleteSmlFile - 删除文件
+- **频道**：`controller/smlFile/deleteSmlFile`
+- **参数**：`{ filePath: "Communication/NewFile.txt" }`
+
+### 引擎管理接口
+
+#### 1. getConfig - 获取所有引擎配置
+- **频道**：`controller/engine/getConfig`
+- **功能**：读取 `engines/` 目录下所有 JSON 文件
+- **返回格式**：
+```javascript
+[
+  {
+    fileName: "TOOL.json",
+    config: { type: "HSMS", name: "TOOL", ... }
+  }
+]
+```
+
+#### 2. delete - 删除引擎配置
+- **频道**：`controller/engine/delete`
+- **参数**：`{ fileName: "TOOL.json" }`
+- **返回**：
+```javascript
+{
+  success: true,
+  message: "引擎配置删除成功",
+  fileName: "TOOL.json"
+}
+```
+
+#### 3. saveConfig - 保存引擎配置
+- **频道**：`controller/engine/saveConfig`
+- **参数**：
+```javascript
+{
+  config: {
+    name: "TOOL",
+    type: "HSMS",
+    deviceId: 10,
+    // ... 其他配置
+  }
+}
+```
+- **说明**：文件名自动从 `config.name` 生成（如 `TOOL.json`）
 
 ## 注意事项
 
@@ -593,9 +691,20 @@ npm run build-l
 15. **Web 安全**：当前配置禁用了 Web 安全（`webSecurity: false`）以支持剪贴板操作，生产环境请谨慎评估
 16. **SML 文件**：SML 文件存储在 `sml/` 目录下，支持按功能分类组织。注意存在两个拼写变体目录：`Communication`（正确）和 `Commnication`（拼写错误）
 17. **自动回复脚本**：自动回复脚本存储在 `auto-reply-scripts/` 目录下，支持自定义处理逻辑
-18. **引擎配置**：引擎配置文件存储在 `engines/` 目录下，每个引擎对应一个 JSON 文件
+18. **引擎配置**：引擎配置文件存储在 `engines/` 目录下，每个引擎对应一个 JSON 文件，文件名必须与配置中的 `name` 字段一致
 19. **Worker 支持**：项目配置了 Web Worker 支持，格式为 ES 模块
 20. **依赖优化**：Monaco Editor 已配置为预构建依赖，提升构建性能
+21. **日志系统**：项目使用 emoji 标识不同类型的日志，便于快速识别：
+   - 🔍 查询操作
+   - 📖 读取文件
+   - 💾 保存文件
+   - ➕ 创建文件
+   - 🗑️ 删除文件
+   - 🎯 Controller 入口
+   - ✅ 操作成功
+   - ❌ 操作失败
+   - 📁 文件/目录相关
+   - 📝 内容相关
 
 ## 项目信息
 
@@ -616,3 +725,4 @@ npm run build-l
 - Arco Design：https://arco.design/vue
 - Monaco Editor：https://microsoft.github.io/monaco-editor/
 - @guolao/vue-monaco-editor：https://github.com/guolaoshi/vue-monaco-editor
+- secs4js：https://github.com/secsgem/secs4js
