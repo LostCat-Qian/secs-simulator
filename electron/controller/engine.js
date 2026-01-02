@@ -15,7 +15,52 @@ class EngineController {
    */
 
   /**
-   * test
+   * 获取所有引擎配置
+   */
+  async getConfig(args, event) {
+    try {
+      logger.info('🎯 [Controller] getConfig called')
+      const result = await engineService.getConfig()
+      logger.info(`✅ [Controller] getConfig success, returned ${result.length} configs`)
+      return result
+    } catch (error) {
+      logger.error('❌ [Controller] getConfig failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 删除引擎配置
+   */
+  async delete(args, event) {
+    try {
+      logger.info('🎯 [Controller] delete called with fileName:', args.fileName)
+      const result = await engineService.delete(args)
+      logger.info('✅ [Controller] delete success')
+      return result
+    } catch (error) {
+      logger.error('❌ [Controller] delete failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 保存引擎配置
+   */
+  async saveConfig(args, event) {
+    try {
+      logger.info('🎯 [Controller] saveConfig called with engine name:', args.config?.name)
+      const result = await engineService.saveConfig(args)
+      logger.info('✅ [Controller] saveConfig success')
+      return result
+    } catch (error) {
+      logger.error('❌ [Controller] saveConfig failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * test (保留测试方法)
    */
   async test() {
     const result = await engineService.test('electron')
