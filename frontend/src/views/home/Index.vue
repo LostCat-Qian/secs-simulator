@@ -9,15 +9,30 @@
         <div class="sider-content">
           <!-- Engines List Area -->
           <a-resize-box :directions="['bottom']" class="engine-box">
-            <EngineList :engines="engineList" @add="openAddEngineModal" @select="selectEngine" @open="openEngine"
-              @edit="handleEditEngine" @delete="handleDeleteEngine" @viewConfig="handleViewConfig" />
+            <EngineList
+              :engines="engineList"
+              @add="openAddEngineModal"
+              @select="selectEngine"
+              @open="openEngine"
+              @edit="handleEditEngine"
+              @delete="handleDeleteEngine"
+              @viewConfig="handleViewConfig"
+            />
           </a-resize-box>
 
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
-            <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" @addFile="handleAddFile"
-              @addRootFile="handleAddRootFile" @addRootFolder="openAddRootFolderModal" />
+            <FileTree
+              :tree-data="fileTreeData"
+              :engines="engineList"
+              @edit="handleEditFile"
+              @delete="handleDeleteFile"
+              @sendTo="handleSendFileTo"
+              @selectFile="handlePreviewFile"
+              @addFile="handleAddFile"
+              @addRootFile="handleAddRootFile"
+              @addRootFolder="openAddRootFolderModal"
+            />
           </div>
 
           <!-- File Preview Area -->
@@ -40,16 +55,30 @@
             <!-- Single Log Panel -->
             <template v-if="logPanels.length === 1">
               <div class="log-panel-item single-panel">
-                <LogPanel :title="logPanels[0].title" :logs="logPanels[0].logs" @clear="clearLogs(logPanels[0].id)"
-                  @close="closeLogPanel(logPanels[0].id)" />
+                <LogPanel
+                  :title="logPanels[0].title"
+                  :logs="logPanels[0].logs"
+                  @clear="clearLogs(logPanels[0].id)"
+                  @close="closeLogPanel(logPanels[0].id)"
+                />
               </div>
             </template>
             <!-- Multiple Log Panels -->
             <template v-else-if="logPanels.length > 1">
-              <a-resize-box v-for="panel in logPanels" :key="panel.id" :directions="['right']" class="log-panel-item"
-                :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }" :min-width="200">
-                <LogPanel :title="panel.title" :logs="panel.logs" @clear="clearLogs(panel.id)"
-                  @close="closeLogPanel(panel.id)" />
+              <a-resize-box
+                v-for="panel in logPanels"
+                :key="panel.id"
+                :directions="['right']"
+                class="log-panel-item"
+                :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }"
+                :min-width="200"
+              >
+                <LogPanel
+                  :title="panel.title"
+                  :logs="panel.logs"
+                  @clear="clearLogs(panel.id)"
+                  @close="closeLogPanel(panel.id)"
+                />
               </a-resize-box>
             </template>
             <!-- No Log Panels -->
@@ -62,62 +91,42 @@
         </div>
 
         <a-resize-box :directions="['top']" class="auto-reply-box">
-          <AutoReplyPanel :data="tableData" v-model:searchText="searchText" @add="addAutoReply" @edit="editAutoReply"
-            @delete="deleteAutoReply" />
+          <AutoReplyPanel
+            :data="tableData"
+            v-model:searchText="searchText"
+            @add="addAutoReply"
+            @edit="editAutoReply"
+            @delete="deleteAutoReply"
+          />
         </a-resize-box>
       </a-layout-content>
     </a-layout>
 
-    <AddEngineModal v-model:visible="addEngineModalVisible" :initial-data="editingEngine" @submit="handleAddEngine" />
+    <AddEngineModal
+      v-model:visible="addEngineModalVisible"
+      :initial-data="editingEngine"
+      @submit="handleAddEngine"
+    />
 
-    <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
-      :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
+    <FileEditorModal
+      v-model:visible="fileEditorModalVisible"
+      :file-name="editingFileName"
+      :initial-content="editingFileContent"
+      :editable-name="isCreateMode"
+      @save="handleSaveFile"
+    />
 
-    <a-modal v-model:visible="addRootFolderModalVisible" title="Add Folder" :mask-closable="false" ok-text="OK"
-      cancel-text="Cancel" @ok="confirmAddRootFolder" @cancel="cancelAddRootFolder">
-      <a-input v-model="newRootFolderName" placeholder="Enter folder name" />
-    </a-modal>
+    <AddFolderModal
+      v-model:visible="addRootFolderModalVisible"
+      @submit="confirmAddRootFolder"
+    />
 
-    <a-modal v-model:visible="autoReplyModalVisible"
-      :title="editingAutoReplyName ? 'Edit Auto Reply Script' : 'Add Auto Reply Script'" :mask-closable="false"
-      width="80vw" ok-text="Save" cancel-text="Cancel" @ok="handleSaveAutoReply">
-      <a-form layout="vertical">
-        <a-row :gutter="16">
-          <a-col :span="8">
-            <a-form-item label="Handle SF" field="handlerSf">
-              <a-input v-model="autoReplyForm.handlerSf" placeholder="S7F25" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="8">
-            <a-form-item label="Tool" field="tool">
-              <a-select v-model="autoReplyForm.tool" placeholder="Select tool">
-                <a-option v-for="engine in engineList" :key="engine.name" :value="engine.name">
-                  {{ engine.name }}
-                </a-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="8">
-            <a-form-item label="Active" field="active">
-              <a-switch v-model="autoReplyForm.active" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-row :gutter="16">
-          <a-col :span="8">
-            <a-form-item label="Delay Time (s)" field="delaySeconds">
-              <a-input-number v-model="autoReplyForm.delaySeconds" :min="0" :step="1" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item label="Script">
-          <div class="auto-reply-editor-wrapper">
-            <vue-monaco-editor v-model:value="autoReplyForm.script" language="javascript" theme="vs-dark"
-              :options="autoReplyEditorOptions" />
-          </div>
-        </a-form-item>
-      </a-form>
-    </a-modal>
+    <AutoReplyModal
+      v-model:visible="autoReplyModalVisible"
+      :initial-data="autoReplyForm"
+      :engines="engineList"
+      @submit="handleSaveAutoReply"
+    />
   </div>
 </template>
 
@@ -126,6 +135,8 @@ import { ref, onMounted } from 'vue';
 import { Modal, TreeNodeData, Message } from '@arco-design/web-vue';
 import { ipc } from '@/utils/ipcRenderer';
 import { ipcApiRoute } from '@/api';
+
+// Components
 import EngineList from './components/EngineList.vue';
 import FileTree from './components/FileTree.vue';
 import FilePreview from './components/FilePreview.vue';
@@ -133,55 +144,18 @@ import LogPanel from './components/LogPanel.vue';
 import AutoReplyPanel from './components/AutoReplyPanel.vue';
 import AddEngineModal from './components/AddEngineModal.vue';
 import FileEditorModal from './components/FileEditorModal.vue';
-import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
+import AddFolderModal from './components/AddFolderModal.vue';
+import AutoReplyModal from './components/AutoReplyModal.vue';
 
-/**
- * Interface Definitions
- */
-
-interface LogEntry {
-  time: string;
-  level: string;
-  message: string;
-}
-
-interface LogPanelData {
-  id: string;
-  title: string;
-  engineId?: string;
-  engineName?: string;
-  width: string; // Width percentage or value
-  logs: LogEntry[];
-}
-
-interface EngineData {
-  name: string;
-  active: boolean;
-  // Add other engine properties as needed
-}
-
-interface AutoReplyFormData {
-  tool: string;
-  handlerSf: string;
-  active: boolean;
-  delaySeconds: number;
-  script: string;
-}
-
-interface AutoReplyItem {
-  name: string;
-  tool: string;
-  sf: string;
-  delaySeconds: number;
-  active: boolean;
-}
-
-type SmlTreeNode = TreeNodeData & {
-  key: string;
-  title: string;
-  isFolder?: boolean;
-  children?: SmlTreeNode[];
-};
+// Types
+import type {
+  LogPanelData,
+  EngineData,
+  AutoReplyFormData,
+  AutoReplyItem,
+  SmlTreeNode,
+  LogEntry
+} from './types';
 
 // #region --- State Management ---
 
@@ -225,13 +199,7 @@ const tableData = ref<AutoReplyItem[]>([]);
 
 const autoReplyModalVisible = ref(false);
 const defaultAutoReplyScript = `function handler(msg, dir) {\n  return dir[0];\n}\n`;
-const autoReplyForm = ref<AutoReplyFormData>({
-  tool: '',
-  handlerSf: '',
-  active: true,
-  delaySeconds: 0,
-  script: defaultAutoReplyScript
-});
+const autoReplyForm = ref<AutoReplyFormData | null>(null);
 const editingAutoReplyName = ref<string | null>(null);
 
 // Modal State
@@ -247,16 +215,6 @@ const isCreateMode = ref(false);
 const creatingFolderPath = ref('');
 
 const addRootFolderModalVisible = ref(false);
-const newRootFolderName = ref('');
-
-const autoReplyEditorOptions = {
-  automaticLayout: true,
-  minimap: { enabled: true },
-  fontSize: 14,
-  lineNumbers: 'on',
-  scrollBeyondLastLine: false,
-  wordWrap: 'on'
-};
 
 // #endregion
 
@@ -430,12 +388,11 @@ const handleAddRootFile = () => {
 };
 
 const openAddRootFolderModal = () => {
-  newRootFolderName.value = '';
   addRootFolderModalVisible.value = true;
 };
 
-const confirmAddRootFolder = async () => {
-  const name = newRootFolderName.value.trim();
+const confirmAddRootFolder = async (folderName: string) => {
+  const name = folderName.trim();
   if (!name) {
     Message.error('Folder name is required');
     return;
@@ -452,7 +409,7 @@ const confirmAddRootFolder = async () => {
   });
 
   if (exists) {
-    Message.error('文件夹已存在');
+    Message.error('Folder already exists');
     return;
   }
 
@@ -472,10 +429,6 @@ const confirmAddRootFolder = async () => {
     console.error('Failed to create folder:', error);
     Message.error('Failed to create folder');
   }
-};
-
-const cancelAddRootFolder = () => {
-  addRootFolderModalVisible.value = false;
 };
 
 const loadFileContent = async (node: TreeNodeData) => {
@@ -755,8 +708,7 @@ const deleteAutoReply = (item: AutoReplyItem) => {
   });
 };
 
-const handleSaveAutoReply = async () => {
-  const form = autoReplyForm.value;
+const handleSaveAutoReply = async (form: AutoReplyFormData) => {
   if (!form.tool) {
     Message.error('Tool is required');
     return;
@@ -930,18 +882,5 @@ const handleSaveAutoReply = async () => {
   min-height: 200px;
   flex-shrink: 0;
   border-top: 1px solid var(--color-border);
-}
-
-.auto-reply-editor-wrapper {
-  height: 380px;
-  border: 1px solid var(--color-border);
-  width: 100%;
-}
-
-.auto-reply-editor-wrapper :deep(.monaco-editor),
-.auto-reply-editor-wrapper :deep(.monaco-editor .monaco-editor-background),
-.auto-reply-editor-wrapper :deep(.monaco-editor .overflow-guard) {
-  width: 100%;
-  height: 100%;
 }
 </style>

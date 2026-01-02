@@ -57,14 +57,7 @@
 
 <script setup lang="ts">
 import { IconPlus } from '@arco-design/web-vue/es/icon';
-
-interface AutoReplyItem {
-  name: string;
-  tool: string;
-  sf: string;
-  delaySeconds: number;
-  active: boolean;
-}
+import type { AutoReplyItem } from '../types';
 
 defineProps<{
   data: AutoReplyItem[];
@@ -109,12 +102,6 @@ defineEmits<{
 
 .table-container {
   flex: 1;
-  padding: 12px;
   overflow: hidden;
-
-  /* Highlight Row Style */
-  :deep(.highlight-row) .arco-table-td {
-    background-color: var(--color-primary-light-1);
-  }
 }
 </style>

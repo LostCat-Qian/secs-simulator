@@ -15,11 +15,6 @@ const constantRouterMap: RouteRecordRaw[] = [
         path: '/',
         name: 'HomeIndex',
         component: () => import('@/views/home/Index.vue')
-      },
-      {
-        path: '/example',
-        name: 'ExampleHelloIndex',
-        component: () => import('@/views/example/hello/Index.vue')
       }
     ]
   }

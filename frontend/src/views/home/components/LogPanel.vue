@@ -31,15 +31,7 @@
 
 <script setup lang="ts">
 import { IconRefresh, IconClose } from '@arco-design/web-vue/es/icon';
-
-/**
- * Interface for Log Entry
- */
-interface LogEntry {
-  time: string;
-  level: string;
-  message: string;
-}
+import type { LogEntry } from '../types';
 
 defineProps<{
   title?: string;
@@ -103,58 +95,50 @@ defineEmits<{
 
 .log-container {
   flex: 1;
-  overflow: auto;
-  padding: 12px 16px;
-  background-color: #121212; // Dark background for logs
-  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  overflow-y: auto;
+  padding: 8px;
+  background-color: #1e1e1e;
+  font-family: 'Consolas', 'Monaco', monospace;
   font-size: 12px;
+}
 
-  .log-item {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 4px;
-    line-height: 1.5;
+.log-item {
+  margin-bottom: 4px;
+  line-height: 1.4;
+  word-break: break-all;
+}
 
-    .log-time {
-      color: #86909C;
-      margin-right: 12px;
-      min-width: 70px;
-    }
+.log-time {
+  color: #888;
+  margin-right: 8px;
+}
 
-    .log-level {
-      margin-right: 12px;
-      min-width: 50px;
-      font-weight: 600;
+.log-level {
+  font-weight: bold;
+  margin-right: 8px;
 
-      &.level-info {
-        color: #3491FA;
-      }
-
-      &.level-debug {
-        color: #99A3B4;
-      }
-
-      &.level-warn {
-        color: #FF7D00;
-      }
-
-      &.level-error {
-        color: #F53F3F;
-      }
-    }
-
-    .log-message {
-      color: #E5E6EB;
-      flex: 1;
-      word-break: break-all;
-    }
+  &.level-info {
+    color: #00b42a;
   }
-
-  .empty-log {
-    color: #4E5969;
-    text-align: center;
-    margin-top: 20px;
-    font-style: italic;
+  &.level-warn {
+    color: #ff7d00;
   }
+  &.level-error {
+    color: #f53f3f;
+  }
+  &.level-debug {
+    color: #165dff;
+  }
+}
+
+.log-message {
+  color: #d9d9d9;
+}
+
+.empty-log {
+  color: #666;
+  text-align: center;
+  padding-top: 20px;
+  font-style: italic;
 }
 </style>

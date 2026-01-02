@@ -17,12 +17,21 @@
     <!-- Tree Content -->
     <div class="tree-container">
       <!-- Search Input -->
-      <a-input-search style="margin-bottom: 8px; width: 100%" v-model="searchKey" placeholder="Search files..."
-        allow-clear />
+      <a-input-search
+        style="margin-bottom: 8px; width: 100%"
+        v-model="searchKey"
+        placeholder="Search files..."
+        allow-clear
+      />
 
       <!-- Tree View -->
-      <a-tree :data="filteredTreeData" :default-expand-all="true" block-node show-line
-        :field-names="{ key: 'key', title: 'title', children: 'children' }">
+      <a-tree
+        :data="filteredTreeData"
+        :default-expand-all="true"
+        block-node
+        show-line
+        :field-names="{ key: 'key', title: 'title', children: 'children' }"
+      >
         <template #title="node">
           <div class="tree-node-content" @click.stop="handleNodeClick(node)">
             <!-- Node Title with Highlight -->
@@ -33,9 +42,12 @@
               <template #icon><icon-plus /></template>
             </a-button>
 
-            <a-dropdown v-else
+            <a-dropdown
+              v-else
               @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)"
-              trigger="click" :popup-max-height="false">
+              trigger="click"
+              :popup-max-height="false"
+            >
               <a-button size="mini" class="menu-btn" @mousedown.stop>
                 <template #icon><icon-more /></template>
               </a-button>
@@ -75,10 +87,11 @@
 import { ref, computed } from 'vue';
 import { TreeNodeData } from '@arco-design/web-vue';
 import { IconMore, IconEdit, IconDelete, IconExport, IconSend, IconCloseCircle, IconPlus } from '@arco-design/web-vue/es/icon';
+import type { SmlTreeNode, EngineData } from '../types';
 
 const props = defineProps<{
-  treeData: Array<TreeNodeData>;
-  engines: Array<{ name: string; active: boolean }>;
+  treeData: SmlTreeNode[];
+  engines: EngineData[];
 }>();
 
 const emit = defineEmits<{
@@ -118,7 +131,7 @@ const highlightText = (text: string, keyword: string): string => {
  * @param data The tree data
  * @param keyword The search keyword
  */
-const filterTreeData = (data: TreeNodeData[], keyword: string): TreeNodeData[] => {
+const filterTreeData = (data: SmlTreeNode[], keyword: string): SmlTreeNode[] => {
   if (!keyword) return data;
 
   const lowerKeyword = keyword.toLowerCase();
@@ -143,7 +156,7 @@ const filterTreeData = (data: TreeNodeData[], keyword: string): TreeNodeData[] =
 
       return null;
     })
-    .filter((node): node is TreeNodeData => node !== null);
+    .filter((node): node is SmlTreeNode => node !== null);
 };
 
 // Computed property for the filtered tree
@@ -152,7 +165,8 @@ const filteredTreeData = computed(() => {
 });
 
 const handleNodeClick = (node: TreeNodeData) => {
-  if ((node as any).isFolder) {
+  const smlNode = node as SmlTreeNode;
+  if (smlNode.isFolder) {
     return;
   }
   emit('selectFile', node);
