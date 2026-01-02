@@ -16,7 +16,7 @@
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
             <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo" />
+              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" />
           </div>
 
           <!-- File Preview Area -->
@@ -77,8 +77,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { Modal, TreeNodeData, Message } from '@arco-design/web-vue';
+import { ipc } from '@/utils/ipcRenderer';
+import { ipcApiRoute } from '@/api';
 import EngineList from './components/EngineList.vue';
 import FileTree from './components/FileTree.vue';
 import FilePreview from './components/FilePreview.vue';
@@ -112,6 +114,13 @@ interface EngineData {
   // Add other engine properties as needed
 }
 
+type SmlTreeNode = TreeNodeData & {
+  key: string;
+  title: string;
+  isFolder?: boolean;
+  children?: SmlTreeNode[];
+};
+
 // #region --- State Management ---
 
 // Engine List State
@@ -124,50 +133,10 @@ const engineList = ref<EngineData[]>([
 ]);
 
 // File Tree State
-const fileTreeData = ref<TreeNodeData[]>([
-  {
-    title: 'configs',
-    key: 'configs',
-    isFolder: true,
-    children: [
-      {
-        title: 'engine.config', key: 'engine-config', isFolder: true, children: [
-          { title: 'TOOL_CONTROL_LINK.json', key: 'tool-control-link', isFolder: false }
-        ]
-      },
-      { title: 'messages.config', key: 'messages-config', isFolder: false }
-    ]
-  },
-  {
-    title: 'handlers',
-    key: 'handlers',
-    isFolder: true,
-    children: [
-      { title: 'S1F13.js', key: 's1f13', isFolder: false },
-      { title: 'S1F14.js', key: 's1f14', isFolder: false },
-      { title: 'S6F11.js', key: 's6f11', isFolder: false }
-    ]
-  },
-  {
-    title: 'logs',
-    key: 'logs',
-    isFolder: true,
-    children: [
-      { title: '2025-12-31.log', key: 'log-2025-12-31', isFolder: false }
-    ]
-  }
-]);
+const fileTreeData = ref<SmlTreeNode[]>([]);
 
 // File Preview State
-const filePreviewContent = ref(`// Engine Configuration
-{
-  "name": "TOOL_CONTROL_LINK",
-  "deviceId": "EQ_CVD_001",
-  "ip": "192.168.1.105",
-  "port": 5000,
-  "timeout": 30,
-  "retryCount": 3
-}`);
+const filePreviewContent = ref('');
 
 // Log Panels State
 const logPanels = ref<LogPanelData[]>([
@@ -204,6 +173,7 @@ const editingEngine = ref<any>(null);
 const fileEditorModalVisible = ref(false);
 const editingFileName = ref('');
 const editingFileContent = ref('');
+const editingFilePath = ref('');
 
 // #endregion
 
@@ -342,124 +312,114 @@ const handleViewConfig = (engine: EngineData) => {
 
 // #region --- Methods: File Management ---
 
-const handleEditFile = (node: TreeNodeData) => {
-  console.log('Edit file:', node);
+const loadFileTree = async () => {
+  if (!ipc) {
+    return;
+  }
+  try {
+    const result = await ipc.invoke(ipcApiRoute.smlFileTree, null);
+    fileTreeData.value = Array.isArray(result) ? (result as SmlTreeNode[]) : [];
+  } catch (error) {
+    console.error('Failed to load file tree:', error);
+    Message.error('Failed to load file tree');
+  }
+};
 
-  // Mock: Get file content based on file name
-  // In a real app, you would fetch the actual file content from the backend
-  const mockFileContents: Record<string, string> = {
-    'engine.config': `// Engine Configuration
-{
-  "name": "TOOL_CONTROL_LINK",
-  "deviceId": "EQ_CVD_001",
-  "ip": "192.168.1.105",
-  "port": 5000,
-  "timeout": 30,
-  "retryCount": 3
-}`,
-    'messages.config': `// Messages Configuration
-{
-  "enabledMessages": [
-    "S1F13",
-    "S1F14",
-    "S6F11",
-    "S6F12"
-  ],
-  "timeout": 5000
-}`,
-    'S1F13.js': `/**
- * S1F13 Handler - Establish Communications
- * @param {Object} message - The incoming SECS message
- * @returns {Object} The reply message
- */
-function handleS1F13(message) {
-  console.log('Received S1F13:', message);
-
-  // Process the message
-  const reply = {
-    stream: 1,
-    function: 14,
-    text: 'OK'
-  };
-
-  return reply;
-}
-
-module.exports = handleS1F13;`,
-    'S1F14.js': `/**
- * S1F14 Handler - Establish Communications Reply
- * @param {Object} message - The incoming SECS message
- * @returns {Object} The reply message
- */
-function handleS1F14(message) {
-  console.log('Received S1F14:', message);
-
-  // Process the message
-  const reply = {
-    stream: 1,
-    function: 0,
-    text: 'ACK'
-  };
-
-  return reply;
-}
-
-module.exports = handleS1F14;`,
-    'S6F11.js': `/**
- * S6F11 Handler - Event Report
- * @param {Object} message - The incoming SECS message
- * @returns {Object} The reply message
- */
-function handleS6F11(message) {
-  console.log('Received S6F11:', message);
-
-  // Process the message
-  const reply = {
-    stream: 6,
-    function: 12,
-    ackc: 0
-  };
-
-  return reply;
-}
-
-module.exports = handleS6F11;`,
-    '2025-12-31.log': `[2025-12-31 14:30:05] INFO: Connection established with EQ_CVD_001
-[2025-12-31 14:30:06] INFO: Received S1F13 message from equipment
-[2025-12-31 14:30:07] DEBUG: Processing S1F14 reply message
-[2025-12-31 14:30:08] WARN: T3 timeout detected, retrying...
-[2025-12-31 14:30:09] INFO: S1F14 message sent successfully
-[2025-12-31 14:30:11] ERROR: Connection lost, attempting to reconnect...`
-  };
-
-  // Get file content or use default
-  const content = mockFileContents[node.title as string] || `// ${node.title}\n// File content here`;
-
-  editingFileName.value = node.title as string;
+const loadFileContent = async (node: TreeNodeData) => {
+  const target = node as SmlTreeNode;
+  if ((target.isFolder && target.isFolder === true) || !target.key) {
+    return;
+  }
+  editingFileName.value = String(target.title || '');
+  editingFilePath.value = String(target.key || '');
+  let content = '';
+  if (ipc) {
+    try {
+      const result = await ipc.invoke(ipcApiRoute.smlFileContent, {
+        filePath: editingFilePath.value
+      });
+      content = result ? String(result) : '';
+    } catch (error) {
+      console.error('Failed to load file content:', error);
+      Message.error('Failed to load file content');
+    }
+  }
+  if (!content) {
+    content = `// ${editingFileName.value}\n`;
+  }
   editingFileContent.value = content;
+  filePreviewContent.value = content;
+};
+
+const handleEditFile = async (node: TreeNodeData) => {
+  await loadFileContent(node);
+  if (!editingFileContent.value) {
+    return;
+  }
   fileEditorModalVisible.value = true;
 };
 
-const handleSaveFile = (content: string) => {
-  console.log('Saving file:', editingFileName.value);
-  console.log('Content:', content);
+const handlePreviewFile = async (node: TreeNodeData) => {
+  await loadFileContent(node);
+};
 
-  // Mock: Save file to backend
-  // In a real app, you would send the content to the backend via IPC
-  Message.success(`File "${editingFileName.value}" saved successfully`);
+const handleSaveFile = async (content: string) => {
+  if (!editingFilePath.value || !ipc) {
+    Message.error('Cannot save file');
+    return;
+  }
+  try {
+    await ipc.invoke(ipcApiRoute.smlFileSave, {
+      filePath: editingFilePath.value,
+      content
+    });
+    Message.success(`File "${editingFileName.value}" saved successfully`);
+    editingFileContent.value = content;
+    filePreviewContent.value = content;
+  } catch (error) {
+    console.error('Failed to save file:', error);
+    Message.error('Failed to save file');
+  }
+};
 
-  // Update preview content if it's the same file
-  // filePreviewContent.value = content;
+const removeNodeFromTree = (key: string) => {
+  const remove = (nodes: SmlTreeNode[]): SmlTreeNode[] =>
+    nodes
+      .map((node) => {
+        const current = { ...node };
+        if (current.children && current.children.length > 0) {
+          current.children = remove(current.children);
+        }
+        return current;
+      })
+      .filter((node) => node.key !== key);
+
+  fileTreeData.value = remove(fileTreeData.value);
 };
 
 const handleDeleteFile = (node: TreeNodeData) => {
-  console.log('Delete file:', node);
+  const target = node as SmlTreeNode;
+  if (!target.key) {
+    return;
+  }
   Modal.confirm({
     title: 'Delete File',
-    content: `Are you sure you want to delete ${node.title}?`,
-    onOk: () => {
-      Message.success('File deleted');
-      // Note: Actual deletion logic from treeData needs to be implemented recursively
+    content: `Are you sure you want to delete ${target.title}?`,
+    onOk: async () => {
+      if (!ipc) {
+        Message.error('Cannot delete file');
+        return;
+      }
+      try {
+        await ipc.invoke(ipcApiRoute.smlFileDelete, {
+          filePath: target.key
+        });
+        removeNodeFromTree(target.key);
+        Message.success('File deleted');
+      } catch (error) {
+        console.error('Failed to delete file:', error);
+        Message.error('Failed to delete file');
+      }
     }
   });
 };
@@ -470,6 +430,10 @@ const handleSendFileTo = (payload: { file: TreeNodeData, engineName: string }) =
 };
 
 // #endregion
+
+onMounted(() => {
+  loadFileTree();
+});
 
 // #region --- Methods: Auto Reply ---
 

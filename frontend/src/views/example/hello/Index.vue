@@ -146,7 +146,7 @@
               <v-col cols="12" md="6">
                 <v-treeview v-model:opened="opened" v-model:selected="selected" :items="treeItems" item-value="id"
                   activatable open-on-click select-strategy="leaf" density="comfortable">
-                  <template #prepend="{ item, isOpen }">
+                  <template #prepend="{ isOpen }">
                     <v-icon>
                       {{ isOpen ? 'mdi-folder-open' : 'mdi-folder' }}
                     </v-icon>
@@ -371,16 +371,6 @@ const getItemName = (id: number) => {
 const removeSelected = (id: number) => {
   selected.value = selected.value.filter((item: number) => item !== id)
 }
-
-// 数据表格数据
-const headers = [
-  { title: '甜点', align: 'start', key: 'name' },
-  { title: '卡路里', align: 'end', key: 'calories' },
-  { title: '脂肪 (g)', align: 'end', key: 'fat' },
-  { title: '碳水化合物 (g)', align: 'end', key: 'carbs' },
-  { title: '蛋白质 (g)', align: 'end', key: 'protein' },
-  { title: '操作', align: 'end', key: 'actions', sortable: false }
-]
 
 const desserts = reactive([
   { name: 'Frozen Yogurt', calories: 159, fat: 6.0, carbs: 24, protein: 4.0 },

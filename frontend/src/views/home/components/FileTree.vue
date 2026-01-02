@@ -15,7 +15,7 @@
       <a-tree :data="filteredTreeData" :default-expand-all="true" block-node show-line
         :field-names="{ key: 'key', title: 'title', children: 'children' }">
         <template #title="node">
-          <div class="tree-node-content">
+          <div class="tree-node-content" @click.stop="handleNodeClick(node)">
             <!-- Node Title with Highlight -->
             <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
 
@@ -72,6 +72,7 @@ const emit = defineEmits<{
   (e: 'edit', node: TreeNodeData): void;
   (e: 'delete', node: TreeNodeData): void;
   (e: 'sendTo', payload: { file: TreeNodeData; engineName: string }): void;
+  (e: 'selectFile', node: TreeNodeData): void;
 }>();
 
 const searchKey = ref('');
@@ -133,6 +134,13 @@ const filterTreeData = (data: TreeNodeData[], keyword: string): TreeNodeData[] =
 const filteredTreeData = computed(() => {
   return filterTreeData(props.treeData, searchKey.value);
 });
+
+const handleNodeClick = (node: TreeNodeData) => {
+  if ((node as any).isFolder) {
+    return;
+  }
+  emit('selectFile', node);
+};
 
 /**
  * Handles menu selection from the dropdown.
