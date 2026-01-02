@@ -71,12 +71,8 @@
     <AddEngineModal v-model:visible="addEngineModalVisible" :initial-data="editingEngine" @submit="handleAddEngine" />
 
     <!-- File Editor Modal -->
-    <FileEditorModal
-      v-model:visible="fileEditorModalVisible"
-      :file-name="editingFileName"
-      :initial-content="editingFileContent"
-      @save="handleSaveFile"
-    />
+    <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
+      :initial-content="editingFileContent" @save="handleSaveFile" />
   </div>
 </template>
 
@@ -134,7 +130,11 @@ const fileTreeData = ref<TreeNodeData[]>([
     key: 'configs',
     isFolder: true,
     children: [
-      { title: 'engine.config', key: 'engine-config', isFolder: false },
+      {
+        title: 'engine.config', key: 'engine-config', isFolder: true, children: [
+          { title: 'TOOL_CONTROL_LINK.json', key: 'tool-control-link', isFolder: false }
+        ]
+      },
       { title: 'messages.config', key: 'messages-config', isFolder: false }
     ]
   },

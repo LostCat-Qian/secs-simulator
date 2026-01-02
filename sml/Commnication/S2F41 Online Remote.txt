@@ -1,0 +1,7 @@
+"S2F41 Online Remote"
+S2F41 W
+<L
+    <A   'REMOTE'>
+    <L 
+     >
+>.

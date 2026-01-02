@@ -1,0 +1,10 @@
+"S2F41 Online Remote"
+S2F41 W
+<L
+    <A   'PP-SELECT'>
+    <L 
+         <A 'LOT1234'>
+         <A '2'>
+         <A '11'>
+     >
+>.

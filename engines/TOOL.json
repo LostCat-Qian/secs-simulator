@@ -1,0 +1,22 @@
+{
+  "type": "HSMS",
+  "name": "TOOL",
+  "deviceId": 10,
+  "path": "COM1",
+  "baudRate": 9600,
+  "master": true,
+  "ip": "127.0.0.1",
+  "port": 5000,
+  "simulate": "Equipment",
+  "timeoutT1": 1000,
+  "timeoutT2": 1000,
+  "timeoutT3": 1000,
+  "timeoutT4": 1000,
+  "timeoutT5": 1000,
+  "timeoutT6": 1000,
+  "timeoutT7": 1000,
+  "timeoutT8": 1000,
+  "dataBit": 8,
+  "stopBit": 1,
+  "parity": null
+}
