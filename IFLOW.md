@@ -103,6 +103,22 @@ secs-simulator/
 │   │   ├── S4F101 ReadTag.txt
 │   │   └── S5F5_List Alarms.txt
 │   └── Commnication/       # 通信相关 SML 文件（拼写变体）
+│       ├── S1F1.txt
+│       ├── S1F13 TEST.txt
+│       ├── S1F13.txt
+│       ├── S1F14.txt
+│       ├── S1F15 RequestOffline.txt
+│       ├── S1F17 RequestOnline.txt
+│       ├── S1F5.txt
+│       ├── S2F41 Online Remote.txt
+│       ├── S2F41_PPSELECT.txt
+│       ├── S2F41START.txt
+│       ├── S2F42_LK_POD.txt
+│       ├── S2F42.txt
+│       ├── S2F50.txt
+│       ├── S5F5 W.txt
+│       ├── S6F11-Process Data PBG1K41018001 5-Step-0001.txt
+│       └── S6F23_SPOOL.txt
 ├── secs-logs/               # SECS 通信日志目录（不提交版本控制）
 │   └── 2026-01-01/
 │       └── 2026-01-01-DETAIL.log
@@ -265,6 +281,7 @@ npm run preview
    - Less 预处理器支持，可自定义主题变量
    - 构建输出：`dist` 目录
    - 生产环境自动压缩代码（terser）
+   - 优化依赖预构建（monaco-editor）
 
 5. **组件开发**：
    - 全局组件注册在 `frontend/src/components/global/index.ts`（自动导入）
@@ -337,16 +354,20 @@ async test(args, event) {
   - 资源内联限制：4096 字节
   - 代码压缩：terser
   - 生产环境移除 debugger（保留 console）
+  - 优化依赖预构建（monaco-editor）
+
+- **Worker 配置**：
+  - 格式：ES 模块
 
 ### 环境变量配置
 
 - **开发环境**（`.env.development`）：
   - `VITE_TITLE`：应用标题
-  - `VITE_GO_URL`：后端 API 地址
+  - `VITE_GO_URL`：后端 API 地址（http://localhost:8081）
 
 - **生产环境**（`.env.production`）：
   - `VITE_TITLE`：应用标题
-  - `VITE_GO_URL`：生产环境 API 地址
+  - `VITE_GO_URL`：生产环境 API 地址（http://www.test.com）
 
 ### 引擎配置文件（engines/*.json）
 
@@ -558,6 +579,7 @@ npm run build-l
    - `secs-logs/` - SECS 通信日志
    - `out/` - 打包输出目录
    - `.vscode/launch.json` - VSCode 启动配置
+   - `yarn.lock` - Yarn 锁文件（如果使用 npm）
 5. **IPC 通信**：使用 `ipc.invoke()` 进行异步通信，避免使用同步方法阻塞渲染进程
 6. **环境变量**：修改 `.env.*` 文件后需要重启开发服务器才能生效
 7. **路由模式**：项目使用 Hash 模式路由，部署时无需配置服务器重定向规则
@@ -566,12 +588,14 @@ npm run build-l
 10. **资源处理**：小于 4096 字节的资源会被内联为 Base64，超过此大小的资源会单独打包
 11. **TypeScript**：前端使用 TypeScript 开发，确保类型安全，开发时可使用 `npm run type-check` 进行类型检查
 12. **Arco Design**：使用 Arco Design 组件库时，请遵循组件库的使用规范和最佳实践
-13. **Monaco Editor**：使用 Monaco Editor 时，注意资源加载和性能优化
+13. **Monaco Editor**：使用 Monaco Editor 时，注意资源加载和性能优化，已在 Vite 配置中预构建优化
 14. **Less 样式**：自定义主题变量时，请在 `vite.config.ts` 中的 `css.preprocessorOptions.less.modifyVars` 中配置
 15. **Web 安全**：当前配置禁用了 Web 安全（`webSecurity: false`）以支持剪贴板操作，生产环境请谨慎评估
-16. **SML 文件**：SML 文件存储在 `sml/` 目录下，支持按功能分类组织
+16. **SML 文件**：SML 文件存储在 `sml/` 目录下，支持按功能分类组织。注意存在两个拼写变体目录：`Communication`（正确）和 `Commnication`（拼写错误）
 17. **自动回复脚本**：自动回复脚本存储在 `auto-reply-scripts/` 目录下，支持自定义处理逻辑
 18. **引擎配置**：引擎配置文件存储在 `engines/` 目录下，每个引擎对应一个 JSON 文件
+19. **Worker 支持**：项目配置了 Web Worker 支持，格式为 ES 模块
+20. **依赖优化**：Monaco Editor 已配置为预构建依赖，提升构建性能
 
 ## 项目信息
 
