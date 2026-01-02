@@ -15,8 +15,17 @@
 
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
-            <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" @addFile="handleAddFile" />
+            <FileTree
+              :tree-data="fileTreeData"
+              :engines="engineList"
+              @edit="handleEditFile"
+              @delete="handleDeleteFile"
+              @sendTo="handleSendFileTo"
+              @selectFile="handlePreviewFile"
+              @addFile="handleAddFile"
+              @addRootFile="handleAddRootFile"
+              @addRootFolder="openAddRootFolderModal"
+            />
           </div>
 
           <!-- File Preview Area -->
@@ -67,12 +76,25 @@
       </a-layout-content>
     </a-layout>
 
-    <!-- Add/Edit Engine Modal -->
     <AddEngineModal v-model:visible="addEngineModalVisible" :initial-data="editingEngine" @submit="handleAddEngine" />
 
-    <!-- File Editor Modal -->
-    <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
-      :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
+    <FileEditorModal
+      v-model:visible="fileEditorModalVisible"
+      :file-name="editingFileName"
+      :initial-content="editingFileContent"
+      :editable-name="isCreateMode"
+      @save="handleSaveFile"
+    />
+
+    <a-modal
+      v-model:visible="addRootFolderModalVisible"
+      title="Add Folder"
+      :mask-closable="false"
+      @ok="confirmAddRootFolder"
+      @cancel="cancelAddRootFolder"
+    >
+      <a-input v-model="newRootFolderName" placeholder="Enter folder name" />
+    </a-modal>
   </div>
 </template>
 
@@ -176,6 +198,9 @@ const editingFileContent = ref('');
 const editingFilePath = ref('');
 const isCreateMode = ref(false);
 const creatingFolderPath = ref('');
+
+const addRootFolderModalVisible = ref(false);
+const newRootFolderName = ref('');
 
 // #endregion
 
@@ -335,6 +360,64 @@ const handleAddFile = (node: TreeNodeData) => {
   editingFileContent.value = '';
   isCreateMode.value = true;
   fileEditorModalVisible.value = true;
+};
+
+const handleAddRootFile = () => {
+  creatingFolderPath.value = '';
+  editingFileName.value = '';
+  editingFilePath.value = '';
+  editingFileContent.value = '';
+  isCreateMode.value = true;
+  fileEditorModalVisible.value = true;
+};
+
+const openAddRootFolderModal = () => {
+  newRootFolderName.value = '';
+  addRootFolderModalVisible.value = true;
+};
+
+const confirmAddRootFolder = async () => {
+  const name = newRootFolderName.value.trim();
+  if (!name) {
+    Message.error('Folder name is required');
+    return;
+  }
+  if (/[\\/]/.test(name)) {
+    Message.error('Folder name cannot contain / or \\');
+    return;
+  }
+  const folderPath = name;
+
+  const exists = fileTreeData.value.some((node: SmlTreeNode) => {
+    const normalize = (p: string) => p.replace(/\\/g, '/');
+    return normalize(node.key as string) === normalize(folderPath);
+  });
+
+  if (exists) {
+    Message.error('文件夹已存在');
+    return;
+  }
+
+  if (!ipc) {
+    Message.error('Cannot create folder');
+    return;
+  }
+
+  try {
+    await ipc.invoke(ipcApiRoute.smlFolderCreate, {
+      folderPath
+    });
+    await loadFileTree();
+    Message.success(`Folder "${name}" created successfully`);
+    addRootFolderModalVisible.value = false;
+  } catch (error) {
+    console.error('Failed to create folder:', error);
+    Message.error('Failed to create folder');
+  }
+};
+
+const cancelAddRootFolder = () => {
+  addRootFolderModalVisible.value = false;
 };
 
 const loadFileContent = async (node: TreeNodeData) => {

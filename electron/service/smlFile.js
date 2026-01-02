@@ -165,6 +165,40 @@ class SmlFileService {
     }
   }
 
+  async createSmlFolder(args) {
+    try {
+      const { folderPath } = args
+      if (!folderPath) {
+        logger.error('❌ [createSmlFolder] Folder path is empty')
+        throw new Error('目录路径不能为空')
+      }
+
+      const fullPath = path.join(getBaseDir(), 'sml', folderPath)
+      logger.info('📁 [createSmlFolder] Creating folder:', fullPath)
+
+      try {
+        const stat = await fs.stat(fullPath)
+        if (stat.isDirectory()) {
+          logger.error('❌ [createSmlFolder] Folder already exists:', fullPath)
+          throw new Error('目录已存在')
+        }
+        logger.error('❌ [createSmlFolder] File with same name exists:', fullPath)
+        throw new Error('同名文件已存在')
+      } catch (error) {
+        if (error.code && error.code !== 'ENOENT') {
+          throw error
+        }
+      }
+
+      await fs.mkdir(fullPath, { recursive: true })
+      logger.info('✅ [createSmlFolder] Folder created successfully')
+      return { success: true, message: '目录创建成功' }
+    } catch (error) {
+      logger.error('❌ [createSmlFolder] Failed to create folder:', error)
+      throw new Error(`创建目录失败: ${error.message}`)
+    }
+  }
+
   /**
    * 删除 SML 文件
    * @param {Object} args 参数对象

@@ -1,8 +1,17 @@
 <template>
   <div class="file-tree-section">
-    <!-- Header -->
     <div class="header">
       <span class="title">File Tree</span>
+      <div class="header-actions">
+        <a-button size="mini" type="text" @click="emit('addRootFile')">
+          <template #icon><icon-plus /></template>
+          File
+        </a-button>
+        <a-button size="mini" type="text" @click="emit('addRootFolder')">
+          <template #icon><icon-plus /></template>
+          Folder
+        </a-button>
+      </div>
     </div>
 
     <!-- Tree Content -->
@@ -78,6 +87,8 @@ const emit = defineEmits<{
   (e: 'sendTo', payload: { file: TreeNodeData; engineName: string }): void;
   (e: 'selectFile', node: TreeNodeData): void;
   (e: 'addFile', node: TreeNodeData): void;
+  (e: 'addRootFile'): void;
+  (e: 'addRootFolder'): void;
 }>();
 
 const searchKey = ref('');
@@ -176,10 +187,19 @@ const handleMenuSelect = (value: string, node: TreeNodeData) => {
   padding: 8px 12px;
   border-bottom: 1px solid var(--color-border);
 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
   .title {
     font-size: 14px;
     font-weight: 600;
     color: var(--color-text-1);
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
   }
 }
 

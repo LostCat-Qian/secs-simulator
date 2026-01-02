@@ -59,9 +59,6 @@ class SmlFileController {
       }
     }
   
-    /**
-     * 创建 SML 文件
-     */
     async createSmlFile(args, event) {
       try {
         logger.info('🎯 [Controller] createSmlFile called with filePath:', args.filePath)
@@ -73,10 +70,19 @@ class SmlFileController {
         throw error
       }
     }
-  
-    /**
-     * 删除 SML 文件
-     */
+
+    async createSmlFolder(args, event) {
+      try {
+        logger.info('🎯 [Controller] createSmlFolder called with folderPath:', args.folderPath)
+        const result = await smlFileService.createSmlFolder(args)
+        logger.info('✅ [Controller] createSmlFolder success')
+        return result
+      } catch (error) {
+        logger.error('❌ [Controller] createSmlFolder failed:', error)
+        throw error
+      }
+    }
+
     async deleteSmlFile(args, event) {
       try {
         logger.info('🎯 [Controller] deleteSmlFile called with filePath:', args.filePath)
