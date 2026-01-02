@@ -19,8 +19,12 @@
             <!-- Node Title with Highlight -->
             <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
 
-            <!-- Context Menu for Files (Not Folders) -->
-            <a-dropdown v-if="!node.isFolder"
+            <!-- Actions -->
+            <a-button v-if="node.isFolder" size="mini" class="menu-btn" @click.stop="emit('addFile', node)">
+              <template #icon><icon-plus /></template>
+            </a-button>
+
+            <a-dropdown v-else
               @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)"
               trigger="click" :popup-max-height="false">
               <a-button size="mini" class="menu-btn" @mousedown.stop>
@@ -61,7 +65,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { TreeNodeData } from '@arco-design/web-vue';
-import { IconMore, IconEdit, IconDelete, IconExport, IconSend, IconCloseCircle } from '@arco-design/web-vue/es/icon';
+import { IconMore, IconEdit, IconDelete, IconExport, IconSend, IconCloseCircle, IconPlus } from '@arco-design/web-vue/es/icon';
 
 const props = defineProps<{
   treeData: Array<TreeNodeData>;
@@ -73,6 +77,7 @@ const emit = defineEmits<{
   (e: 'delete', node: TreeNodeData): void;
   (e: 'sendTo', payload: { file: TreeNodeData; engineName: string }): void;
   (e: 'selectFile', node: TreeNodeData): void;
+  (e: 'addFile', node: TreeNodeData): void;
 }>();
 
 const searchKey = ref('');

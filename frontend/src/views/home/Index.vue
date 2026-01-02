@@ -16,7 +16,7 @@
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
             <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" />
+              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" @addFile="handleAddFile" />
           </div>
 
           <!-- File Preview Area -->
@@ -72,7 +72,7 @@
 
     <!-- File Editor Modal -->
     <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
-      :initial-content="editingFileContent" @save="handleSaveFile" />
+      :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
   </div>
 </template>
 
@@ -174,6 +174,8 @@ const fileEditorModalVisible = ref(false);
 const editingFileName = ref('');
 const editingFileContent = ref('');
 const editingFilePath = ref('');
+const isCreateMode = ref(false);
+const creatingFolderPath = ref('');
 
 // #endregion
 
@@ -325,6 +327,16 @@ const loadFileTree = async () => {
   }
 };
 
+const handleAddFile = (node: TreeNodeData) => {
+  const target = node as SmlTreeNode;
+  creatingFolderPath.value = target.key || '';
+  editingFileName.value = '';
+  editingFilePath.value = '';
+  editingFileContent.value = '';
+  isCreateMode.value = true;
+  fileEditorModalVisible.value = true;
+};
+
 const loadFileContent = async (node: TreeNodeData) => {
   const target = node as SmlTreeNode;
   if ((target.isFolder && target.isFolder === true) || !target.key) {
@@ -352,6 +364,7 @@ const loadFileContent = async (node: TreeNodeData) => {
 };
 
 const handleEditFile = async (node: TreeNodeData) => {
+  isCreateMode.value = false;
   await loadFileContent(node);
   if (!editingFileContent.value) {
     return;
@@ -363,19 +376,95 @@ const handlePreviewFile = async (node: TreeNodeData) => {
   await loadFileContent(node);
 };
 
-const handleSaveFile = async (content: string) => {
-  if (!editingFilePath.value || !ipc) {
+const handleSaveFile = async (payload: { name: string; content: string }) => {
+  if (!ipc) {
     Message.error('Cannot save file');
     return;
   }
+
+  let name = payload.name?.trim() || editingFileName.value;
+  const content = payload.content;
+
+  if (!name) {
+    Message.error('File name is required');
+    return;
+  }
+
+  if (isCreateMode.value && !name.toLowerCase().endsWith('.txt')) {
+    name = `${name}.txt`;
+  }
+
+  const normalizePath = (p: string | undefined | null) => {
+    if (!p) return '';
+    return String(p).replace(/\\/g, '/');
+  };
+
+  const targetPath = (() => {
+    if (!isCreateMode.value) {
+      return editingFilePath.value;
+    }
+    if (!creatingFolderPath.value) {
+      return name;
+    }
+    const base = normalizePath(creatingFolderPath.value);
+    return `${base}/${name}`;
+  })();
+
+  if (isCreateMode.value) {
+    const exists = (() => {
+      const search = (nodes: SmlTreeNode[]): boolean => {
+        for (const node of nodes) {
+          if (normalizePath(node.key as string) === normalizePath(targetPath)) {
+            return true;
+          }
+          if (node.children && node.children.length > 0) {
+            if (search(node.children as SmlTreeNode[])) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+      return search(fileTreeData.value);
+    })();
+
+    if (exists) {
+      Message.error('File already exists, please rename');
+      return;
+    }
+  }
+
   try {
-    await ipc.invoke(ipcApiRoute.smlFileSave, {
-      filePath: editingFilePath.value,
-      content
-    });
-    Message.success(`File "${editingFileName.value}" saved successfully`);
-    editingFileContent.value = content;
-    filePreviewContent.value = content;
+    if (isCreateMode.value) {
+      await ipc.invoke(ipcApiRoute.smlFileCreate, {
+        filePath: targetPath,
+        content
+      });
+
+      editingFileName.value = name;
+      editingFilePath.value = targetPath || '';
+      editingFileContent.value = content;
+      filePreviewContent.value = content;
+
+      await loadFileTree();
+      Message.success(`File "${name}" created successfully`);
+      fileEditorModalVisible.value = false;
+    } else {
+      if (!targetPath) {
+        Message.error('Cannot save file');
+        return;
+      }
+
+      await ipc.invoke(ipcApiRoute.smlFileSave, {
+        filePath: targetPath,
+        content
+      });
+
+      editingFileContent.value = content;
+      filePreviewContent.value = content;
+      Message.success(`File "${editingFileName.value}" saved successfully`);
+      fileEditorModalVisible.value = false;
+    }
   } catch (error) {
     console.error('Failed to save file:', error);
     Message.error('Failed to save file');

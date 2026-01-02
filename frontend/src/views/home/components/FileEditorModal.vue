@@ -8,12 +8,15 @@
     <template #footer>
       <div class="footer-actions">
         <div class="status-info">
-          <span class="file-info">{{ fileName }}</span>
+          <span class="file-info">
+            <a-input v-if="editableName" v-model="localFileName" size="small" placeholder="请输入文件名" />
+            <span v-else>{{ fileName }}</span>
+          </span>
           <span v-if="isModified" class="modified-indicator">Modified</span>
         </div>
         <div class="button-group">
           <a-button @click="handleCancel">Cancel</a-button>
-          <a-button type="primary" @click="handleSave" :disabled="!isModified">Save</a-button>
+          <a-button type="primary" @click="handleSave" :disabled="!canSave">Save</a-button>
         </div>
       </div>
     </template>
@@ -28,30 +31,29 @@ const props = defineProps<{
   visible: boolean;
   fileName?: string;
   initialContent?: string;
+  editableName?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:visible', visible: boolean): void;
-  (e: 'save', content: string): void;
+  (e: 'save', payload: { name: string; content: string }): void;
 }>();
 
-// Editor state
 const editorContent = ref('');
 const originalContent = ref('');
+const localFileName = ref('');
 
-// Editor configuration
 const theme = ref('vs-dark');
-// All files use shell format for parsing (provides better highlighting for log files)
 const language = ref('shell');
 
 const editorOptions = {
   automaticLayout: true,
   minimap: { enabled: true },
-  fontSize: 14,
+  fontSize: 16,
   lineNumbers: 'on',
   scrollBeyondLastLine: false,
   wordWrap: 'on',
-  tabSize: 2,
+  tabSize: 4,
   formatOnPaste: true,
   formatOnType: true,
   trimAutoWhitespace: true,
@@ -67,51 +69,43 @@ const editorOptions = {
   bracketPairColorization: {
     enabled: true
   },
-  // Enable clipboard support
   domReadOnly: false,
   readOnly: false,
-  // Ensure keyboard events are captured
   contextmenu: true,
-  // Accessibility support for clipboard
   accessibilitySupport: 'auto' as const,
-  // Enable all clipboard operations
   clipboard: true,
-  // Allow focus
   enableDropOperations: true
 };
 
 const modalTitle = computed(() => `Edit: ${props.fileName || 'Untitled'}`);
 
-// Track modification state
 const isModified = computed(() => editorContent.value !== originalContent.value);
 
-/**
- * Watch for visibility changes to load content.
- */
+const canSave = computed(() => {
+  if (props.editableName) {
+    return !!localFileName.value.trim();
+  }
+  return isModified.value;
+});
+
 watch(() => props.visible, (val) => {
   if (val) {
     editorContent.value = props.initialContent || '';
     originalContent.value = props.initialContent || '';
+    localFileName.value = props.fileName || '';
   }
 });
 
-/**
- * Handle cancel action.
- */
 const handleCancel = () => {
-  if (isModified.value) {
-    // In a real app, you might want to show a confirmation dialog
-    // For now, we'll just close
-  }
   emit('update:visible', false);
 };
 
-/**
- * Handle save action.
- */
 const handleSave = () => {
-  emit('save', editorContent.value);
-  emit('update:visible', false);
+  const name = props.editableName ? localFileName.value.trim() : (props.fileName || '');
+  emit('save', {
+    name,
+    content: editorContent.value
+  });
 };
 </script>
 
