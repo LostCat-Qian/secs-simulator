@@ -155,7 +155,7 @@ import { ref, watch, computed } from 'vue';
 
 const props = defineProps<{
   visible: boolean;
-  initialData?: any;
+  initialData?: Record<string, any>;
 }>();
 
 const emit = defineEmits<{
@@ -201,23 +201,33 @@ const modalTitle = computed(() => (props.initialData ? 'Edit Engine Properties' 
 watch(() => props.visible, (val) => {
   if (val) {
     if (props.initialData) {
-      // Mock logic to parse name back to deviceId and name, 
-      // since we don't store full config in the list yet.
-      const nameParts = props.initialData.name.split('. ');
-      let deviceId = '10';
-      let name = 'TOOL';
-      if (nameParts.length > 1) {
-        deviceId = nameParts[0];
-        name = nameParts.slice(1).join('. ');
-      } else {
-        name = props.initialData.name;
-      }
-
+      const cfg = props.initialData;
       form.value = {
         ...defaultForm,
-        ...props.initialData,
-        name,
-        deviceId
+        name: String(cfg.name ?? defaultForm.name),
+        deviceId: String(cfg.deviceId ?? defaultForm.deviceId),
+        type: String(cfg.type ?? defaultForm.type),
+        serialPort: String(cfg.path ?? defaultForm.serialPort),
+        baud: String(cfg.baudRate ?? defaultForm.baud),
+        retry: typeof cfg.retry === 'number' ? cfg.retry : defaultForm.retry,
+        master: cfg.master === false ? 'Slave' : 'Master',
+        tcpPort: String(cfg.port ?? defaultForm.tcpPort),
+        simulate: String(cfg.simulate ?? defaultForm.simulate),
+        remoteIp: String(cfg.ip ?? defaultForm.remoteIp),
+        localIp: String(cfg.localIp ?? defaultForm.localIp),
+        maxLength: String(cfg.maxLength ?? defaultForm.maxLength),
+        t0: String(cfg.timeoutT0 ?? defaultForm.t0),
+        t1: String(cfg.timeoutT1 ?? defaultForm.t1),
+        t2: String(cfg.timeoutT2 ?? defaultForm.t2),
+        t3: String(cfg.timeoutT3 ?? defaultForm.t3),
+        t4: String(cfg.timeoutT4 ?? defaultForm.t4),
+        t5: String(cfg.timeoutT5 ?? defaultForm.t5),
+        t6: String(cfg.timeoutT6 ?? defaultForm.t6),
+        t7: String(cfg.timeoutT7 ?? defaultForm.t7),
+        t8: String(cfg.timeoutT8 ?? defaultForm.t8),
+        dataBit: String(cfg.dataBit ?? defaultForm.dataBit),
+        stopBit: String(cfg.stopBit ?? defaultForm.stopBit),
+        parity: cfg.parity == null ? 'None' : String(cfg.parity)
       };
     } else {
       form.value = { ...defaultForm };

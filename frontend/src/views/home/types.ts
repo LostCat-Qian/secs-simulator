@@ -11,14 +11,15 @@ export interface LogPanelData {
   title: string;
   engineId?: string;
   engineName?: string;
-  width: string; // Width percentage or value
+  width: string;
   logs: LogEntry[];
 }
 
 export interface EngineData {
   name: string;
   active: boolean;
-  // Add other engine properties as needed
+  fileName: string;
+  config: Record<string, any>;
 }
 
 export interface AutoReplyFormData {

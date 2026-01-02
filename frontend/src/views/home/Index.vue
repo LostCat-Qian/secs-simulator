@@ -68,7 +68,8 @@
       </a-layout-content>
     </a-layout>
 
-    <AddEngineModal v-model:visible="addEngineModalVisible" :initial-data="editingEngine" @submit="handleAddEngine" />
+    <AddEngineModal v-model:visible="addEngineModalVisible"
+      :initial-data="editingEngine ? editingEngine.config : undefined" @submit="handleAddEngine" />
 
     <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
       :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
@@ -98,25 +99,11 @@ import AddFolderModal from './components/AddFolderModal.vue';
 import AutoReplyModal from './components/AutoReplyModal.vue';
 
 // Types
-import type {
-  LogPanelData,
-  EngineData,
-  AutoReplyFormData,
-  AutoReplyItem,
-  SmlTreeNode,
-  LogEntry
-} from './types';
+import type { LogPanelData, EngineData, AutoReplyFormData, AutoReplyItem, SmlTreeNode } from './types';
 
 // #region --- State Management ---
 
-// Engine List State
-const engineList = ref<EngineData[]>([
-  { name: '1. TOOL_CONTROL_LINK', active: true },
-  { name: '01_S6F11_CassetteAr', active: false },
-  { name: '02_S6F11_CassetteAr', active: false },
-  { name: '03_S6F11_Clam', active: false },
-  { name: 'S1F18_CarrierActio', active: false }
-]);
+const engineList = ref<EngineData[]>([]);
 
 // File Tree State
 const fileTreeData = ref<SmlTreeNode[]>([]);
@@ -154,7 +141,7 @@ const editingAutoReplyName = ref<string | null>(null);
 
 // Modal State
 const addEngineModalVisible = ref(false);
-const editingEngine = ref<any>(null);
+const editingEngine = ref<EngineData | null>(null);
 
 // File Editor Modal State
 const fileEditorModalVisible = ref(false);
@@ -240,32 +227,91 @@ const openAddEngineModal = () => {
   addEngineModalVisible.value = true;
 };
 
-const handleAddEngine = (formData: any) => {
-  console.log('Engine Data:', formData);
+const buildEngineConfigFromForm = (formData: any) => {
+  const toNumber = (value: unknown) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+  };
 
-  if (editingEngine.value) {
-    // Edit mode: update existing engine
-    const index = engineList.value.indexOf(editingEngine.value);
-    if (index > -1) {
-      engineList.value[index] = { ...engineList.value[index], name: formData.name };
-      Message.success(`Engine "${formData.name}" updated`);
+  const config: Record<string, any> = {};
+  config.type = formData.type;
+  config.name = formData.name;
+  config.deviceId = toNumber(formData.deviceId);
+  config.path = formData.serialPort;
+  const baudRate = toNumber(formData.baud);
+  if (baudRate !== undefined) {
+    config.baudRate = baudRate;
+  }
+  config.master = String(formData.master || '') === 'Master';
+  config.ip = formData.remoteIp || formData.localIp;
+  const port = toNumber(formData.tcpPort);
+  if (port !== undefined) {
+    config.port = port;
+  }
+  config.simulate = formData.simulate;
+  const timeoutKeys = ['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8'] as const;
+  timeoutKeys.forEach((key, index) => {
+    const v = toNumber(formData[key]);
+    if (v !== undefined) {
+      config[`timeoutT${index + 1}`] = v;
     }
+  });
+  const dataBit = toNumber(formData.dataBit);
+  if (dataBit !== undefined) {
+    config.dataBit = dataBit;
+  }
+  const stopBit = toNumber(formData.stopBit);
+  if (stopBit !== undefined) {
+    config.stopBit = stopBit;
+  }
+  if (formData.parity === 'None') {
+    config.parity = null;
   } else {
-    // Add mode: create new engine
-    engineList.value.push({
-      name: formData.name,
-      active: false
-    });
-    Message.success(`Engine "${formData.name}" added`);
+    config.parity = formData.parity;
+  }
+  return config;
+};
+
+const handleAddEngine = async (formData: any) => {
+  if (!ipc) {
+    Message.error('Cannot save engine config');
+    return;
   }
 
-  addEngineModalVisible.value = false;
-  editingEngine.value = null;
+  const config = buildEngineConfigFromForm(formData);
+
+  try {
+    await ipc.invoke(ipcApiRoute.saveEngineConfig, {
+      config
+    });
+
+    if (editingEngine.value && editingEngine.value.fileName) {
+      const originalName = editingEngine.value.name;
+      if (originalName && originalName !== config.name) {
+        try {
+          await ipc.invoke(ipcApiRoute.deleteEngine, {
+            fileName: editingEngine.value.fileName
+          });
+        } catch (e) {
+        }
+      }
+    }
+
+    await loadEngineConfigs();
+    Message.success(`Engine "${config.name}" saved`);
+    addEngineModalVisible.value = false;
+    editingEngine.value = null;
+  } catch (error) {
+    console.error('Failed to save engine config:', error);
+    Message.error('Failed to save engine config');
+  }
 };
 
 const selectEngine = (engine: EngineData) => {
-  console.log('Selected engine:', engine);
-  // Implementation for selecting an engine (e.g., highlighting)
+  engineList.value = engineList.value.map(item => ({
+    ...item,
+    active: item.fileName === engine.fileName
+  }));
 };
 
 const openEngine = (engine: EngineData) => {
@@ -285,11 +331,21 @@ const handleDeleteEngine = (engine: EngineData) => {
     content: `Are you sure you want to delete ${engine.name}?`,
     okText: 'Delete',
     cancelText: 'Cancel',
-    onOk: () => {
-      const index = engineList.value.indexOf(engine);
-      if (index > -1) {
-        engineList.value.splice(index, 1);
+    onOk: async () => {
+      if (!ipc) {
+        Message.error('Cannot delete engine');
+        return;
+      }
+      try {
+        const fileName = engine.fileName || `${engine.name}.json`;
+        await ipc.invoke(ipcApiRoute.deleteEngine, {
+          fileName
+        });
+        await loadEngineConfigs();
         Message.success('Engine deleted');
+      } catch (error) {
+        console.error('Failed to delete engine:', error);
+        Message.error('Failed to delete engine');
       }
     }
   });
@@ -297,8 +353,8 @@ const handleDeleteEngine = (engine: EngineData) => {
 
 const handleViewConfig = (engine: EngineData) => {
   console.log('View config:', engine);
-  // Mock: update preview content
-  filePreviewContent.value = `// Configuration for ${engine.name}\n{\n  "mode": "Active",\n  "protocol": "SECS-II"\n}`;
+  const pretty = JSON.stringify(engine.config || {}, null, 2);
+  filePreviewContent.value = `// Configuration for ${engine.name}\n${pretty}`;
 };
 
 // #endregion
@@ -535,10 +591,10 @@ const handleDeleteFile = (node: TreeNodeData) => {
   if (!target.key) {
     return;
   }
-  
+
   const isFolder = target.isFolder;
   const typeText = isFolder ? 'Folder' : 'File';
-  
+
   Modal.confirm({
     title: `Delete ${typeText}`,
     content: `Are you sure you want to delete ${typeText.toLowerCase()} "${target.title}"?`,
@@ -551,15 +607,15 @@ const handleDeleteFile = (node: TreeNodeData) => {
       }
       try {
         if (isFolder) {
-            await ipc.invoke(ipcApiRoute.smlFolderDelete, {
-                folderPath: target.key
-            });
+          await ipc.invoke(ipcApiRoute.smlFolderDelete, {
+            folderPath: target.key
+          });
         } else {
-            await ipc.invoke(ipcApiRoute.smlFileDelete, {
-                filePath: target.key
-            });
+          await ipc.invoke(ipcApiRoute.smlFileDelete, {
+            filePath: target.key
+          });
         }
-        
+
         removeNodeFromTree(target.key);
         Message.success(`${typeText} deleted`);
       } catch (error) {
@@ -576,6 +632,33 @@ const handleSendFileTo = (payload: { file: TreeNodeData, engineName: string }) =
 };
 
 // #endregion
+
+const loadEngineConfigs = async () => {
+  if (!ipc) {
+    return;
+  }
+  try {
+    const result = await ipc.invoke(ipcApiRoute.getEngineConfig, null);
+    if (Array.isArray(result)) {
+      engineList.value = result.map((item: any) => {
+        const fileName = String(item.fileName || '');
+        const config = item.config || {};
+        const name = String(config.name || fileName.replace(/\.json$/i, ''));
+        return {
+          name,
+          active: false,
+          fileName,
+          config
+        } as EngineData;
+      });
+    } else {
+      engineList.value = [];
+    }
+  } catch (error) {
+    console.error('Failed to load engine configs:', error);
+    Message.error('Failed to load engine configs');
+  }
+};
 
 const loadAutoReplyScripts = async () => {
   if (!ipc) {
@@ -601,6 +684,7 @@ const loadAutoReplyScripts = async () => {
 };
 
 onMounted(() => {
+  loadEngineConfigs();
   loadFileTree();
   loadAutoReplyScripts();
 });
