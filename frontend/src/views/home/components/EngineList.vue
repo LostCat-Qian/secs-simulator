@@ -11,12 +11,8 @@
 
     <!-- Engine List -->
     <div class="list-container">
-      <div
-        v-for="(item, index) in engines"
-        :key="index"
-        :class="['engine-item', { active: item.active }]"
-        @click="$emit('select', item)"
-      >
+      <div v-for="(item, index) in engines" :key="index" :class="['engine-item', { active: item.active }]"
+        @click="$emit('select', item)">
         <div class="engine-icon">
           <icon-folder />
         </div>
@@ -29,7 +25,8 @@
         </div>
 
         <!-- Action Menu -->
-        <a-dropdown @select="(value: string | number | Record<string, any>) => handleMenuSelect(value, item)" :popup-max-height="false">
+        <a-dropdown @select="(value: string | number | Record<string, any>) => handleMenuSelect(value, item)"
+          :popup-max-height="false">
           <a-button size="mini" class="action-btn" @click.stop>
             Options <icon-down />
           </a-button>

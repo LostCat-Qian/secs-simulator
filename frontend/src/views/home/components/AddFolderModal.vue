@@ -1,13 +1,6 @@
 <template>
-  <a-modal
-    :visible="visible"
-    title="Add Folder"
-    :mask-closable="false"
-    ok-text="OK"
-    cancel-text="Cancel"
-    @ok="handleOk"
-    @cancel="handleCancel"
-  >
+  <a-modal :visible="visible" title="Add Folder" :mask-closable="false" ok-text="OK" cancel-text="Cancel" @ok="handleOk"
+    @cancel="handleCancel">
     <a-input v-model="folderName" placeholder="Enter folder name" @press-enter="handleOk" />
   </a-modal>
 </template>

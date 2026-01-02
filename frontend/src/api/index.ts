@@ -11,6 +11,7 @@ interface IpcApiRoute {
   smlFileCreate: string
   smlFileDelete: string
   smlFolderCreate: string
+  smlFolderDelete: string
   // engine
   engineStart: string
   engineStop: string
@@ -34,7 +35,8 @@ const ipcApiRoute: IpcApiRoute = {
   smlFileSave: 'controller/smlFile/saveSmlFile', // save sml file content by file path
   smlFileCreate: 'controller/smlFile/createSmlFile', // create sml file by file path and name
   smlFileDelete: 'controller/smlFile/deleteSmlFile', // delete sml file by file path
-  smlFolderCreate: 'controller/smlFile/createSmlFolder',
+  smlFolderCreate: 'controller/smlFile/createSmlFolder', // create sml folder by folder path and name
+  smlFolderDelete: 'controller/smlFile/deleteSmlFolder', // delete sml folder by folder path
   // engine
   engineStart: 'controller/engine/start', // start engine
   engineStop: 'controller/engine/stop', // stop engine

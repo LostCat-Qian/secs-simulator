@@ -9,30 +9,15 @@
         <div class="sider-content">
           <!-- Engines List Area -->
           <a-resize-box :directions="['bottom']" class="engine-box">
-            <EngineList
-              :engines="engineList"
-              @add="openAddEngineModal"
-              @select="selectEngine"
-              @open="openEngine"
-              @edit="handleEditEngine"
-              @delete="handleDeleteEngine"
-              @viewConfig="handleViewConfig"
-            />
+            <EngineList :engines="engineList" @add="openAddEngineModal" @select="selectEngine" @open="openEngine"
+              @edit="handleEditEngine" @delete="handleDeleteEngine" @viewConfig="handleViewConfig" />
           </a-resize-box>
 
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
-            <FileTree
-              :tree-data="fileTreeData"
-              :engines="engineList"
-              @edit="handleEditFile"
-              @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo"
-              @selectFile="handlePreviewFile"
-              @addFile="handleAddFile"
-              @addRootFile="handleAddRootFile"
-              @addRootFolder="openAddRootFolderModal"
-            />
+            <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
+              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" @addFile="handleAddFile"
+              @addRootFile="handleAddRootFile" @addRootFolder="openAddRootFolderModal" />
           </div>
 
           <!-- File Preview Area -->
@@ -55,30 +40,16 @@
             <!-- Single Log Panel -->
             <template v-if="logPanels.length === 1">
               <div class="log-panel-item single-panel">
-                <LogPanel
-                  :title="logPanels[0].title"
-                  :logs="logPanels[0].logs"
-                  @clear="clearLogs(logPanels[0].id)"
-                  @close="closeLogPanel(logPanels[0].id)"
-                />
+                <LogPanel :title="logPanels[0].title" :logs="logPanels[0].logs" @clear="clearLogs(logPanels[0].id)"
+                  @close="closeLogPanel(logPanels[0].id)" />
               </div>
             </template>
             <!-- Multiple Log Panels -->
             <template v-else-if="logPanels.length > 1">
-              <a-resize-box
-                v-for="panel in logPanels"
-                :key="panel.id"
-                :directions="['right']"
-                class="log-panel-item"
-                :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }"
-                :min-width="200"
-              >
-                <LogPanel
-                  :title="panel.title"
-                  :logs="panel.logs"
-                  @clear="clearLogs(panel.id)"
-                  @close="closeLogPanel(panel.id)"
-                />
+              <a-resize-box v-for="panel in logPanels" :key="panel.id" :directions="['right']" class="log-panel-item"
+                :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }" :min-width="200">
+                <LogPanel :title="panel.title" :logs="panel.logs" @clear="clearLogs(panel.id)"
+                  @close="closeLogPanel(panel.id)" />
               </a-resize-box>
             </template>
             <!-- No Log Panels -->
@@ -91,42 +62,21 @@
         </div>
 
         <a-resize-box :directions="['top']" class="auto-reply-box">
-          <AutoReplyPanel
-            :data="tableData"
-            v-model:searchText="searchText"
-            @add="addAutoReply"
-            @edit="editAutoReply"
-            @delete="deleteAutoReply"
-          />
+          <AutoReplyPanel :data="tableData" v-model:searchText="searchText" @add="addAutoReply" @edit="editAutoReply"
+            @delete="deleteAutoReply" />
         </a-resize-box>
       </a-layout-content>
     </a-layout>
 
-    <AddEngineModal
-      v-model:visible="addEngineModalVisible"
-      :initial-data="editingEngine"
-      @submit="handleAddEngine"
-    />
+    <AddEngineModal v-model:visible="addEngineModalVisible" :initial-data="editingEngine" @submit="handleAddEngine" />
 
-    <FileEditorModal
-      v-model:visible="fileEditorModalVisible"
-      :file-name="editingFileName"
-      :initial-content="editingFileContent"
-      :editable-name="isCreateMode"
-      @save="handleSaveFile"
-    />
+    <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
+      :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
 
-    <AddFolderModal
-      v-model:visible="addRootFolderModalVisible"
-      @submit="confirmAddRootFolder"
-    />
+    <AddFolderModal v-model:visible="addRootFolderModalVisible" @submit="confirmAddRootFolder" />
 
-    <AutoReplyModal
-      v-model:visible="autoReplyModalVisible"
-      :initial-data="autoReplyForm"
-      :engines="engineList"
-      @submit="handleSaveAutoReply"
-    />
+    <AutoReplyModal v-model:visible="autoReplyModalVisible" :initial-data="autoReplyForm" :engines="engineList"
+      @submit="handleSaveAutoReply" />
   </div>
 </template>
 
@@ -585,25 +535,36 @@ const handleDeleteFile = (node: TreeNodeData) => {
   if (!target.key) {
     return;
   }
+  
+  const isFolder = target.isFolder;
+  const typeText = isFolder ? 'Folder' : 'File';
+  
   Modal.confirm({
-    title: 'Delete File',
-    content: `Are you sure you want to delete ${target.title}?`,
+    title: `Delete ${typeText}`,
+    content: `Are you sure you want to delete ${typeText.toLowerCase()} "${target.title}"?`,
     okText: 'Delete',
     cancelText: 'Cancel',
     onOk: async () => {
       if (!ipc) {
-        Message.error('Cannot delete file');
+        Message.error(`Cannot delete ${typeText.toLowerCase()}`);
         return;
       }
       try {
-        await ipc.invoke(ipcApiRoute.smlFileDelete, {
-          filePath: target.key
-        });
+        if (isFolder) {
+            await ipc.invoke(ipcApiRoute.smlFolderDelete, {
+                folderPath: target.key
+            });
+        } else {
+            await ipc.invoke(ipcApiRoute.smlFileDelete, {
+                filePath: target.key
+            });
+        }
+        
         removeNodeFromTree(target.key);
-        Message.success('File deleted');
+        Message.success(`${typeText} deleted`);
       } catch (error) {
-        console.error('Failed to delete file:', error);
-        Message.error('Failed to delete file');
+        console.error(`Failed to delete ${typeText.toLowerCase()}:`, error);
+        Message.error(`Failed to delete ${typeText.toLowerCase()}`);
       }
     }
   });

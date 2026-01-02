@@ -120,12 +120,15 @@ defineEmits<{
   &.level-info {
     color: #00b42a;
   }
+
   &.level-warn {
     color: #ff7d00;
   }
+
   &.level-error {
     color: #f53f3f;
   }
+
   &.level-debug {
     color: #165dff;
   }

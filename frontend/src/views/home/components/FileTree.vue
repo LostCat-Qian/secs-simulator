@@ -17,63 +17,64 @@
     <!-- Tree Content -->
     <div class="tree-container">
       <!-- Search Input -->
-      <a-input-search
-        style="margin-bottom: 8px; width: 100%"
-        v-model="searchKey"
-        placeholder="Search files..."
-        allow-clear
-      />
+      <a-input-search style="margin-bottom: 8px; width: 100%" v-model="searchKey" placeholder="Search files..."
+        allow-clear />
 
       <!-- Tree View -->
-      <a-tree
-        :data="filteredTreeData"
-        :default-expand-all="true"
-        block-node
-        show-line
-        :field-names="{ key: 'key', title: 'title', children: 'children' }"
-      >
+      <a-tree :data="filteredTreeData" :default-expand-all="true" block-node show-line
+        :field-names="{ key: 'key', title: 'title', children: 'children' }">
         <template #title="node">
           <div class="tree-node-content" @click.stop="handleNodeClick(node)">
             <!-- Node Title with Highlight -->
             <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
 
             <!-- Actions -->
-            <a-button v-if="node.isFolder" size="mini" class="menu-btn" @click.stop="emit('addFile', node)">
-              <template #icon><icon-plus /></template>
-            </a-button>
-
-            <a-dropdown
-              v-else
+            <a-dropdown trigger="click"
               @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)"
-              trigger="click"
-              :popup-max-height="false"
-            >
-              <a-button size="mini" class="menu-btn" @mousedown.stop>
+              :popup-max-height="false">
+              <a-button size="mini" class="menu-btn" @mousedown.stop v-if="!node.isFolder">
                 <template #icon><icon-more /></template>
               </a-button>
+              <!-- Folder Actions -->
+              <a-button size="mini" class="menu-btn" @mousedown.stop v-else>
+                <template #icon><icon-more /></template>
+              </a-button>
+
               <template #content>
-                <a-doption value="edit">
-                  <template #icon><icon-edit /></template>
-                  Edit
-                </a-doption>
-                <a-doption value="delete">
-                  <template #icon><icon-delete /></template>
-                  Delete
-                </a-doption>
-                <a-dsubmenu value="sendto">
-                  <template #icon><icon-export /></template>
-                  Send To
-                  <template #content>
-                    <a-doption v-for="engine in engines" :key="engine.name" :value="`sendto-${engine.name}`">
-                      <template #icon><icon-send /></template>
-                      {{ engine.name }}
-                    </a-doption>
-                    <a-doption v-if="engines.length === 0" disabled>
-                      <template #icon><icon-close-circle /></template>
-                      No Engines Available
-                    </a-doption>
-                  </template>
-                </a-dsubmenu>
+                <template v-if="!node.isFolder">
+                  <a-doption value="edit">
+                    <template #icon><icon-edit /></template>
+                    Edit
+                  </a-doption>
+                  <a-doption value="delete">
+                    <template #icon><icon-delete /></template>
+                    Delete
+                  </a-doption>
+                  <a-dsubmenu value="sendto">
+                    <template #icon><icon-export /></template>
+                    Send To
+                    <template #content>
+                      <a-doption v-for="engine in engines" :key="engine.name" :value="`sendto-${engine.name}`">
+                        <template #icon><icon-send /></template>
+                        {{ engine.name }}
+                      </a-doption>
+                      <a-doption v-if="engines.length === 0" disabled>
+                        <template #icon><icon-close-circle /></template>
+                        No Engines Available
+                      </a-doption>
+                    </template>
+                  </a-dsubmenu>
+                </template>
+                <template v-else>
+                  <a-doption value="addFile">
+                    <template #icon><icon-plus /></template>
+                    Add File
+                  </a-doption>
+                  <a-doption value="delete">
+                    <template #icon><icon-delete /></template>
+                    Delete Folder
+                  </a-doption>
+                </template>
               </template>
             </a-dropdown>
           </div>
@@ -182,8 +183,10 @@ const handleMenuSelect = (value: string, node: TreeNodeData) => {
     emit('edit', node);
   } else if (value === 'delete') {
     emit('delete', node);
+  } else if (value === 'addFile') {
+    emit('addFile', node);
   } else if (value.startsWith('sendto-')) {
-    const engineName = value.replace('sendto-', '');
+    const engineName = value.slice(7);
     emit('sendTo', { file: node, engineName });
   }
 };

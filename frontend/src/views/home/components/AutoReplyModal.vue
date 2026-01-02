@@ -1,14 +1,6 @@
 <template>
-  <a-modal
-    :visible="visible"
-    :title="isEditMode ? 'Edit Auto Reply Script' : 'Add Auto Reply Script'"
-    :mask-closable="false"
-    width="80vw"
-    ok-text="Save"
-    cancel-text="Cancel"
-    @ok="handleOk"
-    @cancel="handleCancel"
-  >
+  <a-modal :visible="visible" :title="isEditMode ? 'Edit Auto Reply Script' : 'Add Auto Reply Script'"
+    :mask-closable="false" width="80vw" ok-text="Save" cancel-text="Cancel" @ok="handleOk" @cancel="handleCancel">
     <a-form layout="vertical" :model="form">
       <a-row :gutter="16">
         <a-col :span="8">
@@ -40,12 +32,8 @@
       </a-row>
       <a-form-item label="Script">
         <div class="auto-reply-editor-wrapper">
-          <vue-monaco-editor
-            v-model:value="form.script"
-            language="javascript"
-            theme="vs-dark"
-            :options="editorOptions"
-          />
+          <vue-monaco-editor v-model:value="form.script" language="javascript" theme="vs-dark"
+            :options="editorOptions" />
         </div>
       </a-form-item>
     </a-form>
@@ -98,11 +86,11 @@ watch(
       } else {
         // Reset form for new entry
         form.value = {
-            tool: props.engines[0]?.name || '',
-            handlerSf: '',
-            active: true,
-            delaySeconds: 0,
-            script: defaultAutoReplyScript
+          tool: props.engines[0]?.name || '',
+          handlerSf: '',
+          active: true,
+          delaySeconds: 0,
+          script: defaultAutoReplyScript
         };
       }
     }

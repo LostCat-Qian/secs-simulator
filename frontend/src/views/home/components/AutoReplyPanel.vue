@@ -4,13 +4,8 @@
     <div class="header">
       <span class="title">Auto Reply Setting</span>
       <div class="actions">
-        <a-input-search
-          :model-value="searchText"
-          @update:model-value="(val: string) => $emit('update:searchText', val)"
-          placeholder="Search..."
-          size="small"
-          style="width: 200px"
-        />
+        <a-input-search :model-value="searchText" @update:model-value="(val: string) => $emit('update:searchText', val)"
+          placeholder="Search..." size="small" style="width: 200px" />
         <a-button type="primary" size="small" @click="$emit('add')">
           <template #icon><icon-plus /></template>
           Add
@@ -20,14 +15,8 @@
 
     <!-- Data Table -->
     <div class="table-container">
-      <a-table
-        :data="data"
-        :pagination="false"
-        :bordered="false"
-        size="small"
-        :scroll="{ y: '100%' }"
-        style="height: 100%"
-      >
+      <a-table :data="data" :pagination="false" :bordered="false" size="small" :scroll="{ y: '100%' }"
+        style="height: 100%">
         <template #columns>
           <a-table-column title="Tool" data-index="tool" :width="100" />
           <a-table-column title="SF Name" data-index="sf" :width="120" />

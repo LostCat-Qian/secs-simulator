@@ -200,6 +200,42 @@ class SmlFileService {
   }
 
   /**
+   * 删除 SML 目录
+   * @param {Object} args 参数对象
+   * @param {String} args.folderPath 目录相对路径
+   * @returns {Object} 操作结果
+   */
+  async deleteSmlFolder(args) {
+    try {
+      const { folderPath } = args
+      if (!folderPath) {
+        logger.error('❌ [deleteSmlFolder] Folder path is empty')
+        throw new Error('目录路径不能为空')
+      }
+
+      const fullPath = path.join(getBaseDir(), 'sml', folderPath)
+      logger.info('🗑️ [deleteSmlFolder] Deleting folder:', fullPath)
+
+      // 检查目录是否存在
+      try {
+        await fs.access(fullPath)
+      } catch (accessError) {
+        logger.error('❌ [deleteSmlFolder] Folder does not exist:', fullPath)
+        throw new Error('目录不存在')
+      }
+
+      // 递归删除目录
+      await fs.rm(fullPath, { recursive: true, force: true })
+      logger.info('✅ [deleteSmlFolder] Folder deleted successfully')
+
+      return { success: true, message: '目录删除成功' }
+    } catch (error) {
+      logger.error('❌ [deleteSmlFolder] Failed to delete folder:', error)
+      throw new Error(`删除目录失败: ${error.message}`)
+    }
+  }
+
+  /**
    * 删除 SML 文件
    * @param {Object} args 参数对象
    * @param {String} args.filePath 文件相对路径

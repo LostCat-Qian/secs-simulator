@@ -83,6 +83,18 @@ class SmlFileController {
       }
     }
 
+    async deleteSmlFolder(args, event) {
+      try {
+        logger.info('🎯 [Controller] deleteSmlFolder called with folderPath:', args.folderPath)
+        const result = await smlFileService.deleteSmlFolder(args)
+        logger.info('✅ [Controller] deleteSmlFolder success')
+        return result
+      } catch (error) {
+        logger.error('❌ [Controller] deleteSmlFolder failed:', error)
+        throw error
+      }
+    }
+
     async deleteSmlFile(args, event) {
       try {
         logger.info('🎯 [Controller] deleteSmlFile called with filePath:', args.filePath)
