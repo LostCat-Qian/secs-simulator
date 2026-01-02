@@ -9,8 +9,16 @@
         <div class="sider-content">
           <!-- Engines List Area -->
           <a-resize-box :directions="['bottom']" class="engine-box">
-            <EngineList :engines="engineList" @add="openAddEngineModal" @select="selectEngine" @open="openEngine"
-              @edit="handleEditEngine" @delete="handleDeleteEngine" @viewConfig="handleViewConfig" />
+            <EngineList
+              :engines="engineList"
+              @add="openAddEngineModal"
+              @select="selectEngine"
+              @open="openEngine"
+              @close="closeEngine"
+              @edit="handleEditEngine"
+              @delete="handleDeleteEngine"
+              @viewConfig="handleViewConfig"
+            />
           </a-resize-box>
 
           <!-- File Tree Area -->
@@ -82,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Modal, TreeNodeData, Message } from '@arco-design/web-vue';
 import { ipc } from '@/utils/ipcRenderer';
 import { ipcApiRoute } from '@/api';
@@ -316,7 +324,46 @@ const selectEngine = (engine: EngineData) => {
 
 const openEngine = (engine: EngineData) => {
   console.log('Open engine:', engine);
+  if (!ipc) {
+    Message.error('Cannot start engine');
+    return;
+  }
   addLogPanel(engine);
+  ipc
+    .invoke(ipcApiRoute.engineStart, {
+      config: JSON.parse(JSON.stringify(engine.config || {}))
+    })
+    .then(() => {
+      Message.success(`Engine "${engine.name}" started`);
+    })
+    .catch(error => {
+      console.error('Failed to start engine:', error);
+      Message.error('Failed to start engine');
+    });
+};
+
+const closeEngine = (engine: EngineData) => {
+  console.log('Close engine:', engine);
+  if (!ipc) {
+    Message.error('Cannot stop engine');
+    return;
+  }
+  ipc
+    .invoke(ipcApiRoute.engineStop, {
+      name: engine.name
+    })
+    .then(() => {
+      Message.success(`Engine "${engine.name}" stopped`);
+      const panels = logPanels.value.filter(panel => panel.engineName === engine.name);
+      panels.forEach(panel => {
+        clearLogs(panel.id);
+        closeLogPanel(panel.id);
+      });
+    })
+    .catch(error => {
+      console.error('Failed to stop engine:', error);
+      Message.error('Failed to stop engine');
+    });
 };
 
 const handleEditEngine = (engine: EngineData) => {
@@ -684,9 +731,41 @@ const loadAutoReplyScripts = async () => {
 };
 
 onMounted(() => {
+  if (ipc) {
+    ipc.on('engine/log', (_event, payload: { name: string; level: string; type: string; message: string }) => {
+      const targetPanels = logPanels.value.filter(panel => panel.engineName === payload.name);
+      const time = new Date().toLocaleTimeString();
+      const entryLevel = payload.level || 'INFO';
+      const text = String(payload.message ?? '');
+
+      if (targetPanels.length === 0) {
+        const engine = engineList.value.find(e => e.name === payload.name);
+        if (engine) {
+          addLogPanel(engine);
+        }
+      }
+
+      logPanels.value.forEach(panel => {
+        if (panel.engineName === payload.name) {
+          panel.logs.push({
+            time,
+            level: entryLevel,
+            message: text
+          });
+        }
+      });
+    });
+  }
+
   loadEngineConfigs();
   loadFileTree();
   loadAutoReplyScripts();
+});
+
+onBeforeUnmount(() => {
+  if (ipc) {
+    ipc.removeAllListeners('engine/log');
+  }
 });
 
 // #region --- Methods: Auto Reply ---

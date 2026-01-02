@@ -24,7 +24,6 @@
           </div>
         </div>
 
-        <!-- Action Menu -->
         <a-dropdown @select="(value: string | number | Record<string, any>) => handleMenuSelect(value, item)"
           :popup-max-height="false">
           <a-button size="mini" class="action-btn" @click.stop>
@@ -32,6 +31,7 @@
           </a-button>
           <template #content>
             <a-doption value="open"><icon-apps /> Open</a-doption>
+            <a-doption value="close"><icon-close-circle /> Close</a-doption>
             <a-doption value="viewConfig"><icon-settings /> View Config</a-doption>
             <a-doption value="edit"><icon-edit /> Edit Config</a-doption>
             <a-doption value="delete"><icon-delete /> Delete</a-doption>
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconPlus, IconFolder, IconEdit, IconDelete, IconApps, IconSettings, IconDown } from '@arco-design/web-vue/es/icon';
+import { IconPlus, IconFolder, IconEdit, IconDelete, IconApps, IconSettings, IconDown, IconCloseCircle } from '@arco-design/web-vue/es/icon';
 import type { EngineData } from '../types';
 
 defineProps<{
@@ -59,6 +59,7 @@ const emit = defineEmits<{
   (e: 'add'): void;
   (e: 'select', engine: EngineData): void;
   (e: 'open', engine: EngineData): void;
+  (e: 'close', engine: EngineData): void;
   (e: 'edit', engine: EngineData): void;
   (e: 'delete', engine: EngineData): void;
   (e: 'viewConfig', engine: EngineData): void;
@@ -74,6 +75,9 @@ const handleMenuSelect = (value: string | number | Record<string, any>, item: En
   switch (action) {
     case 'open':
       emit('open', item);
+      break;
+    case 'close':
+      emit('close', item);
       break;
     case 'viewConfig':
       emit('viewConfig', item);

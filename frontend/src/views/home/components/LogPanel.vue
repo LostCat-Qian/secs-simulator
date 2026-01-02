@@ -4,17 +4,16 @@
     <div class="header">
       <span class="title" :title="title">{{ title }}</span>
       <div class="actions">
-        <a-button size="mini" type="text" @click="$emit('clear')">
+        <a-button size="mini" type="text" @click="handleClear">
           <template #icon><icon-refresh /></template>
         </a-button>
-        <a-button size="mini" type="text" @click="$emit('close')">
+        <a-button size="mini" type="text" @click="handleClose">
           <template #icon><icon-close /></template>
         </a-button>
       </div>
     </div>
 
-    <!-- Log Content -->
-    <div class="log-container">
+    <div ref="logContainerRef" class="log-container">
       <div v-for="(log, index) in logs" :key="index" class="log-item">
         <span class="log-time">{{ log.time }}</span>
         <span :class="['log-level', `level-${log.level.toLowerCase()}`]">[{{ log.level }}]</span>
@@ -30,18 +29,47 @@
 </template>
 
 <script setup lang="ts">
+import { ref, watch, nextTick, onMounted } from 'vue';
 import { IconRefresh, IconClose } from '@arco-design/web-vue/es/icon';
 import type { LogEntry } from '../types';
 
-defineProps<{
+const props = defineProps<{
   title?: string;
   logs: LogEntry[];
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'clear'): void;
   (e: 'close'): void;
 }>();
+
+const logContainerRef = ref<HTMLElement | null>(null);
+
+const handleClear = () => {
+  emit('clear');
+};
+
+const handleClose = () => {
+  emit('close');
+};
+
+const scrollToBottom = () => {
+  const el = logContainerRef.value;
+  if (!el) return;
+  el.scrollTop = el.scrollHeight;
+};
+
+watch(
+  () => props.logs.length,
+  async () => {
+    await nextTick();
+    scrollToBottom();
+  }
+);
+
+onMounted(() => {
+  scrollToBottom();
+});
 </script>
 
 <style scoped lang="less">
@@ -136,6 +164,7 @@ defineEmits<{
 
 .log-message {
   color: #d9d9d9;
+  white-space: pre-wrap;
 }
 
 .empty-log {

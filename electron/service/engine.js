@@ -4,6 +4,9 @@ const path = require('path')
 const fs = require('fs').promises
 const { logger } = require('ee-core/log')
 const { getBaseDir } = require('ee-core/ps')
+const { HsmsActiveCommunicator, HsmsPassiveCommunicator } = require('secs4js')
+
+const engineInstances = new Map()
 
 /**
  * 引擎服务
@@ -24,7 +27,7 @@ class EngineService {
 
       // 读取目录中的所有文件
       const files = await fs.readdir(enginesPath)
-      const jsonFiles = files.filter(file => file.endsWith('.json'))
+      const jsonFiles = files.filter((file) => file.endsWith('.json'))
 
       logger.debug('📁 [getConfig] Found JSON files:', jsonFiles.length)
 
@@ -57,6 +60,197 @@ class EngineService {
     }
   }
 
+  /**
+   * 启动连接
+   * @param {{ config: EngineConfig }} args - 包含引擎配置的对象
+   * @param {*} event - Electron 事件对象，用于发送日志
+   * @returns {Promise<{ success: boolean, message: string, name: string }>} 启动结果
+   */
+  async start(args, event) {
+    const { config } = args || {}
+    if (!config || !config.name) {
+      logger.error('❌ [start] Config or name is missing')
+      throw new Error('启动引擎需要完整配置并包含 name 字段')
+    }
+
+    const key = config.name
+    if (engineInstances.has(key)) {
+      logger.warn('⚠️ [start] Engine already started, skipping:', key)
+      return { success: true, message: '引擎已启动', name: key }
+    }
+
+    try {
+      let instance = null
+      const timeoutConfig = {
+        timeoutT1: config.timeoutT1 || 10,
+        timeoutT2: config.timeoutT2 || 45,
+        timeoutT3: config.timeoutT3 || 180,
+        timeoutT4: config.timeoutT4 || 120,
+        timeoutT5: config.timeoutT5 || 10,
+        timeoutT6: config.timeoutT6 || 10,
+        timeoutT7: config.timeoutT7 || 10,
+        timeoutT8: config.timeoutT8 || 10
+      }
+      const logConfig = {
+        enabled: true, // Whether to enable logging
+        console: true, // Whether to output logs to console
+        baseDir: './secs-logs', // Path for log storage
+        retentionDays: 30, // Number of days to retain logs
+        detailLevel: 'trace', // Level for DETAIL logs
+        secs2Level: 'info', // Level for SECS-II logs
+        maxHexBytes: 65536 // Maximum number of hex bytes to record
+      }
+      if (config.type === 'HSMS') {
+        const isEquip = String(config.simulate || '') === 'Equipment'
+        if (isEquip) {
+          instance = new HsmsPassiveCommunicator({
+            ip: config.ip || '0.0.0.0',
+            port: config.port,
+            deviceId: config.deviceId,
+            isEquip: true,
+            name: config.name,
+            log: logConfig,
+            ...timeoutConfig
+          })
+        } else {
+          instance = new HsmsActiveCommunicator({
+            name: config.name,
+            ip: config.ip || '127.0.0.1',
+            port: config.port,
+            deviceId: config.deviceId,
+            isEquip: false,
+            log: logConfig,
+            ...timeoutConfig
+          })
+        }
+
+        if (event && event.sender) {
+          event.sender.send('engine/log', {
+            name: key,
+            level: 'INFO',
+            type: 'start',
+            message: 'Engine starting...'
+          })
+        }
+      } else {
+        logger.error('❌ [start] Unsupported engine type:', config.type)
+        throw new Error(`不支持的引擎类型: ${config.type}`)
+      }
+
+      instance.on('connected', () => {
+        logger.info(`🔌 [${key}] connected`)
+        if (event && event.sender) {
+          event.sender.send('engine/log', {
+            name: key,
+            level: 'INFO',
+            type: 'connected',
+            message: 'connected'
+          })
+        }
+      })
+
+      instance.on('disconnected', () => {
+        logger.info(`🔌 [${key}] disconnected`)
+        if (event && event.sender) {
+          event.sender.send('engine/log', {
+            name: key,
+            level: 'INFO',
+            type: 'disconnected',
+            message: 'disconnected'
+          })
+        }
+      })
+
+      instance.on('selected', () => {
+        logger.info(`✅ [${key}] HSMS selected`)
+        if (event && event.sender) {
+          event.sender.send('engine/log', {
+            name: key,
+            level: 'INFO',
+            type: 'selected',
+            message: 'HSMS selected (ready)'
+          })
+        }
+      })
+
+      instance.on('message', (msg) => {
+        const sml = typeof msg.toSml === 'function' ? msg.toSml() : String(msg)
+        const msgStr = `Received Message: DeviceId=${msg.deviceId}, SystemBytes=${msg.systemBytes}, Data=\n${sml}`
+        logger.info(`📨 [${key}] message: ${msgStr}`)
+        if (event && event.sender) {
+          event.sender.send('engine/log', {
+            name: key,
+            level: 'INFO',
+            type: 'message',
+            message: msgStr
+          })
+        }
+      })
+
+      await instance.open()
+      engineInstances.set(key, instance)
+
+      logger.info(`✅ [start] Engine started: ${key}`)
+
+      return {
+        success: true,
+        message: '引擎启动成功',
+        name: key
+      }
+    } catch (error) {
+      logger.error('❌ [start] Failed to start engine:', error)
+      throw new Error(`启动引擎失败: ${error.message}`)
+    }
+  }
+
+  async stop(args, event) {
+    const { name } = args || {}
+    if (!name) {
+      logger.error('❌ [stop] Name is empty')
+      throw new Error('停止引擎需要 name 参数')
+    }
+
+    const instance = engineInstances.get(name)
+    if (!instance) {
+      logger.warn('⚠️ [stop] Engine instance not found:', name)
+      return { success: true, message: '引擎已停止', name }
+    }
+
+    try {
+      if (typeof instance.removeAllListeners === 'function') {
+        instance.removeAllListeners('connected')
+        instance.removeAllListeners('disconnected')
+        instance.removeAllListeners('selected')
+        instance.removeAllListeners('message')
+      }
+
+      if (typeof instance.close === 'function') {
+        await instance.close()
+      }
+
+      engineInstances.delete(name)
+
+      logger.info(`✅ [stop] Engine stopped: ${name}`)
+
+      if (event && event.sender) {
+        event.sender.send('engine/log', {
+          name,
+          level: 'INFO',
+          type: 'stopped',
+          message: 'Engine stopped'
+        })
+      }
+
+      return {
+        success: true,
+        message: '引擎停止成功',
+        name
+      }
+    } catch (error) {
+      logger.error('❌ [stop] Failed to stop engine:', error)
+      throw new Error(`停止引擎失败: ${error.message}`)
+    }
+  }
   /**
    * 删除引擎配置
    * @param {Object} args 参数对象

@@ -45,6 +45,36 @@ class EngineController {
   }
 
   /**
+   * 启动引擎连接
+   */
+  async start(args, event) {
+    try {
+      logger.info('🎯 [Controller] start called with engine name:', args?.config?.name)
+      const result = await engineService.start(args, event)
+      logger.info('✅ [Controller] start success')
+      return result
+    } catch (error) {
+      logger.error('❌ [Controller] start failed:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 停止引擎连接
+   */
+  async stop(args, event) {
+    try {
+      logger.info('🎯 [Controller] stop called with engine name:', args?.name)
+      const result = await engineService.stop(args, event)
+      logger.info('✅ [Controller] stop success')
+      return result
+    } catch (error) {
+      logger.error('❌ [Controller] stop failed:', error)
+      throw error
+    }
+  }
+
+  /**
    * 保存引擎配置
    */
   async saveConfig(args, event) {
