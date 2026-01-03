@@ -233,51 +233,76 @@ class EngineService {
 
       instance.on('message', (msg) => {
         ;(async () => {
-          const sml = typeof msg.toSml === 'function' ? msg.toSml() : String(msg)
-          const receivedMsg = `Received Message: DeviceId=${msg.deviceId}, SystemBytes=${msg.systemBytes}, Data=\n${sml}`
-          logger.info(`📨 [${key}] message: ${receivedMsg}`)
-          if (event && event.sender) {
-            event.sender.send('engine/log', {
-              name: key,
-              level: 'INFO',
-              type: 'message',
-              message: receivedMsg
-            })
-          }
-
-          console.log('comming msg: ', msg.body[0].value)
-
-          // 查询当前的 sml 目录下是否有可用的回复文件
-          const filePaths = await smlFileService.getAllFilePaths()
-          const willReplySF = `S${msg.stream}F${msg.func + 1}`
-          const willReplyMsgList = filePaths
-            .map((filePath) => {
-              if (filePath.includes(willReplySF)) {
-                return filePath
-              }
-            })
-            .filter((item) => item !== null && item !== '' && item !== undefined)
-          console.log(JSON.stringify(willReplyMsgList))
-          // 如果存在回复文件，则使用回复文件的内容
-          if (willReplyMsgList.length !== 0) {
-            const willReplySml = await smlFileService.getFileContent({ filePath: willReplyMsgList[0] })
-            const willReplyMsg = SmlParser.parse(willReplySml)
-            await instance.reply(msg, willReplyMsg.stream, willReplyMsg.func, willReplyMsg.body)
+          try {
+            const sml = typeof msg.toSml === 'function' ? msg.toSml() : String(msg)
+            const receivedMsg = `Received Message: DeviceId=${msg.deviceId}, SystemBytes=${msg.systemBytes}, Data=\n${sml}`
+            logger.info(`📨 [${key}] message: ${receivedMsg}`)
             if (event && event.sender) {
               event.sender.send('engine/log', {
                 name: key,
                 level: 'INFO',
                 type: 'message',
-                message: `[Action File Reply] Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
-                  msg.systemBytes
-                }, Data=\n${willReplyMsg.toSml()}`
+                message: receivedMsg
               })
             }
-          } else if (
-            autoReplyService.findScript({ tool: config.type, sf: `S${msg.stream}F${msg.func}`, active: true })
-          ) {
-          } else {
-            // 如果不存在回复文件，则根据是否为奇数函数号来判断是否需要回复
+
+            // 获取所有 SML 文件路径
+            const filePaths = await smlFileService.getAllFilePaths()
+
+            // 优先级 1: Script - 查找匹配的脚本
+            const script = await autoReplyService.findScript({
+              tool: config.name,
+              sf: `S${msg.stream}F${msg.func}`,
+              active: true
+            })
+
+            if (script && script.code) {
+              // 执行脚本，传入 msg 和 filePaths
+              const funcExcutor = require('./funcExcutor')
+              console.log(script.code)
+              const smlPath = funcExcutor.execFunction(script.code, [msg, filePaths])
+
+              if (smlPath && typeof smlPath === 'string') {
+                const replySmlContent = await smlFileService.getFileContent({ filePath: smlPath })
+                const replyMsg = SmlParser.parse(replySmlContent)
+                await instance.reply(msg, replyMsg.stream, replyMsg.func, replyMsg.body)
+                if (event && event.sender) {
+                  event.sender.send('engine/log', {
+                    name: key,
+                    level: 'INFO',
+                    type: 'message',
+                    message: `[Action Script Reply] Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
+                      msg.systemBytes
+                    }, Data=\n${replyMsg.toSml()}`
+                  })
+                }
+                return
+              }
+            }
+
+            // 优先级 2: File - 查找 SML 消息文件
+            const willReplySF = `S${msg.stream}F${msg.func + 1}`
+            const willReplyMsgList = filePaths.filter((filePath) => filePath.includes(willReplySF))
+            console.log(JSON.stringify(willReplyMsgList))
+
+            if (willReplyMsgList.length !== 0) {
+              const willReplySml = await smlFileService.getFileContent({ filePath: willReplyMsgList[0] })
+              const willReplyMsg = SmlParser.parse(willReplySml)
+              await instance.reply(msg, willReplyMsg.stream, willReplyMsg.func, willReplyMsg.body)
+              if (event && event.sender) {
+                event.sender.send('engine/log', {
+                  name: key,
+                  level: 'INFO',
+                  type: 'message',
+                  message: `[Action File Reply] Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
+                    msg.systemBytes
+                  }, Data=\n${willReplyMsg.toSml()}`
+                })
+              }
+              return
+            }
+
+            // 优先级 3: Auto - 默认回复 L()
             if (msg.func % 2 !== 0) {
               const replySml = L()
               await instance.reply(msg, msg.stream, msg.func + 1, replySml)
@@ -291,6 +316,16 @@ class EngineService {
                   }, Data=\nS${msg.stream}F${msg.func + 1}\n${replySml.toSml()}.`
                 })
               }
+            }
+          } catch (error) {
+            logger.error(`❌ [${key}] Message handling failed:`, error)
+            if (event && event.sender) {
+              event.sender.send('engine/log', {
+                name: key,
+                level: 'ERROR',
+                type: 'error',
+                message: `Message handling failed: ${error.message}`
+              })
             }
           }
         })()
@@ -454,21 +489,15 @@ class EngineService {
       throw new Error(`Engine config save failed: ${error.message}`)
     }
   }
-
-  /**
-   * test (保留测试方法)
-   */
-  async test(args) {
-    let obj = {
-      status: 'ok',
-      params: args
-    }
-
-    logger.info('EngineService obj:', obj)
-
-    return obj
-  }
 }
+
+// 暴露给auto-reply脚本使用的方法，通过文件路径获取SECS SML消息对象
+globalThis['getMsgByFilePath'] = (filePath) => {
+  const smlFileContent = smlFileService.getFileContent(filePath)
+  const secsMsg = SmlParser.parse(smlFileContent)
+  return secsMsg
+}
+
 EngineService.toString = () => '[class EngineService]'
 
 module.exports = {
