@@ -12,18 +12,29 @@ const {
   Secs1OnTcpIpPassiveCommunicator,
   L
 } = require('secs4js')
+const { SerialPort } = require('serialport')
 
 const engineInstances = new Map()
 
-/**
- * 引擎服务
- * @class
- */
 class EngineService {
-  /**
-   * 获取所有引擎配置
-   * @returns {Array} 引擎配置数组，每个元素包含 fileName 和 config
-   */
+  async listSerialPorts() {
+    try {
+      logger.info('🔍 [listSerialPorts] Listing available serial ports')
+      const ports = await SerialPort.list()
+      logger.debug(`📌 [listSerialPorts] Found ${ports.length} ports`)
+
+      return ports.map((port) => ({
+        path: port.path || '',
+        friendlyName: port.friendlyName || port.manufacturer || '',
+        vendorId: port.vendorId || '',
+        productId: port.productId || ''
+      }))
+    } catch (error) {
+      logger.error('❌ [listSerialPorts] Failed to list serial ports:', error)
+      throw new Error(`获取串口列表失败: ${error.message}`)
+    }
+  }
+
   async getConfig() {
     try {
       const enginesPath = path.join(getBaseDir(), 'engines')

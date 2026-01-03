@@ -37,7 +37,7 @@
             <a-col :span="8">
               <a-form-item label="Serial Port" field="serialPort">
                 <a-select v-model="form.serialPort" placeholder="COM1">
-                  <a-option v-for="i in 4" :key="i" :value="`COM${i}`">COM{{ i }}</a-option>
+                  <a-option v-for="port in serialPorts" :key="port" :value="port">{{ port }}</a-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -154,6 +154,8 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
+import { ipc } from '@/utils/ipcRenderer';
+import { ipcApiRoute } from '@/api';
 
 const props = defineProps<{
   visible: boolean;
@@ -193,14 +195,30 @@ const defaultForm = {
 
 const form = ref({ ...defaultForm });
 const nameError = ref('');
+const serialPorts = ref<string[]>([]);
 
 const modalTitle = computed(() => (props.initialData ? 'Edit Engine Properties' : 'Engine Properties'));
 
-/**
- * Watch for visibility changes to reset or populate the form.
- */
+const loadSerialPorts = async () => {
+  if (!ipc) return;
+  try {
+    const result = await ipc.invoke(ipcApiRoute.listSerialPorts, null);
+    if (Array.isArray(result)) {
+      serialPorts.value = result
+        .map((item: any) => String(item.path || item.comName || ''))
+        .filter((item) => item);
+    } else {
+      serialPorts.value = [];
+    }
+  } catch (error) {
+    console.error('Failed to load serial ports:', error);
+    serialPorts.value = [];
+  }
+};
+
 watch(() => props.visible, (val) => {
   if (val) {
+    loadSerialPorts();
     if (props.initialData) {
       const cfg = props.initialData;
       form.value = {

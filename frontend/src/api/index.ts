@@ -25,6 +25,7 @@ interface IpcApiRoute {
   updateScript: string
   isAutoReplyEnabled: string
   listScripts: string
+  listSerialPorts: string
 }
 
 const ipcApiRoute: IpcApiRoute = {
@@ -49,7 +50,8 @@ const ipcApiRoute: IpcApiRoute = {
   deleteScript: 'controller/autoReply/deleteScript', // delete auto reply script by name
   updateScript: 'controller/autoReply/updateScript', // update auto reply script
   isAutoReplyEnabled: 'controller/autoReply/isEnabled', // check if auto reply is enabled
-  listScripts: 'controller/autoReply/listScripts' // list auto reply scripts
+  listScripts: 'controller/autoReply/listScripts', // list auto reply scripts
+  listSerialPorts: 'controller/engine/listSerialPorts' // list serial ports
 }
 
 export { ipcApiRoute }

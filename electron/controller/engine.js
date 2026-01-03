@@ -29,6 +29,18 @@ class EngineController {
     }
   }
 
+  async listSerialPorts(args, event) {
+    try {
+      logger.info('🎯 [Controller] listSerialPorts called')
+      const result = await engineService.listSerialPorts()
+      logger.info(`✅ [Controller] listSerialPorts success, returned ${result.length} ports`)
+      return result
+    } catch (error) {
+      logger.error('❌ [Controller] listSerialPorts failed:', error)
+      throw error
+    }
+  }
+
   /**
    * 删除引擎配置
    */
