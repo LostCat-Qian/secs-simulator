@@ -54,13 +54,13 @@
                     <template #icon><icon-export /></template>
                     Send To
                     <template #content>
-                      <a-doption v-for="engine in engines" :key="engine.name" :value="`sendto-${engine.name}`">
+                      <a-doption v-for="engine in openEngines" :key="engine.name" :value="`sendto-${engine.name}`">
                         <template #icon><icon-send /></template>
                         {{ engine.name }}
                       </a-doption>
-                      <a-doption v-if="engines.length === 0" disabled>
+                      <a-doption v-if="openEngines.length === 0" disabled>
                         <template #icon><icon-close-circle /></template>
-                        No Engines Available
+                        No Open Engines
                       </a-doption>
                     </template>
                   </a-dsubmenu>
@@ -111,6 +111,10 @@ const emit = defineEmits<{
 }>();
 
 const searchKey = ref('');
+
+const openEngines = computed(() =>
+  props.engines.filter(engine => engine.status === 'running' || engine.active)
+);
 
 /**
  * Escapes special characters for RegExp.

@@ -39,10 +39,15 @@
             Options <icon-down />
           </a-button>
           <template #content>
-            <a-doption value="open"><icon-apps /> Open</a-doption>
-            <a-doption value="close"><icon-close-circle /> Close</a-doption>
+            <a-doption value="open" :disabled="item.status === 'running' || item.status === 'connecting'">
+              <icon-apps /> Open
+            </a-doption>
+            <a-doption value="close" :disabled="item.status !== 'running' && item.status !== 'connecting'">
+              <icon-close-circle /> Close
+            </a-doption>
             <a-doption value="viewConfig"><icon-settings /> View Config</a-doption>
-            <a-doption value="edit"><icon-edit /> Edit Config</a-doption>
+            <a-doption value="edit" :disabled="item.status === 'running' || item.status === 'connecting'"><icon-edit />
+              Edit Config</a-doption>
             <a-doption value="delete"><icon-delete /> Delete</a-doption>
           </template>
         </a-dropdown>
