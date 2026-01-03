@@ -1,24 +1,33 @@
-import { ref } from 'vue';
-import { Message, Modal } from '@arco-design/web-vue';
-import { ipc } from '@/utils/ipcRenderer';
-import { ipcApiRoute } from '@/api';
-import type { AutoReplyItem, AutoReplyFormData } from '../types';
+import { ref } from 'vue'
+import { Message, Modal } from '@arco-design/web-vue'
+import { ipc } from '@/utils/ipcRenderer'
+import { ipcApiRoute } from '@/api'
+import type { AutoReplyItem, AutoReplyFormData } from '../types'
 
 /**
  * Hook for managing auto-reply scripts
  * @returns Auto reply state and methods
  */
 export function useAutoReply() {
-  const tableData = ref<AutoReplyItem[]>([]);
-  const defaultAutoReplyScript = `function handler(msg, dir) {\n  return dir[0];\n}\n`;
+  const tableData = ref<AutoReplyItem[]>([])
+  const defaultAutoReplyScript = `/**
+  * Auto reply handler
+  * @param {msg} args: stream, func, wBit, body ( body[0][1].value )
+  * @param {string[]} args: sml files directory
+  */
+function handler(msg, dir) {
+  if (msg.stream === 7 && msg.func === 25 && msg.body[0].value === 'chamber-A.rcp') {
+    return dir.find((file) => file.includes('chamber-A.rcp'))
+  }
+}`
 
   /**
    * Loads auto-reply scripts from backend.
    */
   const loadAutoReplyScripts = async () => {
-    if (!ipc) return;
+    if (!ipc) return
     try {
-      const result = await ipc.invoke(ipcApiRoute.listScripts, null);
+      const result = await ipc.invoke(ipcApiRoute.listScripts, null)
       if (Array.isArray(result)) {
         tableData.value = result.map((item: any) => ({
           name: String(item.name || ''),
@@ -26,24 +35,24 @@ export function useAutoReply() {
           sf: String(item.sf || ''),
           delaySeconds: Number.isFinite(Number(item.delaySeconds)) ? Number(item.delaySeconds) : 0,
           active: Boolean(item.active)
-        }));
+        }))
       } else {
-        tableData.value = [];
+        tableData.value = []
       }
     } catch (error) {
-      console.error('Failed to load auto reply scripts:', error);
-      Message.error('Failed to load auto reply scripts');
+      console.error('Failed to load auto reply scripts:', error)
+      Message.error('Failed to load auto reply scripts')
     }
-  };
+  }
 
   /**
    * Gets details of a specific script.
    * @param name Script name
    */
   const getScriptDetail = async (name: string) => {
-    if (!ipc) throw new Error('IPC not available');
-    return await ipc.invoke(ipcApiRoute.getScript, { name });
-  };
+    if (!ipc) throw new Error('IPC not available')
+    return await ipc.invoke(ipcApiRoute.getScript, { name })
+  }
 
   /**
    * Saves (adds or updates) an auto-reply script.
@@ -52,21 +61,21 @@ export function useAutoReply() {
    */
   const saveAutoReplyScript = async (form: AutoReplyFormData, editingName: string | null) => {
     if (!form.tool) {
-      Message.error('Tool is required');
-      return false;
+      Message.error('Tool is required')
+      return false
     }
     if (!form.handlerSf) {
-      Message.error('Handle SF is required');
-      return false;
+      Message.error('Handle SF is required')
+      return false
     }
     if (!form.script.trim()) {
-      Message.error('Script is required');
-      return false;
+      Message.error('Script is required')
+      return false
     }
 
     if (!ipc) {
-      Message.error('Cannot save auto reply');
-      return false;
+      Message.error('Cannot save auto reply')
+      return false
     }
 
     try {
@@ -78,8 +87,8 @@ export function useAutoReply() {
           active: form.active,
           delaySeconds: form.delaySeconds,
           code: form.script
-        });
-        Message.success('Auto reply script updated');
+        })
+        Message.success('Auto reply script updated')
       } else {
         await ipc.invoke(ipcApiRoute.addScript, {
           tool: form.tool,
@@ -87,18 +96,18 @@ export function useAutoReply() {
           active: form.active,
           delaySeconds: form.delaySeconds,
           code: form.script
-        });
-        Message.success('Auto reply script added');
+        })
+        Message.success('Auto reply script added')
       }
 
-      await loadAutoReplyScripts();
-      return true;
+      await loadAutoReplyScripts()
+      return true
     } catch (error) {
-      console.error('Failed to save auto reply script:', error);
-      Message.error('Failed to save auto reply script');
-      return false;
+      console.error('Failed to save auto reply script:', error)
+      Message.error('Failed to save auto reply script')
+      return false
     }
-  };
+  }
 
   /**
    * Deletes an auto-reply script.
@@ -113,24 +122,24 @@ export function useAutoReply() {
         cancelText: 'Cancel',
         async onOk() {
           if (!ipc) {
-            Message.error('Cannot delete auto reply');
-            reject();
-            return;
+            Message.error('Cannot delete auto reply')
+            reject()
+            return
           }
           try {
-            await ipc.invoke(ipcApiRoute.deleteScript, { name: item.name });
-            await loadAutoReplyScripts();
-            Message.success('Auto reply script deleted');
-            resolve();
+            await ipc.invoke(ipcApiRoute.deleteScript, { name: item.name })
+            await loadAutoReplyScripts()
+            Message.success('Auto reply script deleted')
+            resolve()
           } catch (error) {
-            console.error('Failed to delete auto reply script:', error);
-            Message.error('Failed to delete auto reply script');
-            reject(error);
+            console.error('Failed to delete auto reply script:', error)
+            Message.error('Failed to delete auto reply script')
+            reject(error)
           }
         }
-      });
-    });
-  };
+      })
+    })
+  }
 
   return {
     tableData,
@@ -139,5 +148,5 @@ export function useAutoReply() {
     getScriptDetail,
     saveAutoReplyScript,
     deleteAutoReplyScript
-  };
+  }
 }

@@ -380,7 +380,7 @@ onMounted(() => {
     ipc.on('engine/log', (_event, payload: { name: string; level: string; type: string; message: string }) => {
       // Add log
       addLogEntry(payload.name, payload.level || 'INFO', String(payload.message ?? ''));
-      
+
       // If engine log comes in but no panel exists, create one
       // Note: addLogPanel checks for duplicates internally
       const engine = engineList.value.find(e => e.name === payload.name);

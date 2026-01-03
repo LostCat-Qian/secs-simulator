@@ -225,13 +225,13 @@ class EngineService {
     const { name } = args || {}
     if (!name) {
       logger.error('❌ [stop] Name is empty')
-      throw new Error(`${config.name} stop failed: name is empty`)
+      throw new Error(`Engine stop failed: name is empty`)
     }
 
     const instance = engineInstances.get(name)
     if (!instance) {
       logger.warn('⚠️ [stop] Engine instance not found:', name)
-      return { success: true, message: `${config.name} stopped`, name }
+      return { success: true, message: `Engine stopped`, name }
     }
 
     try {
@@ -261,7 +261,7 @@ class EngineService {
 
       return {
         success: true,
-        message: `${config.name} stopped successfully`,
+        message: `Engine stopped successfully`,
         name
       }
     } catch (error) {
@@ -355,12 +355,12 @@ class EngineService {
 
       return {
         success: true,
-        message: `${config.name} config saved successfully`,
+        message: `Engine config saved successfully`,
         fileName: fileName
       }
     } catch (error) {
       logger.error('❌ [saveConfig] Failed to save engine config:', error)
-      throw new Error(`${config.name} config save failed: ${error.message}`)
+      throw new Error(`Engine config save failed: ${error.message}`)
     }
   }
 

@@ -3,12 +3,12 @@
     :mask-closable="false" width="80vw" ok-text="Save" cancel-text="Cancel" @ok="handleOk" @cancel="handleCancel">
     <a-form layout="vertical" :model="form">
       <a-row :gutter="16">
-        <a-col :span="8">
+        <a-col :span="4">
           <a-form-item label="Handle SF" field="handlerSf">
             <a-input v-model="form.handlerSf" placeholder="S7F25" />
           </a-form-item>
         </a-col>
-        <a-col :span="8">
+        <a-col :span="4">
           <a-form-item label="Tool" field="tool">
             <a-select v-model="form.tool" placeholder="Select tool">
               <a-option v-for="engine in engines" :key="engine.name" :value="engine.name">
@@ -17,16 +17,14 @@
             </a-select>
           </a-form-item>
         </a-col>
-        <a-col :span="8">
-          <a-form-item label="Active" field="active">
-            <a-switch v-model="form.active" />
-          </a-form-item>
-        </a-col>
-      </a-row>
-      <a-row :gutter="16">
-        <a-col :span="8">
+        <a-col :span="4">
           <a-form-item label="Delay Time (s)" field="delaySeconds">
             <a-input-number v-model="form.delaySeconds" :min="0" :step="1" />
+          </a-form-item>
+        </a-col>
+        <a-col :span="4">
+          <a-form-item label="Active" field="active">
+            <a-switch v-model="form.active" />
           </a-form-item>
         </a-col>
       </a-row>
@@ -108,7 +106,7 @@ const handleCancel = () => {
 
 <style scoped>
 .auto-reply-editor-wrapper {
-  height: 380px;
+  height: 400px;
   border: 1px solid var(--color-border);
   width: 100%;
 }
