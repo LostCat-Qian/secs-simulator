@@ -1,0 +1,15 @@
+2026-01-03 13:44:34.006 Received DeviceID: 10 SystemBytes: 1937 
+S1F13 W
+<L [2] 
+  <B [0] >
+  <B [1] 0x30>
+>.
+2026-01-03 13:48:05.305 Received DeviceID: 10 SystemBytes: 1938 
+S1F13 W
+<L [2] 
+  <B [0] >
+  <B [1] 0x30>
+>.
+2026-01-03 13:48:05.306 Sent DeviceID: 10 SystemBytes: 1938 
+S1F14 
+<L [0] >.

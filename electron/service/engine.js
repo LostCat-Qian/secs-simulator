@@ -4,7 +4,7 @@ const path = require('path')
 const fs = require('fs').promises
 const { logger } = require('ee-core/log')
 const { getBaseDir } = require('ee-core/ps')
-const { HsmsActiveCommunicator, HsmsPassiveCommunicator } = require('secs4js')
+const { HsmsActiveCommunicator, HsmsPassiveCommunicator, L } = require('secs4js')
 
 const engineInstances = new Map()
 
@@ -76,7 +76,7 @@ class EngineService {
     const key = config.name
     if (engineInstances.has(key)) {
       logger.warn('⚠️ [start] Engine already started, skipping:', key)
-      return { success: true, message: '引擎已启动', name: key }
+      return { success: true, message: `${config.name} already started`, name: key }
     }
 
     try {
@@ -94,7 +94,7 @@ class EngineService {
       const logConfig = {
         enabled: true, // Whether to enable logging
         console: true, // Whether to output logs to console
-        baseDir: './secs-logs', // Path for log storage
+        baseDir: `${getBaseDir()}/secs-logs/${config.name}`, // Path for log storage
         retentionDays: 30, // Number of days to retain logs
         detailLevel: 'trace', // Level for DETAIL logs
         secs2Level: 'info', // Level for SECS-II logs
@@ -129,7 +129,7 @@ class EngineService {
             name: key,
             level: 'INFO',
             type: 'start',
-            message: 'Engine starting...'
+            message: `${config.name} starting...`
           })
         }
       } else {
@@ -144,7 +144,7 @@ class EngineService {
             name: key,
             level: 'INFO',
             type: 'connected',
-            message: 'connected'
+            message: `${config.name} connected`
           })
         }
       })
@@ -156,7 +156,7 @@ class EngineService {
             name: key,
             level: 'INFO',
             type: 'disconnected',
-            message: 'disconnected'
+            message: `${config.name} disconnected, wait for next connection...`
           })
         }
       })
@@ -168,23 +168,41 @@ class EngineService {
             name: key,
             level: 'INFO',
             type: 'selected',
-            message: 'HSMS selected (ready)'
+            message: `${config.name} selected (ready)`
           })
         }
       })
 
       instance.on('message', (msg) => {
-        const sml = typeof msg.toSml === 'function' ? msg.toSml() : String(msg)
-        const msgStr = `Received Message: DeviceId=${msg.deviceId}, SystemBytes=${msg.systemBytes}, Data=\n${sml}`
-        logger.info(`📨 [${key}] message: ${msgStr}`)
-        if (event && event.sender) {
-          event.sender.send('engine/log', {
-            name: key,
-            level: 'INFO',
-            type: 'message',
-            message: msgStr
-          })
-        }
+        ;(async () => {
+          const sml = typeof msg.toSml === 'function' ? msg.toSml() : String(msg)
+          const receivedMsg = `Received Message: DeviceId=${msg.deviceId}, SystemBytes=${msg.systemBytes}, Data=\n${sml}`
+          logger.info(`📨 [${key}] message: ${receivedMsg}`)
+          if (event && event.sender) {
+            event.sender.send('engine/log', {
+              name: key,
+              level: 'INFO',
+              type: 'message',
+              message: receivedMsg
+            })
+          }
+
+          if (msg.func % 2 !== 0) {
+            const replySml = L()
+            await instance.reply(msg, msg.stream, msg.func + 1, replySml)
+            const replyMsg = `Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
+              msg.systemBytes
+            }, Data=\n${replySml.toSml()}`
+            if (event && event.sender) {
+              event.sender.send('engine/log', {
+                name: key,
+                level: 'INFO',
+                type: 'message',
+                message: replyMsg
+              })
+            }
+          }
+        })()
       })
 
       await instance.open()
@@ -194,12 +212,12 @@ class EngineService {
 
       return {
         success: true,
-        message: '引擎启动成功',
+        message: `${config.name} start successfully`,
         name: key
       }
     } catch (error) {
       logger.error('❌ [start] Failed to start engine:', error)
-      throw new Error(`启动引擎失败: ${error.message}`)
+      throw new Error(`${config.name} start failed: ${error.message}`)
     }
   }
 
@@ -207,13 +225,13 @@ class EngineService {
     const { name } = args || {}
     if (!name) {
       logger.error('❌ [stop] Name is empty')
-      throw new Error('停止引擎需要 name 参数')
+      throw new Error(`${config.name} stop failed: name is empty`)
     }
 
     const instance = engineInstances.get(name)
     if (!instance) {
       logger.warn('⚠️ [stop] Engine instance not found:', name)
-      return { success: true, message: '引擎已停止', name }
+      return { success: true, message: `${config.name} stopped`, name }
     }
 
     try {
@@ -237,18 +255,18 @@ class EngineService {
           name,
           level: 'INFO',
           type: 'stopped',
-          message: 'Engine stopped'
+          message: `Engine stopped`
         })
       }
 
       return {
         success: true,
-        message: '引擎停止成功',
+        message: `${config.name} stopped successfully`,
         name
       }
     } catch (error) {
       logger.error('❌ [stop] Failed to stop engine:', error)
-      throw new Error(`停止引擎失败: ${error.message}`)
+      throw new Error(`Engine stop failed: ${error.message}`)
     }
   }
   /**
@@ -337,12 +355,12 @@ class EngineService {
 
       return {
         success: true,
-        message: '引擎配置保存成功',
+        message: `${config.name} config saved successfully`,
         fileName: fileName
       }
     } catch (error) {
       logger.error('❌ [saveConfig] Failed to save engine config:', error)
-      throw new Error(`保存引擎配置失败: ${error.message}`)
+      throw new Error(`${config.name} config save failed: ${error.message}`)
     }
   }
 

@@ -1,0 +1,21 @@
+2026-01-03 13:43:56.125 WARN  HSMS | connection failed; scheduling reconnect
+2026-01-03 13:44:06.131 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 13:44:06.136 INFO  HSMS Connected -> Selected | state
+2026-01-03 13:44:21.403 INFO  HSMS Selected -> NotConnected | state
+2026-01-03 13:44:21.403 WARN  HSMS | connection lost; scheduling reconnect
+2026-01-03 13:44:31.418 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 13:44:31.420 INFO  HSMS Connected -> Selected | state
+2026-01-03 13:44:34.006 INFO  Received | sml=S1F13 W
+<L [2] 
+  <B [0] >
+  <B [1] 0x30>
+>. systemBytes=1937 hex=00000011000a810d00000000079101022100210130
+2026-01-03 13:48:01.849 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 13:48:01.852 INFO  HSMS Connected -> Selected | state
+2026-01-03 13:48:05.305 INFO  Received | sml=S1F13 W
+<L [2] 
+  <B [0] >
+  <B [1] 0x30>
+>. systemBytes=1938 hex=00000011000a810d00000000079201022100210130
+2026-01-03 13:48:05.306 INFO  Sent | sml=S1F14 
+<L [0] >. systemBytes=1938 hex=0000000c000a010e0000000007920100

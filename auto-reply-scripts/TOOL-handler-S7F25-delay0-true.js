@@ -1,5 +1,6 @@
 /**
- * Auto reply script for 03_S6F11_Clam S1F13
+ * Auto reply script for TOOL S7F25
+ * delaySeconds: 0
  * active: true
  */
 function handler(msg, dir) {
