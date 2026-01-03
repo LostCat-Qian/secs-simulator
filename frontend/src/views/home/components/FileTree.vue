@@ -70,6 +70,10 @@
                     <template #icon><icon-plus /></template>
                     Add File
                   </a-doption>
+                  <a-doption value="addFolder">
+                    <template #icon><icon-plus /></template>
+                    Add Folder
+                  </a-doption>
                   <a-doption value="delete">
                     <template #icon><icon-delete /></template>
                     Delete Folder
@@ -101,6 +105,7 @@ const emit = defineEmits<{
   (e: 'sendTo', payload: { file: TreeNodeData; engineName: string }): void;
   (e: 'selectFile', node: TreeNodeData): void;
   (e: 'addFile', node: TreeNodeData): void;
+  (e: 'addFolder', node: TreeNodeData): void;
   (e: 'addRootFile'): void;
   (e: 'addRootFolder'): void;
 }>();
@@ -185,6 +190,8 @@ const handleMenuSelect = (value: string, node: TreeNodeData) => {
     emit('delete', node);
   } else if (value === 'addFile') {
     emit('addFile', node);
+  } else if (value === 'addFolder') {
+    emit('addFolder', node);
   } else if (value.startsWith('sendto-')) {
     const engineName = value.slice(7);
     emit('sendTo', { file: node, engineName });

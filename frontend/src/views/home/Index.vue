@@ -25,7 +25,7 @@
           <div class="file-tree-wrapper">
             <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
               @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" @addFile="handleAddFile"
-              @addRootFile="handleAddRootFile" @addRootFolder="openAddRootFolderModal" />
+              @addFolder="handleAddFolder" @addRootFile="handleAddRootFile" @addRootFolder="openAddRootFolderModal" />
           </div>
 
           <!-- File Preview Area -->
@@ -83,6 +83,7 @@
       :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
 
     <AddFolderModal v-model:visible="addRootFolderModalVisible" @submit="confirmAddRootFolder" />
+    <AddFolderModal v-model:visible="addSubFolderModalVisible" @submit="confirmAddSubFolder" />
 
     <AutoReplyModal v-model:visible="autoReplyModalVisible" :initial-data="autoReplyForm" :engines="engineList"
       @submit="handleSaveAutoReply" />
@@ -160,6 +161,8 @@ const isCreateMode = ref(false);
 const creatingFolderPath = ref('');
 
 const addRootFolderModalVisible = ref(false);
+const addSubFolderModalVisible = ref(false);
+const creatingSubFolderPath = ref('');
 
 // #endregion
 
@@ -478,6 +481,72 @@ const confirmAddRootFolder = async (folderName: string) => {
     await loadFileTree();
     Message.success(`Folder "${name}" created successfully`);
     addRootFolderModalVisible.value = false;
+  } catch (error) {
+    console.error('Failed to create folder:', error);
+    Message.error('Failed to create folder');
+  }
+};
+
+const handleAddFolder = (node: TreeNodeData) => {
+  const target = node as SmlTreeNode;
+  creatingSubFolderPath.value = target.key || '';
+  addSubFolderModalVisible.value = true;
+};
+
+const confirmAddSubFolder = async (folderName: string) => {
+  const name = folderName.trim();
+  if (!name) {
+    Message.error('Folder name is required');
+    return;
+  }
+  if (/[\\/]/.test(name)) {
+    Message.error('Folder name cannot contain / or \\');
+    return;
+  }
+
+  const parentPath = creatingSubFolderPath.value;
+  const folderPath = parentPath ? `${parentPath}/${name}` : name;
+
+  const normalizePath = (p: string | undefined | null) => {
+    if (!p) return '';
+    return String(p).replace(/\\/g, '/');
+  };
+
+  const exists = (() => {
+    const search = (nodes: SmlTreeNode[]): boolean => {
+      for (const node of nodes) {
+        if (normalizePath(node.key as string) === normalizePath(folderPath)) {
+          return true;
+        }
+        if (node.children && node.children.length > 0) {
+          if (search(node.children as SmlTreeNode[])) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    return search(fileTreeData.value);
+  })();
+
+  if (exists) {
+    Message.error('Folder already exists');
+    return;
+  }
+
+  if (!ipc) {
+    Message.error('Cannot create folder');
+    return;
+  }
+
+  try {
+    await ipc.invoke(ipcApiRoute.smlFolderCreate, {
+      folderPath
+    });
+    await loadFileTree();
+    Message.success(`Folder "${name}" created successfully`);
+    addSubFolderModalVisible.value = false;
+    creatingSubFolderPath.value = '';
   } catch (error) {
     console.error('Failed to create folder:', error);
     Message.error('Failed to create folder');

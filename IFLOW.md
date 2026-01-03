@@ -21,7 +21,7 @@ SECS Simulator 是一个基于 ElectronEgg 和 secs4js 的 SECS（Semiconductor 
 ### 主要功能
 
 - **引擎管理**：创建、编辑、删除、启动和停止 SECS 通信引擎
-- **文件管理**：管理和预览 SECS 脚本文件（SML 格式）、配置文件和日志文件
+- **文件管理**：管理和预览 SECS 脚本文件（SML 格式）、配置文件和日志文件，支持文件夹管理
 - **日志查看**：实时查看和监控 SECS 通信日志，支持多引擎日志面板
 - **自动回复**：配置和管理 SECS 消息的自动回复规则，支持自定义脚本
 - **代码编辑**：集成 Monaco Editor 提供强大的代码编辑功能，支持语法高亮和智能提示
@@ -37,18 +37,18 @@ secs-simulator/
 │   │   ├── config.local.js   # 本地开发配置（不提交版本控制）
 │   │   └── config.prod.js    # 生产环境配置
 │   ├── controller/          # 控制器层（处理前端请求）
-│   │   ├── engine.js        # 引擎管理控制器（getConfig, delete, saveConfig）
+│   │   ├── engine.js        # 引擎管理控制器（getConfig, delete, saveConfig, start, stop）
 │   │   ├── autoReply.js     # 自动回复控制器
-│   │   ├── smlFile.js       # SML 文件管理控制器（getFileTree, getFileContent, saveSmlFile, createSmlFile, deleteSmlFile）
+│   │   ├── smlFile.js       # SML 文件管理控制器（getFileTree, getFileContent, saveSmlFile, createSmlFile, deleteSmlFile, createSmlFolder, deleteSmlFolder）
 │   │   └── example.js       # 示例控制器
 │   ├── preload/             # 预加载脚本
 │   │   ├── index.js         # 预加载入口
 │   │   ├── bridge.js        # contextBridge 桥接
 │   │   └── lifecycle.js     # 生命周期钩子
 │   └── service/             # 业务逻辑层
-│       ├── engine.js        # 引擎服务（getConfig, delete, saveConfig）
+│       ├── engine.js        # 引擎服务（getConfig, delete, saveConfig, start, stop）
 │       ├── autoReply.js     # 自动回复服务
-│       ├── smlFile.js       # SML 文件服务（getFileTree, getFileContent, saveSmlFile, createSmlFile, deleteSmlFile）
+│       ├── smlFile.js       # SML 文件服务（getFileTree, getFileContent, saveSmlFile, createSmlFile, deleteSmlFile, createSmlFolder, deleteSmlFolder）
 │       └── example.js       # 示例服务
 ├── frontend/                # 前端代码
 │   ├── src/
@@ -74,6 +74,8 @@ secs-simulator/
 │   │       │       ├── LogPanel.vue          # 日志面板组件
 │   │       │       ├── AutoReplyPanel.vue    # 自动回复面板组件
 │   │       │       ├── AddEngineModal.vue    # 添加/编辑引擎模态框
+│   │       │       ├── AddFolderModal.vue    # 添加文件夹模态框
+│   │       │       ├── AutoReplyModal.vue    # 自动回复模态框
 │   │       │       └── FileEditorModal.vue   # 文件编辑器模态框
 │   │       └── example/     # 示例页面
 │   │           └── hello/
@@ -86,9 +88,11 @@ secs-simulator/
 │   └── package.json        # 前端依赖配置
 ├── auto-reply-scripts/      # 自动回复脚本目录
 │   ├── default.js          # 默认自动回复处理脚本
-│   └── TOOL_handler_S7F25.js # 特定消息处理脚本示例
+│   ├── TOOL_handler_S7F25.js # 特定消息处理脚本示例
+│   └── TOOL-handler-S7F25-delay0-true.js # 延迟处理脚本示例
 ├── engines/                 # 引擎配置文件目录
-│   └── TOOL.json           # 示例引擎配置文件
+│   ├── HOST.json           # HOST 引擎配置文件
+│   └── TOOL.json           # TOOL 引擎配置文件
 ├── sml/                     # SML（SECS Message Language）文件目录
 │   ├── Communication/      # 通信相关 SML 文件
 │   │   ├── S1F1.txt
@@ -120,8 +124,14 @@ secs-simulator/
 │       ├── S6F11-Process Data PBG1K41018001 5-Step-0001.txt
 │       └── S6F23_SPOOL.txt
 ├── secs-logs/               # SECS 通信日志目录（不提交版本控制）
-│   └── 2026-01-01/
-│       └── 2026-01-01-DETAIL.log
+│   ├── HOST/               # HOST 引擎日志
+│   │   └── 2026-01-03/
+│   │       ├── 2026-01-03-DETAIL.log
+│   │       └── 2026-01-03-SECS-II.log
+│   └── TOOL/               # TOOL 引擎日志
+│       └── 2026-01-03/
+│           ├── 2026-01-03-DETAIL.log
+│           └── 2026-01-03-SECS-II.log
 ├── public/                  # 公共资源
 │   ├── dist/               # 前端构建输出
 │   ├── electron/           # Electron 构建输出（不提交版本控制）
@@ -552,6 +562,8 @@ npm run build-l
 - **保存文件**：通过 `saveSmlFile` 接口保存 SML 文件内容
 - **创建文件**：通过 `createSmlFile` 接口创建新的 SML 文件
 - **删除文件**：通过 `deleteSmlFile` 接口删除 SML 文件
+- **创建文件夹**：通过 `createSmlFolder` 接口创建新的文件夹
+- **删除文件夹**：通过 `deleteSmlFolder` 接口删除文件夹
 - **文件预览**：通过 `FilePreview` 组件预览文件内容
 - **文件编辑**：通过 `FileEditorModal` 组件编辑文件内容
 
@@ -621,6 +633,24 @@ npm run build-l
 - **频道**：`controller/smlFile/deleteSmlFile`
 - **参数**：`{ filePath: "Communication/NewFile.txt" }`
 
+#### 6. createSmlFolder - 创建文件夹
+- **频道**：`controller/smlFile/createSmlFolder`
+- **参数**：
+```javascript
+{
+  folderPath: "Communication/NewFolder"
+}
+```
+
+#### 7. deleteSmlFolder - 删除文件夹
+- **频道**：`controller/smlFile/deleteSmlFolder`
+- **参数**：
+```javascript
+{
+  folderPath: "Communication/NewFolder"
+}
+```
+
 ### 引擎管理接口
 
 #### 1. getConfig - 获取所有引擎配置
@@ -662,6 +692,82 @@ npm run build-l
 }
 ```
 - **说明**：文件名自动从 `config.name` 生成（如 `TOOL.json`）
+
+#### 4. start - 启动引擎
+- **频道**：`controller/engine/start`
+- **参数**：
+```javascript
+{
+  config: { type: "HSMS", name: "TOOL", ... }
+}
+```
+
+#### 5. stop - 停止引擎
+- **频道**：`controller/engine/stop`
+- **参数**：
+```javascript
+{
+  name: "TOOL"
+}
+```
+
+### 自动回复接口
+
+#### 1. listScripts - 列出自动回复脚本
+- **频道**：`controller/autoReply/listScripts`
+- **功能**：获取所有自动回复脚本列表
+- **返回格式**：
+```javascript
+[
+  {
+    name: "TOOL_handler_S7F25",
+    tool: "TOOL",
+    sf: "S7F25",
+    delaySeconds: 0,
+    active: true
+  }
+]
+```
+
+#### 2. addScript - 添加自动回复脚本
+- **频道**：`controller/autoReply/addScript`
+- **参数**：
+```javascript
+{
+  tool: "TOOL",
+  handlerSf: "S7F25",
+  active: true,
+  delaySeconds: 0,
+  code: "function handler(msg, dir) { ... }"
+}
+```
+
+#### 3. getScript - 获取自动回复脚本详情
+- **频道**：`controller/autoReply/getScript`
+- **参数**：`{ name: "TOOL_handler_S7F25" }`
+
+#### 4. updateScript - 更新自动回复脚本
+- **频道**：`controller/autoReply/updateScript`
+- **参数**：
+```javascript
+{
+  originalName: "TOOL_handler_S7F25",
+  tool: "TOOL",
+  handlerSf: "S7F25",
+  active: true,
+  delaySeconds: 0,
+  code: "function handler(msg, dir) { ... }"
+}
+```
+
+#### 5. deleteScript - 删除自动回复脚本
+- **频道**：`controller/autoReply/deleteScript`
+- **参数**：`{ name: "TOOL_handler_S7F25" }`
+
+#### 6. isAutoReplyEnabled - 检查自动回复是否启用
+- **频道**：`controller/autoReply/isEnabled`
+- **功能**：检查自动回复功能是否启用
+- **返回**：`{ enabled: true/false }`
 
 ## 注意事项
 
