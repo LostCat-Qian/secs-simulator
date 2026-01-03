@@ -9,16 +9,9 @@
         <div class="sider-content">
           <!-- Engines List Area -->
           <a-resize-box :directions="['bottom']" class="engine-box">
-            <EngineList
-              :engines="engineList"
-              @add="openAddEngineModal"
-              @select="selectEngine"
-              @open="openEngine"
-              @close="closeEngine"
-              @edit="handleEditEngine"
-              @delete="handleDeleteEngine"
-              @viewConfig="handleViewConfig"
-            />
+            <EngineList :engines="engineList" @add="openAddEngineModal" @select="selectEngine" @open="handleOpenEngine"
+              @close="handleCloseEngine" @edit="handleEditEngine" @delete="handleDeleteEngine"
+              @viewConfig="handleViewConfig" />
           </a-resize-box>
 
           <!-- File Tree Area -->
@@ -49,7 +42,7 @@
             <template v-if="logPanels.length === 1">
               <div class="log-panel-item single-panel">
                 <LogPanel :title="logPanels[0].title" :logs="logPanels[0].logs" @clear="clearLogs(logPanels[0].id)"
-                  @close="closeLogPanel(logPanels[0].id)" />
+                  @close="handleCloseLogPanel(logPanels[0].id)" />
               </div>
             </template>
             <!-- Multiple Log Panels -->
@@ -57,7 +50,7 @@
               <a-resize-box v-for="panel in logPanels" :key="panel.id" :directions="['right']" class="log-panel-item"
                 :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }" :min-width="200">
                 <LogPanel :title="panel.title" :logs="panel.logs" @clear="clearLogs(panel.id)"
-                  @close="closeLogPanel(panel.id)" />
+                  @close="handleCloseLogPanel(panel.id)" />
               </a-resize-box>
             </template>
             <!-- No Log Panels -->
@@ -71,11 +64,12 @@
 
         <a-resize-box :directions="['top']" class="auto-reply-box">
           <AutoReplyPanel :data="tableData" v-model:searchText="searchText" @add="addAutoReply" @edit="editAutoReply"
-            @delete="deleteAutoReply" />
+            @delete="handleDeleteAutoReply" />
         </a-resize-box>
       </a-layout-content>
     </a-layout>
 
+    <!-- Modals -->
     <AddEngineModal v-model:visible="addEngineModalVisible"
       :initial-data="editingEngine ? editingEngine.config : undefined" @submit="handleAddEngine" />
 
@@ -92,9 +86,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { Modal, TreeNodeData, Message } from '@arco-design/web-vue';
+import { TreeNodeData, Message } from '@arco-design/web-vue';
 import { ipc } from '@/utils/ipcRenderer';
-import { ipcApiRoute } from '@/api';
 
 // Components
 import EngineList from './components/EngineList.vue';
@@ -108,396 +101,196 @@ import AddFolderModal from './components/AddFolderModal.vue';
 import AutoReplyModal from './components/AutoReplyModal.vue';
 
 // Types
-import type { LogPanelData, EngineData, AutoReplyFormData, AutoReplyItem, SmlTreeNode } from './types';
+import type { EngineData, AutoReplyFormData, AutoReplyItem, SmlTreeNode } from './types';
 
-// #region --- State Management ---
+// Composables
+import { useEngine } from './composables/useEngine';
+import { useLogPanels } from './composables/useLogPanels';
+import { useFileTree } from './composables/useFileTree';
+import { useAutoReply } from './composables/useAutoReply';
 
-const engineList = ref<EngineData[]>([]);
+// #region --- Composables Setup ---
+const {
+  engineList,
+  loadEngineConfigs,
+  saveEngineConfig,
+  deleteEngine,
+  startEngine,
+  stopEngine,
+  updateEngineStatus
+} = useEngine();
 
-// File Tree State
-const fileTreeData = ref<SmlTreeNode[]>([]);
+const {
+  logPanels,
+  addLogPanel,
+  removePanel,
+  clearLogs,
+  addLogEntry
+} = useLogPanels();
 
-// File Preview State
-const filePreviewContent = ref('');
+const {
+  fileTreeData,
+  filePreviewContent,
+  editingFileName,
+  editingFileContent,
+  editingFilePath,
+  isCreateMode,
+  creatingFolderPath,
+  loadFileTree,
+  createFolder,
+  loadFileContent,
+  saveFile,
+  deleteNode,
+  prepareAddFile,
+  prepareEditFile
+} = useFileTree();
 
-// Log Panels State
-const logPanels = ref<LogPanelData[]>([
-  {
-    id: '1',
-    title: 'Real-time Logs',
-    engineId: '',
-    engineName: 'All Engines',
-    width: '100%',
-    logs: [
-      { time: '14:30:05', level: 'INFO', message: 'Connection established with EQ_CVD_001' },
-      { time: '14:30:06', level: 'INFO', message: 'Received S1F13 message from equipment' },
-      { time: '14:30:07', level: 'DEBUG', message: 'Processing S1F14 reply message' },
-      { time: '14:30:08', level: 'WARN', message: 'T3 timeout detected, retrying...' },
-      { time: '14:30:09', level: 'INFO', message: 'S1F14 message sent successfully' },
-      { time: '14:30:11', level: 'ERROR', message: 'Connection lost, attempting to reconnect...' }
-    ]
-  }
-]);
+const {
+  tableData,
+  defaultAutoReplyScript,
+  loadAutoReplyScripts,
+  getScriptDetail,
+  saveAutoReplyScript,
+  deleteAutoReplyScript
+} = useAutoReply();
 
-// Auto Reply State
-const searchText = ref('');
-const tableData = ref<AutoReplyItem[]>([]);
+// #endregion
 
-const autoReplyModalVisible = ref(false);
-const defaultAutoReplyScript = `function handler(msg, dir) {\n  return dir[0];\n}\n`;
-const autoReplyForm = ref<AutoReplyFormData | null>(null);
-const editingAutoReplyName = ref<string | null>(null);
+// #region --- Local State ---
 
-// Modal State
+// Engine Modal State
 const addEngineModalVisible = ref(false);
 const editingEngine = ref<EngineData | null>(null);
+const selectedEngineFileName = ref<string | null>(null);
 
-// File Editor Modal State
+// File Modal State
 const fileEditorModalVisible = ref(false);
-const editingFileName = ref('');
-const editingFileContent = ref('');
-const editingFilePath = ref('');
-const isCreateMode = ref(false);
-const creatingFolderPath = ref('');
-
 const addRootFolderModalVisible = ref(false);
 const addSubFolderModalVisible = ref(false);
 const creatingSubFolderPath = ref('');
 
-// #endregion
-
-// #region --- Methods: Log Management ---
-
-let panelCounter = 1;
-
-/**
- * Redistributes the width of all log panels evenly.
- */
-const redistributePanelWidths = () => {
-  const count = logPanels.value.length;
-  if (count === 1) {
-    logPanels.value[0].width = '100%';
-  } else {
-    const percentage = 100 / count;
-    logPanels.value.forEach(panel => {
-      panel.width = `${percentage}%`;
-    });
-  }
-};
-
-/**
- * Adds a new log panel for a specific engine.
- * Ensures that each engine has at most one dedicated log panel.
- * @param engine The engine to add a log panel for
- */
-const addLogPanel = (engine: EngineData) => {
-  const existingPanel = logPanels.value.find(panel => panel.engineName === engine.name);
-  if (existingPanel) {
-    Message.warning(`Log panel for "${engine.name}" is already open`);
-    return;
-  }
-
-  panelCounter++;
-  const newPanel: LogPanelData = {
-    id: String(panelCounter),
-    title: `${engine.name} Logs`,
-    engineId: String(engineList.value.indexOf(engine)),
-    engineName: engine.name,
-    width: '0%',
-    logs: []
-  };
-  logPanels.value.push(newPanel);
-  redistributePanelWidths();
-  Message.success(`Log Panel ${panelCounter} added for ${engine.name}`);
-};
-
-/**
- * Closes a log panel by ID.
- * When closing a panel bound to a specific engine, also stop that engine.
- * @param panelId The ID of the panel to close
- */
-const closeLogPanel = (panelId: string) => {
-  const panel = logPanels.value.find(p => p.id === panelId);
-  if (!panel) {
-    return;
-  }
-
-  const engineName = panel.engineName || '';
-  const isEnginePanel = engineName && engineName !== 'All Engines';
-
-  const removePanel = () => {
-    const index = logPanels.value.findIndex(p => p.id === panelId);
-    if (index > -1) {
-      logPanels.value.splice(index, 1);
-      redistributePanelWidths();
-      Message.success('Log panel closed');
-    }
-  };
-
-  if (!isEnginePanel || !ipc) {
-    removePanel();
-    return;
-  }
-
-  ipc
-    .invoke(ipcApiRoute.engineStop, { name: engineName })
-    .then(() => {
-      engineList.value = engineList.value.map(item => ({
-        ...item,
-        active: item.name === engineName ? false : item.active,
-        status: item.name === engineName ? 'idle' : item.status
-      }));
-      Message.success(`Engine "${engineName}" stopped`);
-      removePanel();
-    })
-    .catch(error => {
-      console.error('Failed to stop engine when closing log panel:', error);
-      Message.error('Failed to stop engine');
-      removePanel();
-    });
-};
-
-/**
- * Clears logs for a specific panel.
- * @param panelId The ID of the panel to clear
- */
-const clearLogs = (panelId: string) => {
-  const panel = logPanels.value.find(p => p.id === panelId);
-  if (panel) {
-    panel.logs = [];
-    Message.success('Logs cleared');
-  }
-};
+// Auto Reply State
+const searchText = ref('');
+const autoReplyModalVisible = ref(false);
+const autoReplyForm = ref<AutoReplyFormData | null>(null);
+const editingAutoReplyName = ref<string | null>(null);
 
 // #endregion
 
-// #region --- Methods: Engine Management ---
+// #region --- Engine Handlers ---
 
 const openAddEngineModal = () => {
   editingEngine.value = null;
   addEngineModalVisible.value = true;
 };
 
-const buildEngineConfigFromForm = (formData: any) => {
-  const toNumber = (value: unknown) => {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : undefined;
-  };
-
-  const config: Record<string, any> = {};
-  config.type = formData.type;
-  config.name = formData.name;
-  config.deviceId = toNumber(formData.deviceId);
-  config.path = formData.serialPort;
-  const baudRate = toNumber(formData.baud);
-  if (baudRate !== undefined) {
-    config.baudRate = baudRate;
-  }
-  config.master = String(formData.master || '') === 'Master';
-  config.ip = formData.remoteIp || formData.localIp;
-  const port = toNumber(formData.tcpPort);
-  if (port !== undefined) {
-    config.port = port;
-  }
-  config.simulate = formData.simulate;
-  const timeoutKeys = ['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8'] as const;
-  timeoutKeys.forEach((key, index) => {
-    const v = toNumber(formData[key]);
-    if (v !== undefined) {
-      config[`timeoutT${index + 1}`] = v;
-    }
-  });
-  const dataBit = toNumber(formData.dataBit);
-  if (dataBit !== undefined) {
-    config.dataBit = dataBit;
-  }
-  const stopBit = toNumber(formData.stopBit);
-  if (stopBit !== undefined) {
-    config.stopBit = stopBit;
-  }
-  if (formData.parity === 'None') {
-    config.parity = null;
-  } else {
-    config.parity = formData.parity;
-  }
-  return config;
+const handleEditEngine = (engine: EngineData) => {
+  editingEngine.value = engine;
+  addEngineModalVisible.value = true;
 };
 
 const handleAddEngine = async (formData: any) => {
-  if (!ipc) {
-    Message.error('Cannot save engine config');
-    return;
-  }
-
-  const config = buildEngineConfigFromForm(formData);
-
-  try {
-    await ipc.invoke(ipcApiRoute.saveEngineConfig, {
-      config
-    });
-
-    if (editingEngine.value && editingEngine.value.fileName) {
-      const originalName = editingEngine.value.name;
-      if (originalName && originalName !== config.name) {
-        try {
-          await ipc.invoke(ipcApiRoute.deleteEngine, {
-            fileName: editingEngine.value.fileName
-          });
-        } catch (e) {
-        }
-      }
-    }
-
-    await loadEngineConfigs();
-    Message.success(`Engine "${config.name}" saved`);
+  const success = await saveEngineConfig(formData, editingEngine.value);
+  if (success) {
     addEngineModalVisible.value = false;
     editingEngine.value = null;
-  } catch (error) {
-    console.error('Failed to save engine config:', error);
-    Message.error('Failed to save engine config');
   }
 };
 
-const selectedEngineFileName = ref<string | null>(null);
+const handleDeleteEngine = async (engine: EngineData) => {
+  await deleteEngine(engine);
+};
 
 const selectEngine = (engine: EngineData) => {
   selectedEngineFileName.value = engine.fileName;
 };
 
-const openEngine = (engine: EngineData) => {
-  console.log('Open engine:', engine);
-  if (!ipc) {
-    Message.error('Cannot start engine');
-    return;
-  }
-  engineList.value = engineList.value.map(item => ({
-    ...item,
-    status: item.fileName === engine.fileName ? 'connecting' : item.status
-  }));
-  addLogPanel(engine);
-  ipc
-    .invoke(ipcApiRoute.engineStart, {
-      config: JSON.parse(JSON.stringify(engine.config || {}))
-    })
-    .then(() => {
-      engineList.value = engineList.value.map(item => ({
-        ...item,
-        active: item.fileName === engine.fileName ? true : item.active,
-        status: item.fileName === engine.fileName ? 'running' : item.status
-      }));
-      Message.success(`Engine "${engine.name}" started`);
-    })
-    .catch(error => {
-      engineList.value = engineList.value.map(item => ({
-        ...item,
-        status: item.fileName === engine.fileName ? 'idle' : item.status
-      }));
-      console.error('Failed to start engine:', error);
-      Message.error('Failed to start engine');
+const handleOpenEngine = (engine: EngineData) => {
+  startEngine(engine);
+  // Add log panel when opening engine
+  const index = engineList.value.findIndex(e => e.fileName === engine.fileName);
+  addLogPanel(engine, index);
+};
+
+const handleCloseEngine = async (engine: EngineData) => {
+  try {
+    await stopEngine(engine.name, engine.fileName);
+    // Close associated log panels
+    const panels = logPanels.value.filter(panel => panel.engineName === engine.name);
+    panels.forEach(panel => {
+      clearLogs(panel.id);
+      removePanel(panel.id); // Direct remove without stopping engine again
     });
-};
-
-const closeEngine = (engine: EngineData) => {
-  console.log('Close engine:', engine);
-  if (!ipc) {
-    Message.error('Cannot stop engine');
-    return;
+  } catch (error) {
+    // Error handled in useEngine
   }
-  ipc
-    .invoke(ipcApiRoute.engineStop, {
-      name: engine.name
-    })
-    .then(() => {
-      engineList.value = engineList.value.map(item => ({
-        ...item,
-        active: item.fileName === engine.fileName ? false : item.active,
-        status: item.fileName === engine.fileName ? 'idle' : item.status
-      }));
-      Message.success(`Engine "${engine.name}" stopped`);
-      const panels = logPanels.value.filter(panel => panel.engineName === engine.name);
-      panels.forEach(panel => {
-        clearLogs(panel.id);
-        closeLogPanel(panel.id);
-      });
-    })
-    .catch(error => {
-      console.error('Failed to stop engine:', error);
-      Message.error('Failed to stop engine');
-    });
-};
-
-const handleEditEngine = (engine: EngineData) => {
-  console.log('Edit engine:', engine);
-  editingEngine.value = engine;
-  addEngineModalVisible.value = true;
-};
-
-const handleDeleteEngine = (engine: EngineData) => {
-  Modal.confirm({
-    title: 'Delete Engine',
-    content: `Are you sure you want to delete ${engine.name}?`,
-    okText: 'Delete',
-    cancelText: 'Cancel',
-    onOk: async () => {
-      if (!ipc) {
-        Message.error('Cannot delete engine');
-        return;
-      }
-      try {
-        const fileName = engine.fileName || `${engine.name}.json`;
-        await ipc.invoke(ipcApiRoute.deleteEngine, {
-          fileName
-        });
-        await loadEngineConfigs();
-        Message.success('Engine deleted');
-      } catch (error) {
-        console.error('Failed to delete engine:', error);
-        Message.error('Failed to delete engine');
-      }
-    }
-  });
 };
 
 const handleViewConfig = (engine: EngineData) => {
-  console.log('View config:', engine);
   const pretty = JSON.stringify(engine.config || {}, null, 2);
   filePreviewContent.value = `// Configuration for ${engine.name}\n${pretty}`;
 };
 
 // #endregion
 
-// #region --- Methods: File Management ---
+// #region --- Log Panel Handlers ---
 
-const loadFileTree = async () => {
-  if (!ipc) {
-    return;
+const handleCloseLogPanel = async (panelId: string) => {
+  const panel = logPanels.value.find(p => p.id === panelId);
+  if (!panel) return;
+
+  const engineName = panel.engineName || '';
+  const isEnginePanel = engineName && engineName !== 'All Engines';
+
+  // If it's an engine panel, stop the engine first
+  if (isEnginePanel) {
+    try {
+      await stopEngine(engineName);
+    } catch (error) {
+      console.error('Failed to stop engine when closing log panel:', error);
+      // We still remove the panel even if stop failed? 
+      // Original code did removePanel() in catch block.
+    }
   }
-  try {
-    const result = await ipc.invoke(ipcApiRoute.smlFileTree, null);
-    fileTreeData.value = Array.isArray(result) ? (result as SmlTreeNode[]) : [];
-  } catch (error) {
-    console.error('Failed to load file tree:', error);
-    Message.error('Failed to load file tree');
-  }
+
+  removePanel(panelId);
+};
+
+// #endregion
+
+// #region --- File Tree Handlers ---
+
+const handleAddRootFile = () => {
+  prepareAddFile('');
+  fileEditorModalVisible.value = true;
 };
 
 const handleAddFile = (node: TreeNodeData) => {
   const target = node as SmlTreeNode;
-  creatingFolderPath.value = target.key || '';
-  editingFileName.value = '';
-  editingFilePath.value = '';
-  editingFileContent.value = '';
-  isCreateMode.value = true;
+  prepareAddFile(target.key || '');
   fileEditorModalVisible.value = true;
 };
 
-const handleAddRootFile = () => {
-  creatingFolderPath.value = '';
-  editingFileName.value = '';
-  editingFilePath.value = '';
-  editingFileContent.value = '';
-  isCreateMode.value = true;
-  fileEditorModalVisible.value = true;
+const handleEditFile = async (node: TreeNodeData) => {
+  await prepareEditFile(node);
+  if (editingFileContent.value) {
+    fileEditorModalVisible.value = true;
+  }
+};
+
+const handlePreviewFile = async (node: TreeNodeData) => {
+  await loadFileContent(node);
+};
+
+const handleSaveFile = async (payload: { name: string; content: string }) => {
+  const success = await saveFile(payload);
+  if (success) {
+    fileEditorModalVisible.value = false;
+  }
+};
+
+const handleDeleteFile = async (node: TreeNodeData) => {
+  await deleteNode(node);
 };
 
 const openAddRootFolderModal = () => {
@@ -505,42 +298,9 @@ const openAddRootFolderModal = () => {
 };
 
 const confirmAddRootFolder = async (folderName: string) => {
-  const name = folderName.trim();
-  if (!name) {
-    Message.error('Folder name is required');
-    return;
-  }
-  if (/[\\/]/.test(name)) {
-    Message.error('Folder name cannot contain / or \\');
-    return;
-  }
-  const folderPath = name;
-
-  const exists = fileTreeData.value.some((node: SmlTreeNode) => {
-    const normalize = (p: string) => p.replace(/\\/g, '/');
-    return normalize(node.key as string) === normalize(folderPath);
-  });
-
-  if (exists) {
-    Message.error('Folder already exists');
-    return;
-  }
-
-  if (!ipc) {
-    Message.error('Cannot create folder');
-    return;
-  }
-
-  try {
-    await ipc.invoke(ipcApiRoute.smlFolderCreate, {
-      folderPath
-    });
-    await loadFileTree();
-    Message.success(`Folder "${name}" created successfully`);
+  const success = await createFolder(folderName);
+  if (success) {
     addRootFolderModalVisible.value = false;
-  } catch (error) {
-    console.error('Failed to create folder:', error);
-    Message.error('Failed to create folder');
   }
 };
 
@@ -551,252 +311,11 @@ const handleAddFolder = (node: TreeNodeData) => {
 };
 
 const confirmAddSubFolder = async (folderName: string) => {
-  const name = folderName.trim();
-  if (!name) {
-    Message.error('Folder name is required');
-    return;
-  }
-  if (/[\\/]/.test(name)) {
-    Message.error('Folder name cannot contain / or \\');
-    return;
-  }
-
-  const parentPath = creatingSubFolderPath.value;
-  const folderPath = parentPath ? `${parentPath}/${name}` : name;
-
-  const normalizePath = (p: string | undefined | null) => {
-    if (!p) return '';
-    return String(p).replace(/\\/g, '/');
-  };
-
-  const exists = (() => {
-    const search = (nodes: SmlTreeNode[]): boolean => {
-      for (const node of nodes) {
-        if (normalizePath(node.key as string) === normalizePath(folderPath)) {
-          return true;
-        }
-        if (node.children && node.children.length > 0) {
-          if (search(node.children as SmlTreeNode[])) {
-            return true;
-          }
-        }
-      }
-      return false;
-    };
-    return search(fileTreeData.value);
-  })();
-
-  if (exists) {
-    Message.error('Folder already exists');
-    return;
-  }
-
-  if (!ipc) {
-    Message.error('Cannot create folder');
-    return;
-  }
-
-  try {
-    await ipc.invoke(ipcApiRoute.smlFolderCreate, {
-      folderPath
-    });
-    await loadFileTree();
-    Message.success(`Folder "${name}" created successfully`);
+  const success = await createFolder(folderName, creatingSubFolderPath.value);
+  if (success) {
     addSubFolderModalVisible.value = false;
     creatingSubFolderPath.value = '';
-  } catch (error) {
-    console.error('Failed to create folder:', error);
-    Message.error('Failed to create folder');
   }
-};
-
-const loadFileContent = async (node: TreeNodeData) => {
-  const target = node as SmlTreeNode;
-  if ((target.isFolder && target.isFolder === true) || !target.key) {
-    return;
-  }
-  editingFileName.value = String(target.title || '');
-  editingFilePath.value = String(target.key || '');
-  let content = '';
-  if (ipc) {
-    try {
-      const result = await ipc.invoke(ipcApiRoute.smlFileContent, {
-        filePath: editingFilePath.value
-      });
-      content = result ? String(result) : '';
-    } catch (error) {
-      console.error('Failed to load file content:', error);
-      Message.error('Failed to load file content');
-    }
-  }
-  if (!content) {
-    content = `// ${editingFileName.value}\n`;
-  }
-  editingFileContent.value = content;
-  filePreviewContent.value = content;
-};
-
-const handleEditFile = async (node: TreeNodeData) => {
-  isCreateMode.value = false;
-  await loadFileContent(node);
-  if (!editingFileContent.value) {
-    return;
-  }
-  fileEditorModalVisible.value = true;
-};
-
-const handlePreviewFile = async (node: TreeNodeData) => {
-  await loadFileContent(node);
-};
-
-const handleSaveFile = async (payload: { name: string; content: string }) => {
-  if (!ipc) {
-    Message.error('Cannot save file');
-    return;
-  }
-
-  let name = payload.name?.trim() || editingFileName.value;
-  const content = payload.content;
-
-  if (!name) {
-    Message.error('File name is required');
-    return;
-  }
-
-  if (isCreateMode.value && !name.toLowerCase().endsWith('.txt')) {
-    name = `${name}.txt`;
-  }
-
-  const normalizePath = (p: string | undefined | null) => {
-    if (!p) return '';
-    return String(p).replace(/\\/g, '/');
-  };
-
-  const targetPath = (() => {
-    if (!isCreateMode.value) {
-      return editingFilePath.value;
-    }
-    if (!creatingFolderPath.value) {
-      return name;
-    }
-    const base = normalizePath(creatingFolderPath.value);
-    return `${base}/${name}`;
-  })();
-
-  if (isCreateMode.value) {
-    const exists = (() => {
-      const search = (nodes: SmlTreeNode[]): boolean => {
-        for (const node of nodes) {
-          if (normalizePath(node.key as string) === normalizePath(targetPath)) {
-            return true;
-          }
-          if (node.children && node.children.length > 0) {
-            if (search(node.children as SmlTreeNode[])) {
-              return true;
-            }
-          }
-        }
-        return false;
-      };
-      return search(fileTreeData.value);
-    })();
-
-    if (exists) {
-      Message.error('File already exists, please rename');
-      return;
-    }
-  }
-
-  try {
-    if (isCreateMode.value) {
-      await ipc.invoke(ipcApiRoute.smlFileCreate, {
-        filePath: targetPath,
-        content
-      });
-
-      editingFileName.value = name;
-      editingFilePath.value = targetPath || '';
-      editingFileContent.value = content;
-      filePreviewContent.value = content;
-
-      await loadFileTree();
-      Message.success(`File "${name}" created successfully`);
-      fileEditorModalVisible.value = false;
-    } else {
-      if (!targetPath) {
-        Message.error('Cannot save file');
-        return;
-      }
-
-      await ipc.invoke(ipcApiRoute.smlFileSave, {
-        filePath: targetPath,
-        content
-      });
-
-      editingFileContent.value = content;
-      filePreviewContent.value = content;
-      Message.success(`File "${editingFileName.value}" saved successfully`);
-      fileEditorModalVisible.value = false;
-    }
-  } catch (error) {
-    console.error('Failed to save file:', error);
-    Message.error('Failed to save file');
-  }
-};
-
-const removeNodeFromTree = (key: string) => {
-  const remove = (nodes: SmlTreeNode[]): SmlTreeNode[] =>
-    nodes
-      .map((node) => {
-        const current = { ...node };
-        if (current.children && current.children.length > 0) {
-          current.children = remove(current.children);
-        }
-        return current;
-      })
-      .filter((node) => node.key !== key);
-
-  fileTreeData.value = remove(fileTreeData.value);
-};
-
-const handleDeleteFile = (node: TreeNodeData) => {
-  const target = node as SmlTreeNode;
-  if (!target.key) {
-    return;
-  }
-
-  const isFolder = target.isFolder;
-  const typeText = isFolder ? 'Folder' : 'File';
-
-  Modal.confirm({
-    title: `Delete ${typeText}`,
-    content: `Are you sure you want to delete ${typeText.toLowerCase()} "${target.title}"?`,
-    okText: 'Delete',
-    cancelText: 'Cancel',
-    onOk: async () => {
-      if (!ipc) {
-        Message.error(`Cannot delete ${typeText.toLowerCase()}`);
-        return;
-      }
-      try {
-        if (isFolder) {
-          await ipc.invoke(ipcApiRoute.smlFolderDelete, {
-            folderPath: target.key
-          });
-        } else {
-          await ipc.invoke(ipcApiRoute.smlFileDelete, {
-            filePath: target.key
-          });
-        }
-
-        removeNodeFromTree(target.key);
-        Message.success(`${typeText} deleted`);
-      } catch (error) {
-        console.error(`Failed to delete ${typeText.toLowerCase()}:`, error);
-        Message.error(`Failed to delete ${typeText.toLowerCase()}`);
-      }
-    }
-  });
 };
 
 const handleSendFileTo = (payload: { file: TreeNodeData, engineName: string }) => {
@@ -806,96 +325,7 @@ const handleSendFileTo = (payload: { file: TreeNodeData, engineName: string }) =
 
 // #endregion
 
-const loadEngineConfigs = async () => {
-  if (!ipc) {
-    return;
-  }
-  try {
-    const result = await ipc.invoke(ipcApiRoute.getEngineConfig, null);
-    if (Array.isArray(result)) {
-      engineList.value = result.map((item: any) => {
-        const fileName = String(item.fileName || '');
-        const config = item.config || {};
-        const name = String(config.name || fileName.replace(/\.json$/i, ''));
-        return {
-          name,
-          active: false,
-          status: 'idle',
-          fileName,
-          config
-        } as EngineData;
-      });
-    } else {
-      engineList.value = [];
-    }
-  } catch (error) {
-    console.error('Failed to load engine configs:', error);
-    Message.error('Failed to load engine configs');
-  }
-};
-
-const loadAutoReplyScripts = async () => {
-  if (!ipc) {
-    return;
-  }
-  try {
-    const result = await ipc.invoke(ipcApiRoute.listScripts, null);
-    if (Array.isArray(result)) {
-      tableData.value = result.map((item: any) => ({
-        name: String(item.name || ''),
-        tool: String(item.tool || ''),
-        sf: String(item.sf || ''),
-        delaySeconds: Number.isFinite(Number(item.delaySeconds)) ? Number(item.delaySeconds) : 0,
-        active: Boolean(item.active)
-      }));
-    } else {
-      tableData.value = [];
-    }
-  } catch (error) {
-    console.error('Failed to load auto reply scripts:', error);
-    Message.error('Failed to load auto reply scripts');
-  }
-};
-
-onMounted(() => {
-  if (ipc) {
-    ipc.on('engine/log', (_event, payload: { name: string; level: string; type: string; message: string }) => {
-      const targetPanels = logPanels.value.filter(panel => panel.engineName === payload.name);
-      const time = new Date().toLocaleTimeString();
-      const entryLevel = payload.level || 'INFO';
-      const text = String(payload.message ?? '');
-
-      if (targetPanels.length === 0) {
-        const engine = engineList.value.find(e => e.name === payload.name);
-        if (engine) {
-          addLogPanel(engine);
-        }
-      }
-
-      logPanels.value.forEach(panel => {
-        if (panel.engineName === payload.name) {
-          panel.logs.push({
-            time,
-            level: entryLevel,
-            message: text
-          });
-        }
-      });
-    });
-  }
-
-  loadEngineConfigs();
-  loadFileTree();
-  loadAutoReplyScripts();
-});
-
-onBeforeUnmount(() => {
-  if (ipc) {
-    ipc.removeAllListeners('engine/log');
-  }
-});
-
-// #region --- Methods: Auto Reply ---
+// #region --- Auto Reply Handlers ---
 
 const addAutoReply = () => {
   autoReplyForm.value = {
@@ -910,14 +340,8 @@ const addAutoReply = () => {
 };
 
 const editAutoReply = async (item: AutoReplyItem) => {
-  if (!ipc) {
-    Message.error('Cannot edit auto reply');
-    return;
-  }
-
   try {
-    const result: any = await ipc.invoke(ipcApiRoute.getScript, { name: item.name });
-
+    const result: any = await getScriptDetail(item.name);
     autoReplyForm.value = {
       tool: String(result.tool || item.tool || ''),
       handlerSf: String(result.sf || item.sf || ''),
@@ -927,7 +351,6 @@ const editAutoReply = async (item: AutoReplyItem) => {
         : item.delaySeconds,
       script: String(result.code || '')
     };
-
     editingAutoReplyName.value = item.name;
     autoReplyModalVisible.value = true;
   } catch (error) {
@@ -936,79 +359,57 @@ const editAutoReply = async (item: AutoReplyItem) => {
   }
 };
 
-const deleteAutoReply = (item: AutoReplyItem) => {
-  Modal.confirm({
-    title: 'Delete Auto Reply Script',
-    content: `Are you sure you want to delete script for ${item.tool} / ${item.sf}?`,
-    okText: 'Delete',
-    cancelText: 'Cancel',
-    async onOk() {
-      if (!ipc) {
-        Message.error('Cannot delete auto reply');
-        return;
-      }
-      try {
-        await ipc.invoke(ipcApiRoute.deleteScript, { name: item.name });
-        await loadAutoReplyScripts();
-        Message.success('Auto reply script deleted');
-      } catch (error) {
-        console.error('Failed to delete auto reply script:', error);
-        Message.error('Failed to delete auto reply script');
-      }
-    }
-  });
-};
-
 const handleSaveAutoReply = async (form: AutoReplyFormData) => {
-  if (!form.tool) {
-    Message.error('Tool is required');
-    return;
-  }
-  if (!form.handlerSf) {
-    Message.error('Handle SF is required');
-    return;
-  }
-  if (!form.script.trim()) {
-    Message.error('Script is required');
-    return;
-  }
-
-  if (!ipc) {
-    Message.error('Cannot save auto reply');
-    return;
-  }
-
-  try {
-    if (editingAutoReplyName.value) {
-      await ipc.invoke(ipcApiRoute.updateScript, {
-        originalName: editingAutoReplyName.value,
-        tool: form.tool,
-        handlerSf: form.handlerSf,
-        active: form.active,
-        delaySeconds: form.delaySeconds,
-        code: form.script
-      });
-      Message.success('Auto reply script updated');
-    } else {
-      await ipc.invoke(ipcApiRoute.addScript, {
-        tool: form.tool,
-        handlerSf: form.handlerSf,
-        active: form.active,
-        delaySeconds: form.delaySeconds,
-        code: form.script
-      });
-      Message.success('Auto reply script added');
-    }
-
-    await loadAutoReplyScripts();
-
+  const success = await saveAutoReplyScript(form, editingAutoReplyName.value);
+  if (success) {
     editingAutoReplyName.value = null;
     autoReplyModalVisible.value = false;
-  } catch (error) {
-    console.error('Failed to save auto reply script:', error);
-    Message.error('Failed to save auto reply script');
   }
 };
+
+const handleDeleteAutoReply = async (item: AutoReplyItem) => {
+  await deleteAutoReplyScript(item);
+};
+
+// #endregion
+
+// #region --- Lifecycle ---
+
+onMounted(() => {
+  if (ipc) {
+    ipc.on('engine/log', (_event, payload: { name: string; level: string; type: string; message: string }) => {
+      // Add log
+      addLogEntry(payload.name, payload.level || 'INFO', String(payload.message ?? ''));
+      
+      // If engine log comes in but no panel exists, create one
+      // Note: addLogPanel checks for duplicates internally
+      const engine = engineList.value.find(e => e.name === payload.name);
+      if (engine) {
+        // We only auto-add panel if it doesn't exist.
+        // But addLogPanel already checks this.
+        // However, we need the index.
+        const index = engineList.value.indexOf(engine);
+        // Maybe we don't force open panel on every log? Original code did:
+        // if (targetPanels.length === 0) { addLogPanel(engine); }
+        // So yes, it auto-opens.
+        addLogPanel(engine, index);
+      }
+
+      // Update engine status
+      updateEngineStatus(payload.name, payload.type);
+    });
+  }
+
+  loadEngineConfigs();
+  loadFileTree();
+  loadAutoReplyScripts();
+});
+
+onBeforeUnmount(() => {
+  if (ipc) {
+    ipc.removeAllListeners('engine/log');
+  }
+});
 
 // #endregion
 </script>

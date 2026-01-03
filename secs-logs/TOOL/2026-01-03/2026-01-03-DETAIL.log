@@ -34,3 +34,15 @@
 2026-01-03 16:33:53.159 INFO  HSMS NotConnected -> Connected | state
 2026-01-03 16:33:53.160 INFO  HSMS Connected -> Selected | state
 2026-01-03 16:34:12.065 INFO  HSMS Selected -> NotConnected | state
+2026-01-03 16:37:05.027 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 16:37:05.028 INFO  HSMS Connected -> Selected | state
+2026-01-03 16:37:15.740 INFO  HSMS Selected -> NotConnected | state
+2026-01-03 16:40:34.106 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 16:40:34.107 INFO  HSMS Connected -> Selected | state
+2026-01-03 16:40:37.342 INFO  HSMS Selected -> NotConnected | state
+2026-01-03 16:40:47.359 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 16:40:47.359 INFO  HSMS Connected -> Selected | state
+2026-01-03 16:40:49.642 INFO  HSMS Selected -> NotConnected | state
+2026-01-03 16:40:52.720 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 16:40:52.720 INFO  HSMS Connected -> Selected | state
+2026-01-03 16:41:13.895 INFO  HSMS Selected -> NotConnected | state
