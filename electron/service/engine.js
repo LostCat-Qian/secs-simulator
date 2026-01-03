@@ -4,7 +4,14 @@ const path = require('path')
 const fs = require('fs').promises
 const { logger } = require('ee-core/log')
 const { getBaseDir } = require('ee-core/ps')
-const { HsmsActiveCommunicator, HsmsPassiveCommunicator, L } = require('secs4js')
+const {
+  HsmsActiveCommunicator,
+  HsmsPassiveCommunicator,
+  Secs1Communicator,
+  Secs1OnTcpIpActiveCommunicator,
+  Secs1OnTcpIpPassiveCommunicator,
+  L
+} = require('secs4js')
 
 const engineInstances = new Map()
 
@@ -100,41 +107,76 @@ class EngineService {
         secs2Level: 'info', // Level for SECS-II logs
         maxHexBytes: 65536 // Maximum number of hex bytes to record
       }
-      if (config.type === 'HSMS') {
-        const isEquip = String(config.simulate || '') === 'Equipment'
-        if (isEquip) {
-          instance = new HsmsPassiveCommunicator({
-            ip: config.ip || '0.0.0.0',
-            port: config.port,
-            deviceId: config.deviceId,
-            isEquip: true,
-            name: config.name,
-            log: logConfig,
-            ...timeoutConfig
-          })
-        } else {
-          instance = new HsmsActiveCommunicator({
+
+      switch (config.type) {
+        case 'HSMS':
+          const isEquip = String(config.simulate || '') === 'Equipment'
+          if (isEquip) {
+            instance = new HsmsPassiveCommunicator({
+              ip: config.ip || '0.0.0.0',
+              port: config.port,
+              deviceId: config.deviceId,
+              isEquip: true,
+              name: config.name,
+              log: logConfig,
+              ...timeoutConfig
+            })
+          } else {
+            instance = new HsmsActiveCommunicator({
+              name: config.name,
+              ip: config.ip || '127.0.0.1',
+              port: config.port,
+              deviceId: config.deviceId,
+              isEquip: false,
+              log: logConfig,
+              ...timeoutConfig
+            })
+          }
+          break
+        case 'SECS-I':
+          instance = new Secs1Communicator({
             name: config.name,
             ip: config.ip || '127.0.0.1',
             port: config.port,
             deviceId: config.deviceId,
-            isEquip: false,
-            log: logConfig,
-            ...timeoutConfig
+            isEquip: config.isEquip === 'Equipment' ? true : false
           })
-        }
+          break
+        case 'SECS-I-TCP':
+          if (isEquip) {
+            instance = new Secs1OnTcpIpPassiveCommunicator({
+              name: config.name,
+              ip: config.ip || '127.0.0.1',
+              port: config.port,
+              deviceId: config.deviceId,
+              isEquip: true,
+              log: logConfig,
+              ...timeoutConfig
+            })
+          } else {
+            instance = new Secs1OnTcpIpActiveCommunicator({
+              name: config.name,
+              ip: config.ip || '127.0.0.1',
+              port: config.port,
+              deviceId: config.deviceId,
+              isEquip: false,
+              log: logConfig,
+              ...timeoutConfig
+            })
+          }
+          break
+        default:
+          logger.error('❌ [start] Unsupported engine type:', config.type)
+          throw new Error(`不支持的引擎类型: ${config.type}`)
+      }
 
-        if (event && event.sender) {
-          event.sender.send('engine/log', {
-            name: key,
-            level: 'INFO',
-            type: 'start',
-            message: `${config.name} starting...`
-          })
-        }
-      } else {
-        logger.error('❌ [start] Unsupported engine type:', config.type)
-        throw new Error(`不支持的引擎类型: ${config.type}`)
+      if (event && event.sender) {
+        event.sender.send('engine/log', {
+          name: key,
+          level: 'INFO',
+          type: 'start',
+          message: `${config.name} starting...`
+        })
       }
 
       instance.on('connected', () => {

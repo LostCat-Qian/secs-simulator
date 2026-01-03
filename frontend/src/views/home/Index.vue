@@ -452,7 +452,7 @@ onBeforeUnmount(() => {
 }
 
 .engine-box {
-  height: 300px;
+  height: 200px;
   min-height: 200px;
   flex-shrink: 0;
 }

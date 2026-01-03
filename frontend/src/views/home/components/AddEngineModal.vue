@@ -1,11 +1,11 @@
 <template>
-  <a-modal :visible="visible" @update:visible="val => $emit('update:visible', val)" :title="modalTitle" width="90vw"
+  <a-modal :visible="visible" @update:visible="val => $emit('update:visible', val)" :title="modalTitle" width="850px"
     :footer="true" ok-text="Save" cancel-text="Cancel" @cancel="handleCancel" @ok="handleOk" :mask-closable="false"
     class="compact-modal">
     <a-form :model="form" layout="vertical" class="engine-form">
-      <a-row :gutter="8">
+      <a-row :gutter="24">
         <!-- Left Column -->
-        <a-col :span="15">
+        <a-col :span="17">
           <!-- Engine Properties -->
           <a-divider orientation="left" class="compact-divider">Engine Properties</a-divider>
           <a-row :gutter="8">
@@ -138,16 +138,13 @@
         </a-col>
 
         <!-- Right Column - Timeout Parameters -->
-        <a-col :span="9">
-          <a-divider orientation="left" class="compact-divider">Timeout Parameters (T1-T8)</a-divider>
+        <a-col :span="6">
+          <a-divider orientation="left" class="compact-divider">Timeout</a-divider>
           <a-form :model="form" layout="horizontal" class="timeout-section">
-            <a-row :gutter="8">
-              <a-col :span="24" v-for="i in 8" :key="i">
-                <a-form-item :label="`T${i}`" :field="`t${i}`" label-col-flex="40px">
-                  <a-input v-model="form[`t${i}` as keyof typeof form]" />
-                </a-form-item>
-              </a-col>
-            </a-row>
+            <div v-for="i in 8" :key="i" class="timeout-item">
+              <span class="timeout-label">T{{ i }}</span>
+              <a-input-number v-model="form[`t${i}` as keyof typeof form]" size="small" class="timeout-input" />
+            </div>
           </a-form>
         </a-col>
       </a-row>
@@ -181,14 +178,14 @@ const defaultForm = {
   remoteIp: '127.0.0.1',
   localIp: '127.0.0.1',
   maxLength: '9437184',
-  t1: '10',
-  t2: '45',
-  t3: '180',
-  t4: '120',
-  t5: '10',
-  t6: '10',
-  t7: '10',
-  t8: '10',
+  t1: 10,
+  t2: 45,
+  t3: 180,
+  t4: 120,
+  t5: 10,
+  t6: 10,
+  t7: 10,
+  t8: 10,
   dataBit: '8',
   stopBit: '1',
   parity: 'None'
@@ -220,14 +217,14 @@ watch(() => props.visible, (val) => {
         remoteIp: String(cfg.ip ?? defaultForm.remoteIp),
         localIp: String(cfg.localIp ?? defaultForm.localIp),
         maxLength: String(cfg.maxLength ?? defaultForm.maxLength),
-        t1: String(cfg.timeoutT1 ?? defaultForm.t1),
-        t2: String(cfg.timeoutT2 ?? defaultForm.t2),
-        t3: String(cfg.timeoutT3 ?? defaultForm.t3),
-        t4: String(cfg.timeoutT4 ?? defaultForm.t4),
-        t5: String(cfg.timeoutT5 ?? defaultForm.t5),
-        t6: String(cfg.timeoutT6 ?? defaultForm.t6),
-        t7: String(cfg.timeoutT7 ?? defaultForm.t7),
-        t8: String(cfg.timeoutT8 ?? defaultForm.t8),
+        t1: Number(cfg.timeoutT1 ?? defaultForm.t1),
+        t2: Number(cfg.timeoutT2 ?? defaultForm.t2),
+        t3: Number(cfg.timeoutT3 ?? defaultForm.t3),
+        t4: Number(cfg.timeoutT4 ?? defaultForm.t4),
+        t5: Number(cfg.timeoutT5 ?? defaultForm.t5),
+        t6: Number(cfg.timeoutT6 ?? defaultForm.t6),
+        t7: Number(cfg.timeoutT7 ?? defaultForm.t7),
+        t8: Number(cfg.timeoutT8 ?? defaultForm.t8),
         dataBit: String(cfg.dataBit ?? defaultForm.dataBit),
         stopBit: String(cfg.stopBit ?? defaultForm.stopBit),
         parity: cfg.parity == null ? 'None' : String(cfg.parity)
@@ -288,10 +285,6 @@ const handleOk = () => {
   width: 50%;
 }
 
-.engine-form .timeout-section :deep(.arco-form-label-item) {
-  width: 16.67%;
-}
-
 .compact-modal :deep(.arco-modal-body) {
   padding: 16px 20px;
   max-height: calc(100vh - 150px);
@@ -321,7 +314,32 @@ const handleOk = () => {
   line-height: 32px;
 }
 
-.timeout-section :deep(.arco-form-item) {
-  margin-bottom: 10px;
+/* Timeout Section Styles */
+.timeout-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeout-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeout-label {
+  width: 24px;
+  text-align: right;
+  font-weight: 500;
+  color: var(--color-text-2);
+}
+
+.timeout-input {
+  width: 120px !important;
+}
+
+.timeout-input :deep(.arco-input-wrapper) {
+  padding-left: 8px;
+  padding-right: 8px;
 }
 </style>
