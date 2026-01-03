@@ -5,7 +5,7 @@
   "path": "COM1",
   "baudRate": 9600,
   "master": false,
-  "ip": "192.168.1.119",
+  "ip": "127.0.0.1",
   "port": 5001,
   "simulate": "Host",
   "timeoutT1": 10,
