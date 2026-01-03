@@ -46,9 +46,10 @@ secs-simulator/
 │   │   ├── bridge.js        # contextBridge 桥接
 │   │   └── lifecycle.js     # 生命周期钩子
 │   └── service/             # 业务逻辑层
-│       ├── engine.js        # 引擎服务（getConfig, delete, saveConfig, start, stop）
-│       ├── autoReply.js     # 自动回复服务
-│       ├── smlFile.js       # SML 文件服务（getFileTree, getFileContent, saveSmlFile, createSmlFile, deleteSmlFile, createSmlFolder, deleteSmlFolder）
+│       ├── engine.js        # 引擎服务（getConfig, delete, saveConfig, start, stop, getMsgByFilePath）
+│       ├── autoReply.js     # 自动回复服务（addScript, getScript, listScripts, updateScript, deleteScript, findScript）
+│       ├── smlFile.js       # SML 文件服务（getFileTree, getFileContent, saveSmlFile, createSmlFile, deleteSmlFile, createSmlFolder, deleteSmlFolder, getAllFilePaths）
+│       ├── funcExcutor.js   # 脚本函数执行器
 │       └── example.js       # 示例服务
 ├── frontend/                # 前端代码
 │   ├── src/
@@ -88,10 +89,11 @@ secs-simulator/
 │   └── package.json        # 前端依赖配置
 ├── auto-reply-scripts/      # 自动回复脚本目录
 │   ├── default.js          # 默认自动回复处理脚本
-│   ├── TOOL_handler_S7F25.js # 特定消息处理脚本示例
-│   └── TOOL-handler-S7F25-delay0-true.js # 延迟处理脚本示例
+│   ├── HOST-handler-S1F1-delay0-true.js # HOST 引擎 S1F1 自动回复脚本
+│   └── TOOL_handler_S7F25.js # 特定消息处理脚本示例
 ├── engines/                 # 引擎配置文件目录
 │   ├── HOST.json           # HOST 引擎配置文件
+│   ├── SerialActive.json   # SerialActive 引擎配置文件
 │   └── TOOL.json           # TOOL 引擎配置文件
 ├── sml/                     # SML（SECS Message Language）文件目录
 │   ├── Communication/      # 通信相关 SML 文件
@@ -125,6 +127,10 @@ secs-simulator/
 │       └── S6F23_SPOOL.txt
 ├── secs-logs/               # SECS 通信日志目录（不提交版本控制）
 │   ├── HOST/               # HOST 引擎日志
+│   │   └── 2026-01-03/
+│   │       ├── 2026-01-03-DETAIL.log
+│   │       └── 2026-01-03-SECS-II.log
+│   ├── SerialActive/       # SerialActive 引擎日志
 │   │   └── 2026-01-03/
 │   │       ├── 2026-01-03-DETAIL.log
 │   │       └── 2026-01-03-SECS-II.log
@@ -162,7 +168,8 @@ secs-simulator/
 ├── package.json            # 主进程依赖配置
 ├── README.md               # 项目说明（英文）
 ├── README.zh-CN.md         # 项目说明（中文）
-└── LICENSE                 # 许可证文件
+├── LICENSE                 # 许可证文件
+└── test.js                 # 测试脚本（用于测试 funcExcutor 功能）
 ```
 
 ## 开发命令
@@ -332,6 +339,61 @@ async test(args, event) {
 - 使用 Vue 3 Composition API 和 `<script setup>` 语法
 - 使用 Arco Design 组件库保持 UI 一致性
 
+## 自动回复优先级机制
+
+引擎收到消息后，自动回复遵循以下优先级顺序：
+
+| 优先级 | 条件 | 行为 | 回复来源 |
+|--------|------|------|----------|
+| **1. Script** | 找到匹配的脚本且 `active: true` | 执行脚本获取 SML 路径 → 用该文件回复 | `auto-reply-scripts/*.js` |
+| **2. File** | 找到对应的 SML 消息文件 (S${stream}F${func+1}) | 直接用该 SML 文件回复 | `sml/**/*.txt` |
+| **3. Auto** | func 为奇数且无匹配 | 回复默认的 L() | 系统默认 |
+
+### 脚本执行机制
+
+自动回复脚本通过 `funcExcutor.js` 执行，脚本格式如下：
+
+```javascript
+/**
+ * Auto reply handler
+ * @param {Object} msg - SECS 消息对象，包含 stream, func, wBit, body 等属性
+ * @param {string[]} dir - 所有 SML 文件相对路径数组
+ * @returns {string|null} SML 文件路径，返回 null 则继续后续优先级
+ */
+function handler(msg, dir) {
+  // 示例：根据消息内容返回 SML 文件路径
+  if (msg.stream === 7 && msg.func === 25 && msg.body[0].value === 'chamber-A.rcp') {
+    return dir.find((file) => file.includes('S7F26'))[0]
+  }
+  // 返回 null 继续 File 优先级
+  return null
+}
+```
+
+### 脚本内置方法
+
+脚本中可以调用以下内置方法：
+
+- `getMsgByFilePath(filePath)` - 通过文件路径获取 SECS 消息对象（同步方法）
+  ```javascript
+  function handler(msg, dir) {
+    const replyMsg = getMsgByFilePath('Communication/S1F1.txt')
+    console.log(replyMsg.stream, replyMsg.func)
+    return 'Communication/S1F1.txt'
+  }
+  ```
+
+### 脚本文件命名规范
+
+脚本文件名格式：`{tool}-handler-{sf}-delay{delaySeconds}-{active}.js`
+
+- `tool`: 引擎名称（如 TOOL、HOST）
+- `sf`: 匹配的 SECS 消息（如 S7F25）
+- `delaySeconds`: 延迟秒数
+- `active`: true/false（是否启用）
+
+示例：`TOOL-handler-S7F25-delay0-true.js`
+
 ## 配置说明
 
 ### 主进程配置（config.default.js）
@@ -411,23 +473,6 @@ async test(args, event) {
 }
 ```
 
-### 自动回复脚本（auto-reply-scripts/*.js）
-
-自动回复脚本用于处理 SECS 消息的自动回复逻辑：
-
-```javascript
-/**
- * Auto reply handler
- * @param {msg} args: stream, func, wBit, body ( body[0][1].value )
- * @param {string[]} args: sml files directory
- */
-function handler(msg, dir) {
-  if (msg.func % 2 !== 0) {
-    return dir.find((file) => file.includes(`S${msg.stream}F${msg.func + 1}`))[0]
-  }
-}
-```
-
 ## 依赖管理
 
 ### 主进程依赖
@@ -438,6 +483,7 @@ function handler(msg, dir) {
 - `electron-builder@^26.3.5`：应用打包工具
 - `ee-bin@^4.2.0`：ElectronEgg 命令行工具
 - `secs4js@^0.4.4`：SECS 通信协议库
+- `serialport@^13.0.0`：串口通信库
 
 ### 主进程开发依赖
 
@@ -559,6 +605,7 @@ npm run build-l
 
 - **SML 文件树**：通过 `getFileTree` 接口获取 SML 目录树结构
 - **获取文件内容**：通过 `getFileContent` 接口读取 SML 文件内容
+- **获取所有文件路径**：通过 `getAllFilePaths` 接口获取 SML 目录下所有文件的相对路径数组
 - **保存文件**：通过 `saveSmlFile` 接口保存 SML 文件内容
 - **创建文件**：通过 `createSmlFile` 接口创建新的 SML 文件
 - **删除文件**：通过 `deleteSmlFile` 接口删除 SML 文件
@@ -582,6 +629,7 @@ npm run build-l
 - **延迟控制**：支持设置回复延迟时间
 - **状态管理**：管理自动回复规则的启用/禁用状态
 - **多引擎支持**：为不同引擎配置不同的自动回复规则
+- **优先级机制**：支持 Script > File > Auto 三级优先级
 
 ## API 接口说明
 
@@ -609,7 +657,19 @@ npm run build-l
 - **参数**：`{ filePath: "Communication/S1F1.txt" }`
 - **返回**：文件内容字符串
 
-#### 3. saveSmlFile - 保存文件
+#### 3. getAllFilePaths - 获取所有文件路径
+- **频道**：`controller/smlFile/getAllFilePaths`
+- **功能**：获取 SML 目录下所有文件的相对路径（铺平）
+- **返回格式**：
+```javascript
+[
+  "Communication/S1F1.txt",
+  "Commnication/S1F13.txt",
+  ...
+]
+```
+
+#### 4. saveSmlFile - 保存文件
 - **频道**：`controller/smlFile/saveSmlFile`
 - **参数**：
 ```javascript
@@ -619,7 +679,7 @@ npm run build-l
 }
 ```
 
-#### 4. createSmlFile - 创建文件
+#### 5. createSmlFile - 创建文件
 - **频道**：`controller/smlFile/createSmlFile`
 - **参数**：
 ```javascript
@@ -629,11 +689,11 @@ npm run build-l
 }
 ```
 
-#### 5. deleteSmlFile - 删除文件
+#### 6. deleteSmlFile - 删除文件
 - **频道**：`controller/smlFile/deleteSmlFile`
 - **参数**：`{ filePath: "Communication/NewFile.txt" }`
 
-#### 6. createSmlFolder - 创建文件夹
+#### 7. createSmlFolder - 创建文件夹
 - **频道**：`controller/smlFile/createSmlFolder`
 - **参数**：
 ```javascript
@@ -642,7 +702,7 @@ npm run build-l
 }
 ```
 
-#### 7. deleteSmlFolder - 删除文件夹
+#### 8. deleteSmlFolder - 删除文件夹
 - **频道**：`controller/smlFile/deleteSmlFolder`
 - **参数**：
 ```javascript
@@ -745,6 +805,17 @@ npm run build-l
 #### 3. getScript - 获取自动回复脚本详情
 - **频道**：`controller/autoReply/getScript`
 - **参数**：`{ name: "TOOL_handler_S7F25" }`
+- **返回**：
+```javascript
+{
+  name: "TOOL_handler_S7F25.js",
+  tool: "TOOL",
+  sf: "S7F25",
+  delaySeconds: 0,
+  active: true,
+  code: "function handler(msg, dir) { ... }"
+}
+```
 
 #### 4. updateScript - 更新自动回复脚本
 - **频道**：`controller/autoReply/updateScript`
@@ -764,7 +835,30 @@ npm run build-l
 - **频道**：`controller/autoReply/deleteScript`
 - **参数**：`{ name: "TOOL_handler_S7F25" }`
 
-#### 6. isAutoReplyEnabled - 检查自动回复是否启用
+#### 6. findScript - 查找匹配的脚本
+- **频道**：`controller/autoReply/findScript`
+- **功能**：根据 Engine 名称、SF 名称和启用状态查找脚本
+- **参数**：
+```javascript
+{
+  tool: "TOOL",
+  sf: "S7F25",
+  active: true
+}
+```
+- **返回**：匹配成功返回脚本详情，失败返回 `null`
+```javascript
+{
+  name: "TOOL_handler_S7F25.js",
+  tool: "TOOL",
+  sf: "S7F25",
+  delaySeconds: 0,
+  active: true,
+  code: "function handler(msg, dir) { ... }"
+}
+```
+
+#### 7. isAutoReplyEnabled - 检查自动回复是否启用
 - **频道**：`controller/autoReply/isEnabled`
 - **功能**：检查自动回复功能是否启用
 - **返回**：`{ enabled: true/false }`
@@ -811,6 +905,9 @@ npm run build-l
    - ❌ 操作失败
    - 📁 文件/目录相关
    - 📝 内容相关
+22. **自动回复优先级**：引擎收到消息后，按 Script > File > Auto 优先级进行回复，Script 优先级最高
+23. **脚本执行**：自动回复脚本通过 `funcExcutor.js` 执行，脚本中可使用 `getMsgByFilePath` 方法读取 SML 文件
+24. **测试脚本**：`test.js` 用于测试 funcExcutor 功能，可验证脚本执行机制是否正常工作
 
 ## 项目信息
 
