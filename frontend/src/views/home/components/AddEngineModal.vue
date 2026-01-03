@@ -25,6 +25,7 @@
                 <a-select v-model="form.type" placeholder="HSMS">
                   <a-option value="HSMS">HSMS</a-option>
                   <a-option value="SECS-I">SECS-I</a-option>
+                  <a-option value="SECS-I-TCP">SECS-I TCP</a-option>
                 </a-select>
               </a-form-item>
             </a-col>

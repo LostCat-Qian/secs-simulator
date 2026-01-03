@@ -63,7 +63,7 @@
             <!-- No Log Panels -->
             <template v-else>
               <div class="empty-logs">
-                <a-empty description="No logs opened" />
+                <a-empty description="No log panel opened" />
               </div>
             </template>
           </div>
@@ -187,16 +187,23 @@ const redistributePanelWidths = () => {
 
 /**
  * Adds a new log panel for a specific engine.
+ * Ensures that each engine has at most one dedicated log panel.
  * @param engine The engine to add a log panel for
  */
 const addLogPanel = (engine: EngineData) => {
+  const existingPanel = logPanels.value.find(panel => panel.engineName === engine.name);
+  if (existingPanel) {
+    Message.warning(`Log panel for "${engine.name}" is already open`);
+    return;
+  }
+
   panelCounter++;
   const newPanel: LogPanelData = {
     id: String(panelCounter),
     title: `${engine.name} Logs`,
     engineId: String(engineList.value.indexOf(engine)),
     engineName: engine.name,
-    width: '0%', // Will be recalculated
+    width: '0%',
     logs: []
   };
   logPanels.value.push(newPanel);
@@ -206,15 +213,48 @@ const addLogPanel = (engine: EngineData) => {
 
 /**
  * Closes a log panel by ID.
+ * When closing a panel bound to a specific engine, also stop that engine.
  * @param panelId The ID of the panel to close
  */
 const closeLogPanel = (panelId: string) => {
-  const index = logPanels.value.findIndex(panel => panel.id === panelId);
-  if (index > -1) {
-    logPanels.value.splice(index, 1);
-    redistributePanelWidths();
-    Message.success('Log panel closed');
+  const panel = logPanels.value.find(p => p.id === panelId);
+  if (!panel) {
+    return;
   }
+
+  const engineName = panel.engineName || '';
+  const isEnginePanel = engineName && engineName !== 'All Engines';
+
+  const removePanel = () => {
+    const index = logPanels.value.findIndex(p => p.id === panelId);
+    if (index > -1) {
+      logPanels.value.splice(index, 1);
+      redistributePanelWidths();
+      Message.success('Log panel closed');
+    }
+  };
+
+  if (!isEnginePanel || !ipc) {
+    removePanel();
+    return;
+  }
+
+  ipc
+    .invoke(ipcApiRoute.engineStop, { name: engineName })
+    .then(() => {
+      engineList.value = engineList.value.map(item => ({
+        ...item,
+        active: item.name === engineName ? false : item.active,
+        status: item.name === engineName ? 'idle' : item.status
+      }));
+      Message.success(`Engine "${engineName}" stopped`);
+      removePanel();
+    })
+    .catch(error => {
+      console.error('Failed to stop engine when closing log panel:', error);
+      Message.error('Failed to stop engine');
+      removePanel();
+    });
 };
 
 /**
@@ -318,11 +358,10 @@ const handleAddEngine = async (formData: any) => {
   }
 };
 
+const selectedEngineFileName = ref<string | null>(null);
+
 const selectEngine = (engine: EngineData) => {
-  engineList.value = engineList.value.map(item => ({
-    ...item,
-    active: item.fileName === engine.fileName
-  }));
+  selectedEngineFileName.value = engine.fileName;
 };
 
 const openEngine = (engine: EngineData) => {
@@ -331,15 +370,28 @@ const openEngine = (engine: EngineData) => {
     Message.error('Cannot start engine');
     return;
   }
+  engineList.value = engineList.value.map(item => ({
+    ...item,
+    status: item.fileName === engine.fileName ? 'connecting' : item.status
+  }));
   addLogPanel(engine);
   ipc
     .invoke(ipcApiRoute.engineStart, {
       config: JSON.parse(JSON.stringify(engine.config || {}))
     })
     .then(() => {
+      engineList.value = engineList.value.map(item => ({
+        ...item,
+        active: item.fileName === engine.fileName ? true : item.active,
+        status: item.fileName === engine.fileName ? 'running' : item.status
+      }));
       Message.success(`Engine "${engine.name}" started`);
     })
     .catch(error => {
+      engineList.value = engineList.value.map(item => ({
+        ...item,
+        status: item.fileName === engine.fileName ? 'idle' : item.status
+      }));
       console.error('Failed to start engine:', error);
       Message.error('Failed to start engine');
     });
@@ -356,6 +408,11 @@ const closeEngine = (engine: EngineData) => {
       name: engine.name
     })
     .then(() => {
+      engineList.value = engineList.value.map(item => ({
+        ...item,
+        active: item.fileName === engine.fileName ? false : item.active,
+        status: item.fileName === engine.fileName ? 'idle' : item.status
+      }));
       Message.success(`Engine "${engine.name}" stopped`);
       const panels = logPanels.value.filter(panel => panel.engineName === engine.name);
       panels.forEach(panel => {
@@ -763,6 +820,7 @@ const loadEngineConfigs = async () => {
         return {
           name,
           active: false,
+          status: 'idle',
           fileName,
           config
         } as EngineData;

@@ -71,7 +71,7 @@ const isEditMode = computed(() => !!props.initialData?.handlerSf); // Heuristic 
 const editorOptions = {
   automaticLayout: true,
   minimap: { enabled: true },
-  fontSize: 14,
+  fontSize: 16,
   lineNumbers: 'on',
   scrollBeyondLastLine: false,
   wordWrap: 'on'

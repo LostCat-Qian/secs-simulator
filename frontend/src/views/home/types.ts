@@ -20,6 +20,7 @@ export interface EngineData {
   active: boolean;
   fileName: string;
   config: Record<string, any>;
+  status?: 'idle' | 'connecting' | 'running';
 }
 
 export interface AutoReplyFormData {

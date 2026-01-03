@@ -11,16 +11,25 @@
 
     <!-- Engine List -->
     <div class="list-container">
-      <div v-for="(item, index) in engines" :key="index" :class="['engine-item', { active: item.active }]"
-        @click="$emit('select', item)">
+      <div v-for="(item, index) in engines" :key="index" :class="[
+        'engine-item',
+        {
+          active: item.status === 'running',
+          waiting: item.status === 'connecting'
+        }
+      ]" @click="$emit('select', item)">
         <div class="engine-icon">
           <icon-folder />
         </div>
         <div class="engine-info">
           <div class="engine-name" :title="item.name">{{ item.name }}</div>
-          <div v-if="item.active" class="engine-status">
-            <span class="status-dot"></span>
-            <span class="status-text">ACTIVE</span>
+          <div v-if="item.status === 'running' || item.status === 'connecting'" class="engine-status">
+            <span class="status-dot" :class="{
+              waiting: item.status === 'connecting',
+              active: item.status === 'running'
+            }"></span>
+            <span v-if="item.status === 'running'" class="status-text active">ACTIVE</span>
+            <span v-else-if="item.status === 'connecting'" class="status-text waiting">Waiting connect</span>
           </div>
         </div>
 
@@ -135,6 +144,15 @@ const handleMenuSelect = (value: string | number | Record<string, any>, item: En
   }
 
   &.active {
+    background-color: rgba(var(--success-6), 0.1);
+    border: 1px solid rgba(var(--success-6), 0.3);
+
+    .engine-icon {
+      color: rgb(var(--success-6));
+    }
+  }
+
+  &.waiting {
     background-color: rgba(var(--primary-6), 0.1);
     border: 1px solid rgba(var(--primary-6), 0.3);
 
@@ -173,13 +191,27 @@ const handleMenuSelect = (value: string | number | Record<string, any>, item: En
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background-color: #00b42a;
       margin-right: 6px;
+    }
+
+    .status-dot.active {
+      background-color: #00b42a;
+    }
+
+    .status-dot.waiting {
+      background-color: rgb(var(--primary-6));
     }
 
     .status-text {
       font-size: 12px;
+    }
+
+    .status-text.active {
       color: #00b42a;
+    }
+
+    .status-text.waiting {
+      color: rgb(var(--primary-6));
     }
   }
 }
