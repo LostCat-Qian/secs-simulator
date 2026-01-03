@@ -64,6 +64,50 @@ class SmlFileService {
   }
 
   /**
+   * 获取 SML 目录下所有文件的相对路径（铺平）
+   * @returns {Array} 文件相对路径数组
+   */
+  async getAllFilePaths() {
+    try {
+      const smlPath = path.join(getBaseDir(), 'sml')
+      logger.info('🔍 [getAllFilePaths] Scanning SML directory:', smlPath)
+
+      const files = await this.collectAllFiles(smlPath, '')
+      logger.info('✅ [getAllFilePaths] Successfully collected files, total:', files.length)
+      logger.debug('📁 [getAllFilePaths] File paths:', files)
+      return files
+    } catch (error) {
+      logger.error('❌ [getAllFilePaths] Failed to get file paths:', error)
+      throw new Error(`获取文件路径失败: ${error.message}`)
+    }
+  }
+
+  /**
+   * 递归收集所有文件路径
+   * @param {String} dirPath 目录路径
+   * @param {String} relativePath 相对路径
+   * @returns {Array} 文件相对路径数组
+   */
+  async collectAllFiles(dirPath, relativePath) {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true })
+    const files = []
+
+    for (const entry of entries) {
+      const fullEntryPath = path.join(dirPath, entry.name)
+      const entryRelativePath = relativePath ? path.join(relativePath, entry.name) : entry.name
+
+      if (entry.isDirectory()) {
+        const subFiles = await this.collectAllFiles(fullEntryPath, entryRelativePath)
+        files.push(...subFiles)
+      } else {
+        files.push(entryRelativePath)
+      }
+    }
+
+    return files
+  }
+
+  /**
    * 获取 SML 文件内容
    * @param {Object} args 参数对象
    * @param {String} args.filePath 文件相对路径

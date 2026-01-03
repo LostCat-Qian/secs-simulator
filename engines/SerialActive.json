@@ -1,0 +1,22 @@
+{
+  "type": "SECS-I",
+  "name": "SerialActive",
+  "deviceId": 1,
+  "path": "COM5",
+  "baudRate": 9600,
+  "master": false,
+  "ip": "127.0.0.1",
+  "port": 5001,
+  "simulate": "Host",
+  "timeoutT1": 10,
+  "timeoutT2": 45,
+  "timeoutT3": 180,
+  "timeoutT4": 120,
+  "timeoutT5": 10,
+  "timeoutT6": 10,
+  "timeoutT7": 10,
+  "timeoutT8": 10,
+  "dataBit": 8,
+  "stopBit": 1,
+  "parity": null
+}

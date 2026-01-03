@@ -9,3 +9,4 @@ data/
 public/electron/
 public/dist/
 pnpm-lock.yaml
+secs-logs/

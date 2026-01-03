@@ -7,12 +7,15 @@ const { getBaseDir } = require('ee-core/ps')
 const {
   HsmsActiveCommunicator,
   HsmsPassiveCommunicator,
-  Secs1Communicator,
+  Secs1SerialCommunicator,
   Secs1OnTcpIpActiveCommunicator,
   Secs1OnTcpIpPassiveCommunicator,
-  L
+  L,
+  SmlParser
 } = require('secs4js')
 const { SerialPort } = require('serialport')
+const { smlFileService } = require('./smlFile')
+const { autoReplyService } = require('./autoReply')
 
 const engineInstances = new Map()
 
@@ -145,12 +148,14 @@ class EngineService {
           }
           break
         case 'SECS-I':
-          instance = new Secs1Communicator({
+          instance = new Secs1SerialCommunicator({
             name: config.name,
-            ip: config.ip || '127.0.0.1',
-            port: config.port,
+            path: config.path || '',
+            baudRate: config.baudRate || 9600,
             deviceId: config.deviceId,
-            isEquip: config.isEquip === 'Equipment' ? true : false
+            isEquip: config.simulate === 'Equipment',
+            log: logConfig,
+            ...timeoutConfig
           })
           break
         case 'SECS-I-TCP':
@@ -240,19 +245,52 @@ class EngineService {
             })
           }
 
-          if (msg.func % 2 !== 0) {
-            const replySml = L()
-            await instance.reply(msg, msg.stream, msg.func + 1, replySml)
-            const replyMsg = `Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
-              msg.systemBytes
-            }, Data=\n${replySml.toSml()}`
+          console.log('comming msg: ', msg.body[0].value)
+
+          // 查询当前的 sml 目录下是否有可用的回复文件
+          const filePaths = await smlFileService.getAllFilePaths()
+          const willReplySF = `S${msg.stream}F${msg.func + 1}`
+          const willReplyMsgList = filePaths
+            .map((filePath) => {
+              if (filePath.includes(willReplySF)) {
+                return filePath
+              }
+            })
+            .filter((item) => item !== null && item !== '' && item !== undefined)
+          console.log(JSON.stringify(willReplyMsgList))
+          // 如果存在回复文件，则使用回复文件的内容
+          if (willReplyMsgList.length !== 0) {
+            const willReplySml = await smlFileService.getFileContent({ filePath: willReplyMsgList[0] })
+            const willReplyMsg = SmlParser.parse(willReplySml)
+            await instance.reply(msg, willReplyMsg.stream, willReplyMsg.func, willReplyMsg.body)
             if (event && event.sender) {
               event.sender.send('engine/log', {
                 name: key,
                 level: 'INFO',
                 type: 'message',
-                message: replyMsg
+                message: `[Action File Reply] Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
+                  msg.systemBytes
+                }, Data=\n${willReplyMsg.toSml()}`
               })
+            }
+          } else if (
+            autoReplyService.findScript({ tool: config.type, sf: `S${msg.stream}F${msg.func}`, active: true })
+          ) {
+          } else {
+            // 如果不存在回复文件，则根据是否为奇数函数号来判断是否需要回复
+            if (msg.func % 2 !== 0) {
+              const replySml = L()
+              await instance.reply(msg, msg.stream, msg.func + 1, replySml)
+              if (event && event.sender) {
+                event.sender.send('engine/log', {
+                  name: key,
+                  level: 'INFO',
+                  type: 'message',
+                  message: `[Action Auto Reply] Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
+                    msg.systemBytes
+                  }, Data=\nS${msg.stream}F${msg.func + 1}\n${replySml.toSml()}.`
+                })
+              }
             }
           }
         })()

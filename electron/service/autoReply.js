@@ -6,17 +6,6 @@ const fs = require('fs').promises
 const { getBaseDir } = require('ee-core/ps')
 
 class AutoReplyService {
-  async test(args) {
-    let obj = {
-      status: 'ok',
-      params: args
-    }
-
-    logger.info('AutoReplyService obj:', obj)
-
-    return obj
-  }
-
   async addScript(args) {
     try {
       const { tool, handlerSf, active, code } = args
@@ -222,6 +211,43 @@ class AutoReplyService {
     } catch (error) {
       logger.error('AutoReplyService deleteScript failed:', error)
       throw new Error(`删除脚本失败: ${error.message}`)
+    }
+  }
+
+  /**
+   * 根据 Engine 名称、SF 名称和启用状态查找脚本
+   * @param {Object} args 参数对象
+   * @param {String} args.tool Engine 名称
+   * @param {String} args.sf SF 名称 (如 S7F25)
+   * @param {Boolean} args.active 是否启用
+   * @returns {Object|null} 匹配的脚本信息，未找到返回 null
+   */
+  async findScript(args) {
+    try {
+      const { tool, sf, active } = args
+      if (!tool || !sf || active === undefined) {
+        throw new Error('参数不完整，需要提供 tool、sf 和 active')
+      }
+
+      const scripts = await this.listScripts()
+      const safeTool = String(tool).replace(/[^a-zA-Z0-9_-]/g, '_')
+      const safeSf = String(sf).replace(/[^a-zA-Z0-9_-]/g, '_')
+
+      const matched = scripts.find(s => {
+        return s.tool === safeTool && s.sf === safeSf && s.active === Boolean(active)
+      })
+
+      if (!matched) {
+        logger.info('AutoReplyService findScript: 未找到匹配的脚本', { tool: safeTool, sf: safeSf, active })
+        return null
+      }
+
+      const script = await this.getScript({ name: matched.name })
+      logger.info('AutoReplyService findScript: 找到匹配脚本', { name: matched.name })
+      return script
+    } catch (error) {
+      logger.error('AutoReplyService findScript failed:', error)
+      throw new Error(`查找脚本失败: ${error.message}`)
     }
   }
 
