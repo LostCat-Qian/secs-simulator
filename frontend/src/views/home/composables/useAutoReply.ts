@@ -12,12 +12,14 @@ export function useAutoReply() {
   const tableData = ref<AutoReplyItem[]>([])
   const defaultAutoReplyScript = `/**
   * Auto reply handler
-  * @param {msg} args: stream, func, wBit, body ( body[0][1].value )
-  * @param {string[]} args: sml files directory
+  * use getMsgByFilePath(filePath) to get sml message object
+  * @param {msg} args: stream, func, wBit, body(example: body[0][1].value)
+  * @param {string[]} args: sml files directory paths
+  * @returns {string} sml file path
   */
-function handler(msg, dir) {
-  if (msg.stream === 7 && msg.func === 25 && msg.body[0].value === 'chamber-A.rcp') {
-    return dir.find((file) => file.includes('chamber-A.rcp'))
+async function handler(commingMsg, filePaths) {
+  if (commingMsg.stream === 7 && commingMsg.func === 25 && commingMsg.body[0].value === 'chamber-A.rcp') {
+    return filePaths.find((file) => file.includes('chamber-A.rcp'))
   }
 }`
 

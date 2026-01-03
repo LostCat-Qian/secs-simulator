@@ -258,25 +258,36 @@ class EngineService {
 
             if (script && script.code) {
               // 执行脚本，传入 msg 和 filePaths
-              const funcExcutor = require('./funcExcutor')
-              console.log(script.code)
-              const smlPath = funcExcutor.execFunction(script.code, [msg, filePaths])
+              try {
+                const funcExcutor = require('./funcExcutor')
+                const smlPath = funcExcutor.execFunction(script.code, [msg, filePaths])
 
-              if (smlPath && typeof smlPath === 'string') {
-                const replySmlContent = await smlFileService.getFileContent({ filePath: smlPath })
-                const replyMsg = SmlParser.parse(replySmlContent)
-                await instance.reply(msg, replyMsg.stream, replyMsg.func, replyMsg.body)
+                if (smlPath && typeof smlPath === 'string') {
+                  const replySmlContent = await smlFileService.getFileContent({ filePath: smlPath })
+                  const replyMsg = SmlParser.parse(replySmlContent)
+                  await instance.reply(msg, replyMsg.stream, replyMsg.func, replyMsg.body)
+                  if (event && event.sender) {
+                    event.sender.send('engine/log', {
+                      name: key,
+                      level: 'INFO',
+                      type: 'message',
+                      message: `[Action Script Reply] Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
+                        msg.systemBytes
+                      }, Data=\n${replyMsg.toSml()}`
+                    })
+                  }
+                  return
+                }
+              } catch (scriptError) {
+                logger.error(`❌ [${key}] Script execution failed:`, scriptError)
                 if (event && event.sender) {
                   event.sender.send('engine/log', {
                     name: key,
-                    level: 'INFO',
-                    type: 'message',
-                    message: `[Action Script Reply] Reply Message: DeviceId=${msg.deviceId}, SystemBytes=${
-                      msg.systemBytes
-                    }, Data=\n${replyMsg.toSml()}`
+                    level: 'ERROR',
+                    type: 'error',
+                    message: `Script execution failed: ${scriptError.message}`
                   })
                 }
-                return
               }
             }
 
@@ -492,10 +503,11 @@ class EngineService {
 }
 
 // 暴露给auto-reply脚本使用的方法，通过文件路径获取SECS SML消息对象
-globalThis['getMsgByFilePath'] = (filePath) => {
-  const smlFileContent = smlFileService.getFileContent(filePath)
-  const secsMsg = SmlParser.parse(smlFileContent)
-  return secsMsg
+globalThis['getMsgByFilePath'] = async (filePath) => {
+  const fullPath = path.join(getBaseDir(), 'sml', filePath)
+  const smlFileContent = await fs.readFile(fullPath, 'utf-8')
+  const secsMsgObj = SmlParser.parse(smlFileContent)
+  return secsMsgObj
 }
 
 EngineService.toString = () => '[class EngineService]'
