@@ -19,3 +19,27 @@
 >. systemBytes=1938 hex=00000011000a810d00000000079201022100210130
 2026-01-03 13:48:05.306 INFO  Sent | sml=S1F14 
 <L [0] >. systemBytes=1938 hex=0000000c000a010e0000000007920100
+2026-01-03 13:48:33.119 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 13:48:33.121 INFO  HSMS Connected -> Selected | state
+2026-01-03 13:48:39.059 INFO  Received | sml=S1F13 W
+<L [2] 
+  <B [0] >
+  <B [1] 0x30>
+>. systemBytes=1939 hex=00000011000a810d00000000079301022100210130
+2026-01-03 13:48:39.059 INFO  Sent | sml=S1F14 
+<L [0] >. systemBytes=1939 hex=0000000c000a010e0000000007930100
+2026-01-03 13:48:50.030 INFO  Received | sml=S1F1 W. systemBytes=1940 hex=0000000a000a8101000000000794
+2026-01-03 13:48:50.030 INFO  Sent | sml=S1F2 
+<L [0] >. systemBytes=1940 hex=0000000c000a01020000000007940100
+2026-01-03 13:48:54.524 INFO  Received | sml=S2F41 W
+<L [2] 
+  <A [8] "PP-START">
+  <L [0] >
+>. systemBytes=1941 hex=00000018000a82290000000007950102410850502d53544152540100
+2026-01-03 13:48:54.524 INFO  Sent | sml=S2F42 
+<L [0] >. systemBytes=1941 hex=0000000c000a022a0000000007950100
+2026-01-03 13:53:56.997 INFO  HSMS Selected -> NotConnected | state
+2026-01-03 13:56:15.991 WARN  HSMS | connection failed; scheduling reconnect
+2026-01-03 13:56:25.999 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 13:56:26.004 INFO  HSMS Connected -> Selected | state
+2026-01-03 13:56:42.127 INFO  HSMS Selected -> NotConnected | state

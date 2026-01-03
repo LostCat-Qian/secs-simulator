@@ -10,3 +10,6 @@
 2026-01-03 13:44:06.133 INFO  HSMS NotConnected -> Connected | state
 2026-01-03 13:44:06.133 INFO  HSMS Connected -> Selected | state
 2026-01-03 13:44:21.404 INFO  HSMS Selected -> NotConnected | state
+2026-01-03 13:56:26.003 INFO  HSMS NotConnected -> Connected | state
+2026-01-03 13:56:26.003 INFO  HSMS Connected -> Selected | state
+2026-01-03 13:56:42.126 INFO  HSMS Selected -> NotConnected | state

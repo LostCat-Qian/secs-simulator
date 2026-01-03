@@ -13,3 +13,26 @@ S1F13 W
 2026-01-03 13:48:05.306 Sent DeviceID: 10 SystemBytes: 1938 
 S1F14 
 <L [0] >.
+2026-01-03 13:48:39.059 Received DeviceID: 10 SystemBytes: 1939 
+S1F13 W
+<L [2] 
+  <B [0] >
+  <B [1] 0x30>
+>.
+2026-01-03 13:48:39.059 Sent DeviceID: 10 SystemBytes: 1939 
+S1F14 
+<L [0] >.
+2026-01-03 13:48:50.030 Received DeviceID: 10 SystemBytes: 1940 
+S1F1 W.
+2026-01-03 13:48:50.030 Sent DeviceID: 10 SystemBytes: 1940 
+S1F2 
+<L [0] >.
+2026-01-03 13:48:54.524 Received DeviceID: 10 SystemBytes: 1941 
+S2F41 W
+<L [2] 
+  <A [8] "PP-START">
+  <L [0] >
+>.
+2026-01-03 13:48:54.524 Sent DeviceID: 10 SystemBytes: 1941 
+S2F42 
+<L [0] >.
