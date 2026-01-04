@@ -71,6 +71,22 @@ class EngineController {
     }
   }
 
+  async sendMessageFromFile(args, event) {
+    try {
+      logger.info(
+        '🎯 [Controller] sendMessageFromFile called with engine name and file:',
+        args?.name,
+        args?.filePath
+      )
+      const result = await engineService.sendMessageFromFile(args, event)
+      logger.info('✅ [Controller] sendMessageFromFile success')
+      return result
+    } catch (error) {
+      logger.error('❌ [Controller] sendMessageFromFile failed:', error)
+      throw error
+    }
+  }
+
   /**
    * 停止引擎连接
    */

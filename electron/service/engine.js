@@ -358,6 +358,78 @@ class EngineService {
     }
   }
 
+  async sendMessageFromFile(args, event) {
+    const { name, filePath, waitReply } = args || {}
+    if (!name || !filePath) {
+      logger.error('❌ [sendMessageFromFile] Name or filePath is empty')
+      throw new Error('发送消息需要引擎名称和文件路径')
+    }
+
+    const instance = engineInstances.get(name)
+    if (!instance) {
+      logger.error('❌ [sendMessageFromFile] Engine instance not found:', name)
+      throw new Error(`引擎未启动: ${name}`)
+    }
+
+    if (typeof instance.send !== 'function') {
+      logger.error('❌ [sendMessageFromFile] Engine instance does not support send:', name)
+      throw new Error('当前引擎实例不支持发送消息')
+    }
+
+    try {
+      const smlContent = await smlFileService.getFileContent({ filePath })
+      const msg = SmlParser.parse(smlContent)
+
+      const expectReply = typeof waitReply === 'boolean' ? waitReply : msg.func % 2 !== 0
+
+      if (event && event.sender) {
+        event.sender.send('engine/log', {
+          name,
+          level: 'INFO',
+          type: 'message',
+          message: `[Active Send] Send Message: S${msg.stream}F${msg.func}\n${msg.toSml()}`
+        })
+      }
+
+      const reply = await instance.send(msg.stream, msg.func, expectReply, msg.body)
+
+      if (reply && event && event.sender) {
+        event.sender.send('engine/log', {
+          name,
+          level: 'INFO',
+          type: 'message',
+          message: `[Active Send Reply] Reply Message: S${reply.stream}F${reply.func}\n${reply.toSml()}`
+        })
+      }
+
+      logger.info(
+        `✅ [sendMessageFromFile] Message sent from file "${filePath}" by engine "${name}", expectReply=${expectReply}`
+      )
+
+      return {
+        success: true,
+        name,
+        filePath,
+        expectReply,
+        hasReply: !!reply,
+        replySml: reply ? reply.toSml() : null
+      }
+    } catch (error) {
+      logger.error('❌ [sendMessageFromFile] Failed to send message from file:', error)
+
+      if (event && event.sender) {
+        event.sender.send('engine/log', {
+          name,
+          level: 'ERROR',
+          type: 'error',
+          message: `[Active Send Error] Send message from file "${filePath}" failed: ${error.message}`
+        })
+      }
+
+      throw new Error(`发送消息失败: ${error.message}`)
+    }
+  }
+
   async stop(args, event) {
     const { name } = args || {}
     if (!name) {
@@ -371,39 +443,52 @@ class EngineService {
       return { success: true, message: `Engine stopped`, name }
     }
 
-    try {
-      if (typeof instance.removeAllListeners === 'function') {
-        instance.removeAllListeners('connected')
-        instance.removeAllListeners('disconnected')
-        instance.removeAllListeners('selected')
-        instance.removeAllListeners('message')
-      }
+    let closeError = null
 
-      if (typeof instance.close === 'function') {
+    if (typeof instance.removeAllListeners === 'function') {
+      instance.removeAllListeners('connected')
+      instance.removeAllListeners('disconnected')
+      instance.removeAllListeners('selected')
+      instance.removeAllListeners('message')
+    }
+
+    if (typeof instance.close === 'function') {
+      try {
         await instance.close()
+      } catch (error) {
+        const isServerNotRunningError =
+          error && (error.code === 'ERR_SERVER_NOT_RUNNING' || /Server is not running/i.test(error.message || ''))
+
+        if (isServerNotRunningError) {
+          logger.warn('⚠️ [stop] Instance already stopped or server not running, treating as success')
+        } else {
+          logger.error('❌ [stop] Failed to stop engine:', error)
+          closeError = error
+        }
       }
+    }
 
-      engineInstances.delete(name)
+    engineInstances.delete(name)
 
-      logger.info(`✅ [stop] Engine stopped: ${name}`)
+    logger.info(`✅ [stop] Engine stopped: ${name}`)
 
-      if (event && event.sender) {
-        event.sender.send('engine/log', {
-          name,
-          level: 'INFO',
-          type: 'stopped',
-          message: `Engine stopped`
-        })
-      }
+    if (event && event.sender) {
+      event.sender.send('engine/log', {
+        name,
+        level: 'INFO',
+        type: 'stopped',
+        message: `Engine stopped`
+      })
+    }
 
-      return {
-        success: true,
-        message: `Engine stopped successfully`,
-        name
-      }
-    } catch (error) {
-      logger.error('❌ [stop] Failed to stop engine:', error)
-      throw new Error(`Engine stop failed: ${error.message}`)
+    if (closeError) {
+      throw new Error(`Engine stop failed: ${closeError.message}`)
+    }
+
+    return {
+      success: true,
+      message: `Engine stopped successfully`,
+      name
     }
   }
   /**
@@ -504,9 +589,11 @@ class EngineService {
 
 // 暴露给auto-reply脚本使用的方法，通过文件路径获取SECS SML消息对象
 globalThis['getMsgByFilePath'] = async (filePath) => {
+  console.log('=====================from script: ', filePath)
   const fullPath = path.join(getBaseDir(), 'sml', filePath)
   const smlFileContent = await fs.readFile(fullPath, 'utf-8')
   const secsMsgObj = SmlParser.parse(smlFileContent)
+  console.log('=====================secsMsgObj: ', secsMsgObj.toSml())
   return secsMsgObj
 }
 

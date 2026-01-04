@@ -6,7 +6,9 @@
  * @returns {string} sml file path
  */
 async function handler(commingMsg, filePaths) {
-  const msg = await getMsgByFilePath('Communication/S1F1.txt')
-  console.log(msg.stream, msg.func, msg.toSml())
-  return 'Communication/S1F1.txt'
+  const msg = await getMsgByFilePath(filePaths[1])
+  console.log('=================', msg.stream, msg.func, msg.toSml())
+  if (msg.body[0] === 'MDLN-A') {
+    return filePaths[1]
+  }
 }

@@ -15,6 +15,7 @@ interface IpcApiRoute {
   // engine
   engineStart: string
   engineStop: string
+  sendMessageFromFile: string
   getEngineConfig: string
   deleteEngine: string
   saveEngineConfig: string
@@ -41,6 +42,7 @@ const ipcApiRoute: IpcApiRoute = {
   // engine
   engineStart: 'controller/engine/start', // start engine
   engineStop: 'controller/engine/stop', // stop engine
+  sendMessageFromFile: 'controller/engine/sendMessageFromFile', // send secs message from sml file
   getEngineConfig: 'controller/engine/getConfig', // get engine json config
   deleteEngine: 'controller/engine/delete', // delete engine by name
   saveEngineConfig: 'controller/engine/saveConfig', // save engine json config

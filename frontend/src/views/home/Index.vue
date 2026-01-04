@@ -88,6 +88,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { TreeNodeData, Message } from '@arco-design/web-vue';
 import { ipc } from '@/utils/ipcRenderer';
+import { ipcApiRoute } from '@/api';
 
 // Components
 import EngineList from './components/EngineList.vue';
@@ -318,9 +319,39 @@ const confirmAddSubFolder = async (folderName: string) => {
   }
 };
 
-const handleSendFileTo = (payload: { file: TreeNodeData, engineName: string }) => {
-  console.log(`Sending ${payload.file.title} to ${payload.engineName}`);
-  Message.success(`Sent ${payload.file.title} to ${payload.engineName}`);
+const handleSendFileTo = async (payload: { file: TreeNodeData, engineName: string }) => {
+  const target = payload.file as SmlTreeNode;
+  const filePath = String(target.key || '');
+
+  if (!ipc) {
+    Message.error('Cannot send message');
+    return;
+  }
+
+  if (!filePath) {
+    Message.error('Invalid file path');
+    return;
+  }
+
+  try {
+    const result: any = await ipc.invoke(ipcApiRoute.sendMessageFromFile, {
+      name: payload.engineName,
+      filePath
+    });
+
+    if (result && result.hasReply && result.replySml) {
+      Message.success(`Sent ${target.title} to ${payload.engineName} (reply received)`);
+    } else {
+      Message.success(`Sent ${target.title} to ${payload.engineName}`);
+    }
+  } catch (error: any) {
+    console.error('Failed to send file to engine:', error);
+    const msg =
+      error && typeof error.message === 'string'
+        ? error.message
+        : 'Failed to send file to engine';
+    Message.error(msg);
+  }
 };
 
 // #endregion
