@@ -5,7 +5,7 @@
  */
 module.exports = () => {
   return {
-    openDevTools: true,
+    openDevTools: false,
     jobs: {
       messageLog: false
     }
