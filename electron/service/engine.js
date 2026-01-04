@@ -257,10 +257,9 @@ class EngineService {
             })
 
             if (script && script.code) {
-              // 执行脚本，传入 msg 和 filePaths
               try {
                 const funcExcutor = require('./funcExcutor')
-                const smlPath = funcExcutor.execFunction(script.code, [msg, filePaths])
+                const smlPath = await funcExcutor.execFunction(script.code, [msg, filePaths])
 
                 if (smlPath && typeof smlPath === 'string') {
                   const replySmlContent = await smlFileService.getFileContent({ filePath: smlPath })
@@ -589,11 +588,11 @@ class EngineService {
 
 // 暴露给auto-reply脚本使用的方法，通过文件路径获取SECS SML消息对象
 globalThis['getMsgByFilePath'] = async (filePath) => {
-  console.log('=====================from script: ', filePath)
+  logger.info('[getMsgByFilePath] from script: ', filePath)
   const fullPath = path.join(getBaseDir(), 'sml', filePath)
   const smlFileContent = await fs.readFile(fullPath, 'utf-8')
   const secsMsgObj = SmlParser.parse(smlFileContent)
-  console.log('=====================secsMsgObj: ', secsMsgObj.toSml())
+  logger.info('[getMsgByFilePath] secsMsgObj SML: ', secsMsgObj.toSml())
   return secsMsgObj
 }
 

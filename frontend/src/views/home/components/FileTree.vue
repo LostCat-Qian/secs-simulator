@@ -42,14 +42,6 @@
 
               <template #content>
                 <template v-if="!node.isFolder">
-                  <a-doption value="edit">
-                    <template #icon><icon-edit /></template>
-                    Edit
-                  </a-doption>
-                  <a-doption value="delete">
-                    <template #icon><icon-delete /></template>
-                    Delete
-                  </a-doption>
                   <a-dsubmenu value="sendto">
                     <template #icon><icon-export /></template>
                     Send To
@@ -64,6 +56,14 @@
                       </a-doption>
                     </template>
                   </a-dsubmenu>
+                  <a-doption value="edit">
+                    <template #icon><icon-edit /></template>
+                    Edit
+                  </a-doption>
+                  <a-doption value="delete">
+                    <template #icon><icon-delete /></template>
+                    Delete
+                  </a-doption>
                 </template>
                 <template v-else>
                   <a-doption value="addFile">
