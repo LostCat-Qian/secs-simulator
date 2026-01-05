@@ -208,7 +208,7 @@ export function useEngine() {
    * @param engineName The name of the engine to stop
    * @param fileName The file name of the engine (optional, used for state update matching)
    */
-  const stopEngine = async (engineName: string, fileName?: string) => {
+  const stopEngine = async (engineName: string, _?: string) => {
     if (!ipc) {
       Message.error('Cannot stop engine')
       return
