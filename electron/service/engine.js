@@ -16,6 +16,7 @@ const {
 const { SerialPort } = require('serialport')
 const { smlFileService } = require('./smlFile')
 const { autoReplyService } = require('./autoReply')
+const { getExtraResourceDir } = require('./pathHelper')
 
 const engineInstances = new Map()
 
@@ -40,7 +41,7 @@ class EngineService {
 
   async getConfig() {
     try {
-      const enginesPath = path.join(getBaseDir(), 'engines')
+      const enginesPath = getExtraResourceDir('engines')
       logger.info('🔍 [getConfig] Reading engines directory:', enginesPath)
 
       // 确保目录存在
@@ -589,7 +590,8 @@ class EngineService {
 // 暴露给auto-reply脚本使用的方法，通过文件路径获取SECS SML消息对象
 globalThis['getMsgByFilePath'] = async (filePath) => {
   logger.info('[getMsgByFilePath] from script: ', filePath)
-  const fullPath = path.join(getBaseDir(), 'sml', filePath)
+  const smlDir = getExtraResourceDir('sml')
+  const fullPath = path.join(smlDir, filePath)
   const smlFileContent = await fs.readFile(fullPath, 'utf-8')
   const secsMsgObj = SmlParser.parse(smlFileContent)
   logger.info('[getMsgByFilePath] secsMsgObj SML: ', secsMsgObj.toSml())

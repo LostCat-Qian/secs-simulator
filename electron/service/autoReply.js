@@ -4,6 +4,7 @@ const { logger } = require('ee-core/log')
 const path = require('path')
 const fs = require('fs').promises
 const { getBaseDir } = require('ee-core/ps')
+const { getExtraResourceDir } = require('./pathHelper')
 
 class AutoReplyService {
   async addScript(args) {
@@ -25,7 +26,7 @@ class AutoReplyService {
       const activePart = active ? 'true' : 'false'
 
       const fileName = `${safeTool}-handler-${safeSf}-delay${delayPart}-${activePart}.js`
-      const scriptsDir = path.join(getBaseDir(), 'auto-reply-scripts')
+      const scriptsDir = getExtraResourceDir('auto-reply-scripts')
       const fullPath = path.join(scriptsDir, fileName)
 
       try {
@@ -62,7 +63,7 @@ class AutoReplyService {
         throw new Error('脚本名称不能为空')
       }
 
-      const scriptsDir = path.join(getBaseDir(), 'auto-reply-scripts')
+      const scriptsDir = getExtraResourceDir('auto-reply-scripts')
       const fullPath = path.join(scriptsDir, String(name))
 
       const content = await fs.readFile(fullPath, 'utf-8')
@@ -93,7 +94,7 @@ class AutoReplyService {
 
   async listScripts() {
     try {
-      const scriptsDir = path.join(getBaseDir(), 'auto-reply-scripts')
+      const scriptsDir = getExtraResourceDir('auto-reply-scripts')
       let files = []
 
       try {
@@ -155,7 +156,7 @@ class AutoReplyService {
       const activePart = active ? 'true' : 'false'
 
       const newFileName = `${safeTool}-handler-${safeSf}-delay${delayPart}-${activePart}.js`
-      const scriptsDir = path.join(getBaseDir(), 'auto-reply-scripts')
+      const scriptsDir = getExtraResourceDir('auto-reply-scripts')
       const originalPath = path.join(scriptsDir, String(originalName))
       const newPath = path.join(scriptsDir, newFileName)
 
@@ -202,7 +203,7 @@ class AutoReplyService {
       if (!name) {
         throw new Error('脚本名称不能为空')
       }
-      const scriptsDir = path.join(getBaseDir(), 'auto-reply-scripts')
+      const scriptsDir = getExtraResourceDir('auto-reply-scripts')
       const fullPath = path.join(scriptsDir, String(name))
 
       await fs.unlink(fullPath)

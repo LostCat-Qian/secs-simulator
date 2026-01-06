@@ -4,6 +4,7 @@ const path = require('path')
 const fs = require('fs').promises
 const { logger } = require('ee-core/log')
 const { getBaseDir } = require('ee-core/ps')
+const { getExtraResourceDir } = require('./pathHelper')
 
 /**
  * SML 文件管理服务
@@ -16,7 +17,7 @@ class SmlFileService {
    */
   async getFileTree() {
     try {
-      const smlPath = path.join(getBaseDir(), 'sml')
+      const smlPath = getExtraResourceDir('sml')
       logger.info('🔍 [getFileTree] Reading SML directory:', smlPath)
 
       const result = await this.buildFileTree(smlPath, '')
@@ -69,7 +70,7 @@ class SmlFileService {
    */
   async getAllFilePaths() {
     try {
-      const smlPath = path.join(getBaseDir(), 'sml')
+      const smlPath = getExtraResourceDir('sml')
       logger.info('🔍 [getAllFilePaths] Scanning SML directory:', smlPath)
 
       const files = await this.collectAllFiles(smlPath, '')
@@ -121,7 +122,8 @@ class SmlFileService {
         throw new Error('文件路径不能为空')
       }
 
-      const fullPath = path.join(getBaseDir(), 'sml', filePath)
+      const smlDir = getExtraResourceDir('sml')
+      const fullPath = path.join(smlDir, filePath)
       logger.info('📖 [getFileContent] Reading file:', fullPath)
 
       const content = await fs.readFile(fullPath, 'utf-8')
@@ -152,7 +154,8 @@ class SmlFileService {
         throw new Error('文件内容不能为空')
       }
 
-      const fullPath = path.join(getBaseDir(), 'sml', filePath)
+      const smlDir = getExtraResourceDir('sml')
+      const fullPath = path.join(smlDir, filePath)
       logger.info('💾 [saveSmlFile] Saving file:', fullPath)
       logger.debug('📝 [saveSmlFile] Content length:', content.length)
 
@@ -180,7 +183,8 @@ class SmlFileService {
         throw new Error('文件路径不能为空')
       }
 
-      const fullPath = path.join(getBaseDir(), 'sml', filePath)
+      const smlDir = getExtraResourceDir('sml')
+      const fullPath = path.join(smlDir, filePath)
       logger.info('➕ [createSmlFile] Creating file:', fullPath)
 
       // 检查文件是否已存在
@@ -217,7 +221,8 @@ class SmlFileService {
         throw new Error('目录路径不能为空')
       }
 
-      const fullPath = path.join(getBaseDir(), 'sml', folderPath)
+      const smlDir = getExtraResourceDir('sml')
+      const fullPath = path.join(smlDir, folderPath)
       logger.info('📁 [createSmlFolder] Creating folder:', fullPath)
 
       try {
@@ -257,7 +262,8 @@ class SmlFileService {
         throw new Error('目录路径不能为空')
       }
 
-      const fullPath = path.join(getBaseDir(), 'sml', folderPath)
+      const smlDir = getExtraResourceDir('sml')
+      const fullPath = path.join(smlDir, folderPath)
       logger.info('🗑️ [deleteSmlFolder] Deleting folder:', fullPath)
 
       // 检查目录是否存在
@@ -293,7 +299,8 @@ class SmlFileService {
         throw new Error('文件路径不能为空')
       }
 
-      const fullPath = path.join(getBaseDir(), 'sml', filePath)
+      const smlDir = getExtraResourceDir('sml')
+      const fullPath = path.join(smlDir, filePath)
       logger.info('🗑️ [deleteSmlFile] Deleting file:', fullPath)
 
       // 检查文件是否存在
