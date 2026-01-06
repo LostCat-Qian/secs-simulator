@@ -116,7 +116,7 @@ class EngineService {
       const logConfig = {
         enabled: true, // Whether to enable logging
         console: true, // Whether to output logs to console
-        baseDir: `${getBaseDir()}/secs-logs/${config.name}`, // Path for log storage
+        baseDir: path.join(getExtraResourceDir('secs-logs'), config.name), // Path for log storage
         retentionDays: 30, // Number of days to retain logs
         detailLevel: 'trace', // Level for DETAIL logs
         secs2Level: 'info', // Level for SECS-II logs
@@ -512,7 +512,8 @@ class EngineService {
         throw new Error('文件名必须以 .json 结尾')
       }
 
-      const filePath = path.join(getBaseDir(), 'engines', fileName)
+      const enginesPath = getExtraResourceDir('engines')
+      const filePath = path.join(enginesPath, fileName)
       logger.info('🗑️ [delete] Deleting engine config:', filePath)
 
       // 检查文件是否存在
@@ -561,12 +562,12 @@ class EngineService {
 
       // 从 config.name 自动生成文件名
       const fileName = `${config.name}.json`
-      const filePath = path.join(getBaseDir(), 'engines', fileName)
+      const enginesPath = getExtraResourceDir('engines')
+      const filePath = path.join(enginesPath, fileName)
       logger.info('💾 [saveConfig] Saving engine config:', filePath)
       logger.debug('📝 [saveConfig] Engine name:', config.name)
 
       // 确保目录存在
-      const enginesPath = path.dirname(filePath)
       await fs.mkdir(enginesPath, { recursive: true })
 
       // 格式化并保存 JSON
