@@ -1,10 +1,12 @@
 const { ElectronEgg } = require('ee-core')
 const { Lifecycle } = require('./preload/lifecycle')
 const { preload } = require('./preload')
-const { session } = require('electron')
+const { session, Menu } = require('electron')
 
 // new app
 const app = new ElectronEgg()
+
+Menu.setApplicationMenu(null)
 
 // register lifecycle
 const life = new Lifecycle()

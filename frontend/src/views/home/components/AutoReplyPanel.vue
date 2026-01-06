@@ -15,8 +15,8 @@
 
     <!-- Data Table -->
     <div class="table-container">
-      <a-table :data="data" :pagination="false" :bordered="false" size="small" :scroll="{ y: '100%' }"
-        style="height: 100%">
+      <a-table :data="data" column-resizable :pagination="false" :bordered="{ cell: true }" size="small"
+        :scroll="{ y: '100%' }" style="height: 100%">
         <template #columns>
           <a-table-column title="Tool" data-index="tool" :width="100" />
           <a-table-column title="SF Name" data-index="sf" :width="120" />
@@ -30,10 +30,11 @@
           </a-table-column>
           <a-table-column title="Actions" :width="180">
             <template #cell="{ record }">
-              <a-button type="text" size="small" @click="$emit('edit', record)">
+              <a-button type="dashed" status="normal" size="small" @click="$emit('edit', record)">
                 Edit
               </a-button>
-              <a-button type="text" status="danger" size="small" @click="$emit('delete', record)">
+              &nbsp;
+              <a-button type="dashed" status="danger" size="small" @click="$emit('delete', record)">
                 Delete
               </a-button>
             </template>

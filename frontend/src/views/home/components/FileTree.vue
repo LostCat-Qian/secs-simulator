@@ -24,64 +24,107 @@
       <a-tree :data="filteredTreeData" :default-expand-all="true" block-node show-line
         :field-names="{ key: 'key', title: 'title', children: 'children' }">
         <template #title="node">
-          <div class="tree-node-content" @click.stop="handleNodeClick(node)">
-            <!-- Node Title with Highlight -->
-            <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
+          <a-dropdown trigger="contextMenu" alignPoint :popup-max-height="false"
+            @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)">
+            <div class="tree-node-content" @click.stop="handleNodeClick(node)">
+              <!-- Node Title with Highlight -->
+              <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
 
-            <!-- Actions -->
-            <a-dropdown trigger="click"
-              @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)"
-              :popup-max-height="false">
-              <a-button size="mini" class="menu-btn" @mousedown.stop v-if="!node.isFolder">
-                <template #icon><icon-more /></template>
-              </a-button>
-              <!-- Folder Actions -->
-              <a-button size="mini" class="menu-btn" @mousedown.stop v-else>
-                <template #icon><icon-more /></template>
-              </a-button>
+              <!-- Actions -->
+              <a-dropdown trigger="click"
+                @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)"
+                :popup-max-height="false">
+                <a-button size="mini" class="menu-btn" @mousedown.stop v-if="!node.isFolder">
+                  <template #icon><icon-more /></template>
+                </a-button>
+                <!-- Folder Actions -->
+                <a-button size="mini" class="menu-btn" @mousedown.stop v-else>
+                  <template #icon><icon-more /></template>
+                </a-button>
 
-              <template #content>
-                <template v-if="!node.isFolder">
-                  <a-dsubmenu value="sendto">
-                    <template #icon><icon-export /></template>
-                    Send To
-                    <template #content>
-                      <a-doption v-for="engine in openEngines" :key="engine.name" :value="`sendto-${engine.name}`">
-                        <template #icon><icon-send /></template>
-                        {{ engine.name }}
-                      </a-doption>
-                      <a-doption v-if="openEngines.length === 0" disabled>
-                        <template #icon><icon-close-circle /></template>
-                        No Open Engines
-                      </a-doption>
-                    </template>
-                  </a-dsubmenu>
-                  <a-doption value="edit">
-                    <template #icon><icon-edit /></template>
-                    Edit
-                  </a-doption>
-                  <a-doption value="delete">
-                    <template #icon><icon-delete /></template>
-                    Delete
-                  </a-doption>
+                <template #content>
+                  <template v-if="!node.isFolder">
+                    <a-dsubmenu value="sendto">
+                      <template #icon><icon-export /></template>
+                      Send To
+                      <template #content>
+                        <a-doption v-for="engine in openEngines" :key="engine.name" :value="`sendto-${engine.name}`">
+                          <template #icon><icon-send /></template>
+                          {{ engine.name }}
+                        </a-doption>
+                        <a-doption v-if="openEngines.length === 0" disabled>
+                          <template #icon><icon-close-circle /></template>
+                          No Open Engines
+                        </a-doption>
+                      </template>
+                    </a-dsubmenu>
+                    <a-doption value="edit">
+                      <template #icon><icon-edit /></template>
+                      Edit
+                    </a-doption>
+                    <a-doption value="delete">
+                      <template #icon><icon-delete /></template>
+                      Delete
+                    </a-doption>
+                  </template>
+                  <template v-else>
+                    <a-doption value="addFile">
+                      <template #icon><icon-plus /></template>
+                      Add File
+                    </a-doption>
+                    <a-doption value="addFolder">
+                      <template #icon><icon-plus /></template>
+                      Add Folder
+                    </a-doption>
+                    <a-doption value="delete">
+                      <template #icon><icon-delete /></template>
+                      Delete Folder
+                    </a-doption>
+                  </template>
                 </template>
-                <template v-else>
-                  <a-doption value="addFile">
-                    <template #icon><icon-plus /></template>
-                    Add File
-                  </a-doption>
-                  <a-doption value="addFolder">
-                    <template #icon><icon-plus /></template>
-                    Add Folder
-                  </a-doption>
-                  <a-doption value="delete">
-                    <template #icon><icon-delete /></template>
-                    Delete Folder
-                  </a-doption>
-                </template>
+              </a-dropdown>
+            </div>
+            <template #content>
+              <template v-if="!node.isFolder">
+                <a-dsubmenu value="sendto">
+                  <template #icon><icon-export /></template>
+                  Send To
+                  <template #content>
+                    <a-doption v-for="engine in openEngines" :key="engine.name" :value="`sendto-${engine.name}`">
+                      <template #icon><icon-send /></template>
+                      {{ engine.name }}
+                    </a-doption>
+                    <a-doption v-if="openEngines.length === 0" disabled>
+                      <template #icon><icon-close-circle /></template>
+                      No Open Engines
+                    </a-doption>
+                  </template>
+                </a-dsubmenu>
+                <a-doption value="edit">
+                  <template #icon><icon-edit /></template>
+                  Edit
+                </a-doption>
+                <a-doption value="delete">
+                  <template #icon><icon-delete /></template>
+                  Delete
+                </a-doption>
               </template>
-            </a-dropdown>
-          </div>
+              <template v-else>
+                <a-doption value="addFile">
+                  <template #icon><icon-plus /></template>
+                  Add File
+                </a-doption>
+                <a-doption value="addFolder">
+                  <template #icon><icon-plus /></template>
+                  Add Folder
+                </a-doption>
+                <a-doption value="delete">
+                  <template #icon><icon-delete /></template>
+                  Delete Folder
+                </a-doption>
+              </template>
+            </template>
+          </a-dropdown>
         </template>
       </a-tree>
     </div>

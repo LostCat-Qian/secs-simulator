@@ -8,10 +8,10 @@ const { getBaseDir } = require('ee-core/ps')
  */
 module.exports = () => {
   return {
-    openDevTools: true,
+    openDevTools: false,
     singleLock: true,
     windowsOption: {
-      title: 'electron-egg',
+      title: 'secs-simulator',
       width: 1280,
       height: 800,
       minWidth: 980,
@@ -24,14 +24,14 @@ module.exports = () => {
       },
       frame: true,
       show: true,
-      icon: path.join(getBaseDir(), 'public', 'images', 'logo-32.png')
+      icon: path.join(getBaseDir(), 'public', 'images', 'logo.png')
     },
     logger: {
       level: 'INFO',
       outputJSON: false,
-      appLogName: 'ee.log',
-      coreLogName: 'ee-core.log',
-      errorLogName: 'ee-error.log'
+      appLogName: 'secs-simulator.log',
+      coreLogName: 'secs-simulator-core.log',
+      errorLogName: 'secs-simulator-error.log'
     },
     remote: {
       enable: false,
