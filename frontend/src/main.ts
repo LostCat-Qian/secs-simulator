@@ -36,6 +36,51 @@ self.MonacoEnvironment = {
 
 loader.config({ monaco })
 
+// Configure TOML language for Monaco Editor
+monaco.languages.register({ id: 'toml' })
+
+monaco.languages.setMonarchTokensProvider('toml', {
+  tokenizer: {
+    root: [
+      [/^\s*\[.*\]$/, 'metatag'],
+      [/^\s*\[\[.*\]\]$/, 'metatag'],
+      [/"([^"\\]|\\.)*$/, 'string.invalid'],
+      [/"/, 'string', '@string'],
+      [/'([^'\\]|\\.)*$/, 'string.invalid'],
+      [/'/, 'string', '@string'],
+      [/true|false/, 'keyword'],
+      [/\d+/, 'number'],
+      [/#.*$/, 'comment'],
+      [/[a-zA-Z_][\w]*/, 'identifier'],
+      [/=/, 'delimiter'],
+      [/\./, 'delimiter'],
+    ],
+    string: [
+      [/[^\\"]+/, 'string'],
+      [/\\./, 'string.escape'],
+      [/"/, 'string', '@pop']
+    ]
+  }
+})
+
+// Define TOML editor theme
+monaco.editor.defineTheme('toml-dark', {
+  base: 'vs-dark',
+  inherit: true,
+  rules: [
+    { token: 'metatag', foreground: '569CD6' },
+    { token: 'string', foreground: 'CE9178' },
+    { token: 'number', foreground: 'B5CEA8' },
+    { token: 'keyword', foreground: '569CD6' },
+    { token: 'comment', foreground: '6A9955' },
+    { token: 'identifier', foreground: '9CDCFE' },
+  ],
+  colors: {
+    'editor.background': '#1e1e1e',
+    'editor.foreground': '#d4d4d4',
+  }
+})
+
 const app = createApp(App)
 
 // global components

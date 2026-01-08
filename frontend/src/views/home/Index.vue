@@ -1,5 +1,19 @@
 <template>
   <div class="app-container">
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <a-button type="text" @click="openEventBindModal">
+          <icon-link />
+          EventBind
+        </a-button>
+      </div>
+      <div class="toolbar-right">
+        <img src="../../assets/logo.png" alt="Logo" class="app-logo" />
+        <span class="app-title">SECS Simulator</span>
+      </div>
+    </div>
+
     <!-- Top Divider -->
     <div class="top-divider"></div>
 
@@ -81,6 +95,8 @@
 
     <AutoReplyModal v-model:visible="autoReplyModalVisible" :initial-data="autoReplyForm" :engines="engineList"
       @submit="handleSaveAutoReply" />
+
+    <EventBindModal v-model:visible="eventBindModalVisible" @save="handleSaveEventBind" />
   </div>
 </template>
 
@@ -100,6 +116,7 @@ import AddEngineModal from './components/AddEngineModal.vue';
 import FileEditorModal from './components/FileEditorModal.vue';
 import AddFolderModal from './components/AddFolderModal.vue';
 import AutoReplyModal from './components/AutoReplyModal.vue';
+import EventBindModal from './components/EventBindModal.vue';
 
 // Types
 import type { EngineData, AutoReplyFormData, AutoReplyItem, SmlTreeNode } from './types';
@@ -109,6 +126,7 @@ import { useEngine } from './composables/useEngine';
 import { useLogPanels } from './composables/useLogPanels';
 import { useFileTree } from './composables/useFileTree';
 import { useAutoReply } from './composables/useAutoReply';
+import { useEventBind } from './composables/useEventBind';
 
 // #region --- Composables Setup ---
 const {
@@ -155,6 +173,10 @@ const {
   deleteAutoReplyScript
 } = useAutoReply();
 
+const {
+  saveDefineLinkFiles
+} = useEventBind();
+
 // #endregion
 
 // #region --- Local State ---
@@ -175,6 +197,9 @@ const searchText = ref('');
 const autoReplyModalVisible = ref(false);
 const autoReplyForm = ref<AutoReplyFormData | null>(null);
 const editingAutoReplyName = ref<string | null>(null);
+
+// EventBind State
+const eventBindModalVisible = ref(false);
 
 // #endregion
 
@@ -404,6 +429,29 @@ const handleDeleteAutoReply = async (item: AutoReplyItem) => {
 
 // #endregion
 
+// #region --- EventBind Handlers ---
+
+const openEventBindModal = () => {
+  eventBindModalVisible.value = true;
+};
+
+const handleSaveEventBind = async (payload: { folderPath: string; files: { name: string; content: string }[] }) => {
+  try {
+    const result = await saveDefineLinkFiles(payload.folderPath, payload.files)
+    Message.success(
+      `EventBind saved successfully!\nSaved to: sml/DefineLink/${payload.folderPath}/\nFiles: ${result.files?.join(', ')}`
+    )
+    // 刷新FileTree目录
+    loadFileTree()
+    return result
+  } catch (error: any) {
+    console.error('Failed to save EventBind:', error)
+    const msg = error?.message || 'Failed to save EventBind files'
+    Message.error(msg)
+    throw error
+  }
+}
+
 // #region --- Lifecycle ---
 
 onMounted(() => {
@@ -454,6 +502,37 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+/* Toolbar Styles */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  height: 48px;
+  background-color: var(--color-bg-2);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .app-logo {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+  }
+
+  .app-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-1);
+  }
+}
+
 .top-divider {
   margin: 0;
   border: 0;
@@ -464,7 +543,7 @@ onBeforeUnmount(() => {
 
 .main-layout {
   flex: 1;
-  height: calc(100vh - 1px);
+  height: calc(100vh - 49px);
   overflow: hidden;
 }
 

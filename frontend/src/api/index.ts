@@ -27,33 +27,41 @@ interface IpcApiRoute {
   isAutoReplyEnabled: string
   listScripts: string
   listSerialPorts: string
+  // define link
+  createDefineLinkFolder: string
+  saveDefineLinkFiles: string
+  generateEventBindFiles: string
 }
 
 const ipcApiRoute: IpcApiRoute = {
   test: 'controller/example/test',
   // file tree
-  smlFileTree: 'controller/smlFile/getFileTree', // get sml directory tree
-  smlFileContent: 'controller/smlFile/getFileContent', // get sml file content by file path
-  smlFileSave: 'controller/smlFile/saveSmlFile', // save sml file content by file path
-  smlFileCreate: 'controller/smlFile/createSmlFile', // create sml file by file path and name
-  smlFileDelete: 'controller/smlFile/deleteSmlFile', // delete sml file by file path
-  smlFolderCreate: 'controller/smlFile/createSmlFolder', // create sml folder by folder path and name
-  smlFolderDelete: 'controller/smlFile/deleteSmlFolder', // delete sml folder by folder path
+  smlFileTree: 'controller/smlFile/getFileTree',
+  smlFileContent: 'controller/smlFile/getFileContent',
+  smlFileSave: 'controller/smlFile/saveSmlFile',
+  smlFileCreate: 'controller/smlFile/createSmlFile',
+  smlFileDelete: 'controller/smlFile/deleteSmlFile',
+  smlFolderCreate: 'controller/smlFile/createSmlFolder',
+  smlFolderDelete: 'controller/smlFile/deleteSmlFolder',
   // engine
-  engineStart: 'controller/engine/start', // start engine
-  engineStop: 'controller/engine/stop', // stop engine
-  sendMessageFromFile: 'controller/engine/sendMessageFromFile', // send secs message from sml file
-  getEngineConfig: 'controller/engine/getConfig', // get engine json config
-  deleteEngine: 'controller/engine/delete', // delete engine by name
-  saveEngineConfig: 'controller/engine/saveConfig', // save engine json config
+  engineStart: 'controller/engine/start',
+  engineStop: 'controller/engine/stop',
+  sendMessageFromFile: 'controller/engine/sendMessageFromFile',
+  getEngineConfig: 'controller/engine/getConfig',
+  deleteEngine: 'controller/engine/delete',
+  saveEngineConfig: 'controller/engine/saveConfig',
   // auto reply
-  addScript: 'controller/autoReply/addScript', // add auto reply script
-  getScript: 'controller/autoReply/getScript', // get auto reply script detail
-  deleteScript: 'controller/autoReply/deleteScript', // delete auto reply script by name
-  updateScript: 'controller/autoReply/updateScript', // update auto reply script
-  isAutoReplyEnabled: 'controller/autoReply/isEnabled', // check if auto reply is enabled
-  listScripts: 'controller/autoReply/listScripts', // list auto reply scripts
-  listSerialPorts: 'controller/engine/listSerialPorts' // list serial ports
+  addScript: 'controller/autoReply/addScript',
+  getScript: 'controller/autoReply/getScript',
+  deleteScript: 'controller/autoReply/deleteScript',
+  updateScript: 'controller/autoReply/updateScript',
+  isAutoReplyEnabled: 'controller/autoReply/isEnabled',
+  listScripts: 'controller/autoReply/listScripts',
+  listSerialPorts: 'controller/engine/listSerialPorts',
+  // define link
+  createDefineLinkFolder: 'controller/defineLink/createFolder',
+  saveDefineLinkFiles: 'controller/defineLink/saveFiles',
+  generateEventBindFiles: 'controller/defineLink/generateEventBindFiles'
 }
 
 export { ipcApiRoute }
