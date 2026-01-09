@@ -4,12 +4,16 @@
     <div class="toolbar">
       <div class="toolbar-left">
         <a-button type="text" @click="openEventBindModal">
-          <icon-link />
-          EventBind
+          <template #icon>
+            <icon-link />
+          </template>
+          <template #default>EventBind</template>
         </a-button>
         <a-button type="text" @click="handleAutoFlow">
-          <icon-link />
-          AutoFlow
+          <template #icon>
+            <icon-link />
+          </template>
+          <template #default>AutoFlow</template>
         </a-button>
       </div>
       <div class="toolbar-right">
@@ -154,9 +158,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { TreeNodeData, Message } from '@arco-design/web-vue'
-import { IconLink, IconThunderbolt } from '@arco-design/web-vue/es/icon'
+import { IconLink } from '@arco-design/web-vue/es/icon'
 import { ipc } from '@/utils/ipcRenderer'
 import { ipcApiRoute } from '@/api'
 
@@ -256,10 +260,12 @@ const handleEditEngine = (engine: EngineData) => {
 
 const handleAddEngine = async (formData: any) => {
   const success = await saveEngineConfig(formData, editingEngine.value)
-  if (success) {
-    addEngineModalVisible.value = false
-    editingEngine.value = null
+  if (!success) {
+    addEngineModalVisible.value = true
+    return
   }
+  addEngineModalVisible.value = false
+  editingEngine.value = null
 }
 
 const handleDeleteEngine = async (engine: EngineData) => {

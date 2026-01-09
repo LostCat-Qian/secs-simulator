@@ -1,7 +1,17 @@
 <template>
-  <a-modal :visible="visible" @update:visible="val => $emit('update:visible', val)" :title="modalTitle" width="850px"
-    :footer="true" ok-text="Save" cancel-text="Cancel" @cancel="handleCancel" @ok="handleOk" :mask-closable="false"
-    class="compact-modal">
+  <a-modal
+    :visible="visible"
+    @update:visible="(val) => $emit('update:visible', val)"
+    :title="modalTitle"
+    width="850px"
+    :footer="true"
+    ok-text="Save"
+    cancel-text="Cancel"
+    @cancel="handleCancel"
+    @ok="handleOk"
+    :mask-closable="false"
+    class="compact-modal"
+  >
     <a-form :model="form" layout="vertical" class="engine-form">
       <a-row :gutter="24">
         <!-- Left Column -->
@@ -10,8 +20,12 @@
           <a-divider orientation="left" class="compact-divider">Engine Properties</a-divider>
           <a-row :gutter="8">
             <a-col :span="8">
-              <a-form-item label="Name" field="name" :validate-status="nameError ? 'error' : undefined"
-                :help="nameError || undefined">
+              <a-form-item
+                label="Name"
+                field="name"
+                :validate-status="nameError ? 'error' : undefined"
+                :help="nameError || undefined"
+              >
                 <a-input v-model="form.name" placeholder="TOOL" />
               </a-form-item>
             </a-col>
@@ -153,19 +167,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { ipc } from '@/utils/ipcRenderer';
-import { ipcApiRoute } from '@/api';
+import { ref, watch, computed } from 'vue'
+import { ipc } from '@/utils/ipcRenderer'
+import { ipcApiRoute } from '@/api'
 
 const props = defineProps<{
-  visible: boolean;
-  initialData?: Record<string, any>;
-}>();
+  visible: boolean
+  initialData?: Record<string, any>
+}>()
 
 const emit = defineEmits<{
-  (e: 'update:visible', visible: boolean): void;
-  (e: 'submit', data: any): void;
-}>();
+  (e: 'update:visible', visible: boolean): void
+  (e: 'submit', data: any): void
+}>()
 
 const defaultForm = {
   name: 'TOOL',
@@ -191,137 +205,108 @@ const defaultForm = {
   dataBit: '8',
   stopBit: '1',
   parity: 'None'
-};
+}
 
-const form = ref({ ...defaultForm });
-const nameError = ref('');
-const serialPorts = ref<string[]>([]);
+const form = ref({ ...defaultForm })
+const nameError = ref('')
+const serialPorts = ref<string[]>([])
 
-const modalTitle = computed(() => (props.initialData ? 'Edit Engine Properties' : 'Engine Properties'));
+const modalTitle = computed(() => (props.initialData ? 'Edit Engine Properties' : 'Engine Properties'))
 
 const loadSerialPorts = async () => {
-  if (!ipc) return;
+  if (!ipc) return
   try {
-    const result = await ipc.invoke(ipcApiRoute.listSerialPorts, null);
+    const result = await ipc.invoke(ipcApiRoute.listSerialPorts, null)
     if (Array.isArray(result)) {
-      serialPorts.value = result
-        .map((item: any) => String(item.path || item.comName || ''))
-        .filter((item) => item);
+      serialPorts.value = result.map((item: any) => String(item.path || item.comName || '')).filter((item) => item)
     } else {
-      serialPorts.value = [];
+      serialPorts.value = []
     }
   } catch (error) {
-    console.error('Failed to load serial ports:', error);
-    serialPorts.value = [];
+    console.error('Failed to load serial ports:', error)
+    serialPorts.value = []
   }
-};
+}
 
-watch(() => props.visible, (val) => {
-  if (val) {
-    loadSerialPorts();
-    if (props.initialData) {
-      const cfg = props.initialData;
-      form.value = {
-        ...defaultForm,
-        name: String(cfg.name ?? defaultForm.name),
-        deviceId: String(cfg.deviceId ?? defaultForm.deviceId),
-        type: String(cfg.type ?? defaultForm.type),
-        serialPort: String(cfg.path ?? defaultForm.serialPort),
-        baud: String(cfg.baudRate ?? defaultForm.baud),
-        retry: typeof cfg.retry === 'number' ? cfg.retry : defaultForm.retry,
-        master: cfg.master === false ? 'Slave' : 'Master',
-        tcpPort: String(cfg.port ?? defaultForm.tcpPort),
-        simulate: String(cfg.simulate ?? defaultForm.simulate),
-        remoteIp: String(cfg.ip ?? defaultForm.remoteIp),
-        localIp: String(cfg.localIp ?? defaultForm.localIp),
-        maxLength: String(cfg.maxLength ?? defaultForm.maxLength),
-        t1: Number(cfg.timeoutT1 ?? defaultForm.t1),
-        t2: Number(cfg.timeoutT2 ?? defaultForm.t2),
-        t3: Number(cfg.timeoutT3 ?? defaultForm.t3),
-        t4: Number(cfg.timeoutT4 ?? defaultForm.t4),
-        t5: Number(cfg.timeoutT5 ?? defaultForm.t5),
-        t6: Number(cfg.timeoutT6 ?? defaultForm.t6),
-        t7: Number(cfg.timeoutT7 ?? defaultForm.t7),
-        t8: Number(cfg.timeoutT8 ?? defaultForm.t8),
-        dataBit: String(cfg.dataBit ?? defaultForm.dataBit),
-        stopBit: String(cfg.stopBit ?? defaultForm.stopBit),
-        parity: cfg.parity == null ? 'None' : String(cfg.parity)
-      };
-    } else {
-      form.value = { ...defaultForm };
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      loadSerialPorts()
+      if (props.initialData) {
+        const cfg = props.initialData
+        form.value = {
+          ...defaultForm,
+          name: String(cfg.name ?? defaultForm.name),
+          deviceId: String(cfg.deviceId ?? defaultForm.deviceId),
+          type: String(cfg.type ?? defaultForm.type),
+          serialPort: String(cfg.path ?? defaultForm.serialPort),
+          baud: String(cfg.baudRate ?? defaultForm.baud),
+          retry: typeof cfg.retry === 'number' ? cfg.retry : defaultForm.retry,
+          master: cfg.master === false ? 'Slave' : 'Master',
+          tcpPort: String(cfg.port ?? defaultForm.tcpPort),
+          simulate: String(cfg.simulate ?? defaultForm.simulate),
+          remoteIp: String(cfg.ip ?? defaultForm.remoteIp),
+          localIp: String(cfg.localIp ?? defaultForm.localIp),
+          maxLength: String(cfg.maxLength ?? defaultForm.maxLength),
+          t1: Number(cfg.timeoutT1 ?? defaultForm.t1),
+          t2: Number(cfg.timeoutT2 ?? defaultForm.t2),
+          t3: Number(cfg.timeoutT3 ?? defaultForm.t3),
+          t4: Number(cfg.timeoutT4 ?? defaultForm.t4),
+          t5: Number(cfg.timeoutT5 ?? defaultForm.t5),
+          t6: Number(cfg.timeoutT6 ?? defaultForm.t6),
+          t7: Number(cfg.timeoutT7 ?? defaultForm.t7),
+          t8: Number(cfg.timeoutT8 ?? defaultForm.t8),
+          dataBit: String(cfg.dataBit ?? defaultForm.dataBit),
+          stopBit: String(cfg.stopBit ?? defaultForm.stopBit),
+          parity: cfg.parity == null ? 'None' : String(cfg.parity)
+        }
+      } else {
+        form.value = { ...defaultForm }
+      }
     }
   }
-});
+)
 
 const handleCancel = () => {
-  emit('update:visible', false);
-};
+  emit('update:visible', false)
+}
 
 watch(
   () => form.value.name,
   (val) => {
-    const name = String(val || '');
+    const name = String(val || '')
     if (!name) {
-      nameError.value = 'Engine name is required';
+      nameError.value = 'Engine name is required'
     } else if (/\s/.test(name) || name.includes('-')) {
-      nameError.value = 'Engine name cannot contain spaces or "-"';
+      nameError.value = 'Engine name cannot contain spaces or "-"'
     } else {
-      // Check for duplicate names
-      const isDuplicate = props.existingNames?.some(
-        (existingName) => existingName.toLowerCase() === name.toLowerCase()
-      );
-      
-      // If editing, ignore the current name
-      const isSelf = props.initialData && String(props.initialData.name).toLowerCase() === name.toLowerCase();
-      
-      if (isDuplicate && !isSelf) {
-        nameError.value = 'Engine name already exists';
-      } else {
-        nameError.value = '';
-      }
+      nameError.value = ''
     }
   },
   { immediate: true }
-);
+)
 
 const handleOk = () => {
-  const name = String(form.value.name || '');
+  const name = String(form.value.name || '')
 
-  // Trigger validation
   if (!name || /\s/.test(name) || name.includes('-')) {
-     // Re-run watch logic to set error
-     const event = { target: { value: name } }; // Mock event if needed, or just force update
-     // Actually the watch handles setting nameError.
-     // We just need to check if nameError is present or needs to be set.
-  }
-
-  // Force re-validation logic
-  let error = '';
-  if (!name) {
-    error = 'Engine name is required';
-  } else if (/\s/.test(name) || name.includes('-')) {
-    error = 'Engine name cannot contain spaces or "-"';
-  } else {
-    const isDuplicate = props.existingNames?.some(
-      (existingName) => existingName.toLowerCase() === name.toLowerCase()
-    );
-    const isSelf = props.initialData && String(props.initialData.name).toLowerCase() === name.toLowerCase();
-    if (isDuplicate && !isSelf) {
-      error = 'Engine name already exists';
+    if (!nameError.value) {
+      if (!name) {
+        nameError.value = 'Engine name is required'
+      } else {
+        nameError.value = 'Engine name cannot contain spaces or "-"'
+      }
     }
-  }
-  nameError.value = error;
-
-  if (nameError.value) {
-    return;
+    return
   }
 
   const submitData = {
     ...form.value
-  };
+  }
 
-  emit('submit', submitData);
-};
+  emit('submit', submitData)
+}
 </script>
 
 <style scoped>
