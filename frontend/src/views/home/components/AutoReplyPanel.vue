@@ -6,6 +6,9 @@
       <div class="actions">
         <a-input-search :model-value="searchText" @update:model-value="(val: string) => $emit('update:searchText', val)"
           placeholder="Search..." size="small" style="width: 200px" />
+        <a-button type="secondary" size="small" @click="$emit('refresh')">
+          <template #icon><icon-refresh /></template>
+        </a-button>
         <a-button type="primary" size="small" @click="$emit('add')">
           <template #icon><icon-plus /></template>
           Add
@@ -46,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconPlus } from '@arco-design/web-vue/es/icon';
+import { IconPlus, IconRefresh } from '@arco-design/web-vue/es/icon';
 import type { AutoReplyItem } from '../types';
 
 defineProps<{
@@ -59,6 +62,7 @@ defineEmits<{
   (e: 'update:searchText', value: string): void;
   (e: 'edit', value: AutoReplyItem): void;
   (e: 'delete', value: AutoReplyItem): void;
+  (e: 'refresh'): void;
 }>();
 
 </script>

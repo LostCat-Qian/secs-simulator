@@ -48,6 +48,7 @@
               @addFolder="handleAddFolder"
               @addRootFile="handleAddRootFile"
               @addRootFolder="openAddRootFolderModal"
+              @refresh="loadFileTree"
             />
           </div>
 
@@ -113,6 +114,7 @@
             @add="addAutoReply"
             @edit="editAutoReply"
             @delete="handleDeleteAutoReply"
+            @refresh="loadAutoReplyScripts"
           />
         </a-resize-box>
       </a-layout-content>

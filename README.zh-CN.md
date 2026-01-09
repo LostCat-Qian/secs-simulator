@@ -173,3 +173,35 @@ S1F2
   <A [13] "SOFTREV-0.0.1">
 >.
 ```
+
+## 3.6 配置 Event Bind
+
+根据 TOML 配置自动生成 Event Bind 指令。
+
+配置好 TOML 内容后，点击 `Convert` 按钮即可完成 SML 指令转换，然后点击 `Save` 按钮即可保存到本地。
+
+<div align=center>
+<img src="./README_IMAGES/event-bind.png" width="800" height="500" />
+</div>
+
+example:
+
+```toml
+# DefineLink Configuration Template
+# Format: CEID_RPTID_BINDING section maps Collection Event IDs to Report IDs
+# Format: RPTID_CEID_BINDING section shows which CEIDs use each RPTID (for reference)
+
+# value is an array of Report IDs
+[CEID_RPTID_BINDING]
+# CEID = RPTID
+1001 = [2001, 2002]
+1002 = [2002, 3001]
+1003 = [2001]
+
+# value is an array of Collection Event IDs
+[RPTID_CEID_BINDING]
+# RPTID = CEID (optional - shows reference mapping)
+2001 = [2004]
+2002 = [2005]
+3001 = [2001]
+```

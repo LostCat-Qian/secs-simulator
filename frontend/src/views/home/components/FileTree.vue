@@ -1,15 +1,19 @@
 <template>
   <div class="file-tree-section">
     <div class="header">
-      <span class="title">File Tree</span>
+      <span class="title">SML</span>
       <div class="header-actions">
+        <a-button size="mini" type="text" @click="emit('refresh')">
+          <template #icon><icon-refresh /></template>
+          <template #default>Refresh</template>
+        </a-button>
         <a-button size="mini" type="text" @click="emit('addRootFile')">
           <template #icon><icon-plus /></template>
-          File
+          <template #default>File</template>
         </a-button>
         <a-button size="mini" type="text" @click="emit('addRootFolder')">
           <template #icon><icon-plus /></template>
-          Folder
+          <template #default>Folder</template>
         </a-button>
       </div>
     </div>
@@ -17,23 +21,38 @@
     <!-- Tree Content -->
     <div class="tree-container">
       <!-- Search Input -->
-      <a-input-search style="margin-bottom: 8px; width: 100%" v-model="searchKey" placeholder="Search files..."
-        allow-clear />
+      <a-input-search
+        style="margin-bottom: 8px; width: 100%"
+        v-model="searchKey"
+        placeholder="Search files..."
+        allow-clear
+      />
 
       <!-- Tree View -->
-      <a-tree :data="filteredTreeData" :default-expand-all="true" block-node show-line
-        :field-names="{ key: 'key', title: 'title', children: 'children' }">
+      <a-tree
+        :data="filteredTreeData"
+        :default-expand-all="true"
+        block-node
+        show-line
+        :field-names="{ key: 'key', title: 'title', children: 'children' }"
+      >
         <template #title="node">
-          <a-dropdown trigger="contextMenu" alignPoint :popup-max-height="false"
-            @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)">
+          <a-dropdown
+            trigger="contextMenu"
+            alignPoint
+            :popup-max-height="false"
+            @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)"
+          >
             <div class="tree-node-content" @click.stop="handleNodeClick(node)">
               <!-- Node Title with Highlight -->
               <span class="tree-node-title" v-html="highlightText(node.title, searchKey)"></span>
 
               <!-- Actions -->
-              <a-dropdown trigger="click"
+              <a-dropdown
+                trigger="click"
                 @select="(value: string | number | Record<string, any>) => handleMenuSelect(String(value), node)"
-                :popup-max-height="false">
+                :popup-max-height="false"
+              >
                 <a-button size="mini" class="menu-btn" @mousedown.stop v-if="!node.isFolder">
                   <template #icon><icon-more /></template>
                 </a-button>
@@ -132,40 +151,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { TreeNodeData } from '@arco-design/web-vue';
-import { IconMore, IconEdit, IconDelete, IconExport, IconSend, IconCloseCircle, IconPlus } from '@arco-design/web-vue/es/icon';
-import type { SmlTreeNode, EngineData } from '../types';
+import { ref, computed } from 'vue'
+import { TreeNodeData } from '@arco-design/web-vue'
+import {
+  IconMore,
+  IconEdit,
+  IconDelete,
+  IconExport,
+  IconSend,
+  IconCloseCircle,
+  IconPlus,
+  IconRefresh
+} from '@arco-design/web-vue/es/icon'
+import type { SmlTreeNode, EngineData } from '../types'
 
 const props = defineProps<{
-  treeData: SmlTreeNode[];
-  engines: EngineData[];
-}>();
+  treeData: SmlTreeNode[]
+  engines: EngineData[]
+}>()
 
 const emit = defineEmits<{
-  (e: 'edit', node: TreeNodeData): void;
-  (e: 'delete', node: TreeNodeData): void;
-  (e: 'sendTo', payload: { file: TreeNodeData; engineName: string }): void;
-  (e: 'selectFile', node: TreeNodeData): void;
-  (e: 'addFile', node: TreeNodeData): void;
-  (e: 'addFolder', node: TreeNodeData): void;
-  (e: 'addRootFile'): void;
-  (e: 'addRootFolder'): void;
-}>();
+  (e: 'edit', node: TreeNodeData): void
+  (e: 'delete', node: TreeNodeData): void
+  (e: 'sendTo', payload: { file: TreeNodeData; engineName: string }): void
+  (e: 'selectFile', node: TreeNodeData): void
+  (e: 'addFile', node: TreeNodeData): void
+  (e: 'addFolder', node: TreeNodeData): void
+  (e: 'addRootFile'): void
+  (e: 'addRootFolder'): void
+  (e: 'refresh'): void
+}>()
 
-const searchKey = ref('');
+const searchKey = ref('')
 
-const openEngines = computed(() =>
-  props.engines.filter(engine => engine.status === 'running' || engine.active)
-);
+const openEngines = computed(() => props.engines.filter((engine) => engine.status === 'running' || engine.active))
 
 /**
  * Escapes special characters for RegExp.
  * @param string The string to escape
  */
 const escapeRegExp = (string: string): string => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
 /**
  * Highlights keywords in the text.
@@ -173,10 +200,10 @@ const escapeRegExp = (string: string): string => {
  * @param keyword The keyword to search for
  */
 const highlightText = (text: string, keyword: string): string => {
-  if (!keyword) return text;
-  const regex = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
-  return text.replace(regex, '<span class="highlight">$1</span>');
-};
+  if (!keyword) return text
+  const regex = new RegExp(`(${escapeRegExp(keyword)})`, 'gi')
+  return text.replace(regex, '<span class="highlight">$1</span>')
+}
 
 /**
  * Filters the tree data based on the keyword.
@@ -185,45 +212,43 @@ const highlightText = (text: string, keyword: string): string => {
  * @param keyword The search keyword
  */
 const filterTreeData = (data: SmlTreeNode[], keyword: string): SmlTreeNode[] => {
-  if (!keyword) return data;
+  if (!keyword) return data
 
-  const lowerKeyword = keyword.toLowerCase();
+  const lowerKeyword = keyword.toLowerCase()
 
   return data
-    .map(node => {
+    .map((node) => {
       // Check if current node matches
-      const isMatch = node.title?.toLowerCase().includes(lowerKeyword);
+      const isMatch = node.title?.toLowerCase().includes(lowerKeyword)
 
       // Recursively filter children
-      const filteredChildren = node.children
-        ? filterTreeData(node.children, keyword)
-        : [];
+      const filteredChildren = node.children ? filterTreeData(node.children, keyword) : []
 
       // Keep node if it matches OR if it has matching children
       if (isMatch || filteredChildren.length > 0) {
         return {
           ...node,
           children: filteredChildren.length > 0 ? filteredChildren : undefined
-        };
+        }
       }
 
-      return null;
+      return null
     })
-    .filter((node): node is SmlTreeNode => node !== null);
-};
+    .filter((node): node is SmlTreeNode => node !== null)
+}
 
 // Computed property for the filtered tree
 const filteredTreeData = computed(() => {
-  return filterTreeData(props.treeData, searchKey.value);
-});
+  return filterTreeData(props.treeData, searchKey.value)
+})
 
 const handleNodeClick = (node: TreeNodeData) => {
-  const smlNode = node as SmlTreeNode;
+  const smlNode = node as SmlTreeNode
   if (smlNode.isFolder) {
-    return;
+    return
   }
-  emit('selectFile', node);
-};
+  emit('selectFile', node)
+}
 
 /**
  * Handles menu selection from the dropdown.
@@ -232,18 +257,18 @@ const handleNodeClick = (node: TreeNodeData) => {
  */
 const handleMenuSelect = (value: string, node: TreeNodeData) => {
   if (value === 'edit') {
-    emit('edit', node);
+    emit('edit', node)
   } else if (value === 'delete') {
-    emit('delete', node);
+    emit('delete', node)
   } else if (value === 'addFile') {
-    emit('addFile', node);
+    emit('addFile', node)
   } else if (value === 'addFolder') {
-    emit('addFolder', node);
+    emit('addFolder', node)
   } else if (value.startsWith('sendto-')) {
-    const engineName = value.slice(7);
-    emit('sendTo', { file: node, engineName });
+    const engineName = value.slice(7)
+    emit('sendTo', { file: node, engineName })
   }
-};
+}
 </script>
 
 <style scoped lang="less">

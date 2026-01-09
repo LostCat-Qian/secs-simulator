@@ -173,3 +173,35 @@ S1F2
   <A [13] "SOFTREV-0.0.1">
 >.
 ```
+
+## 3.6 Configure Event Bind
+
+Automatically generate Event Bind instructions based on the TOML configuration.
+
+After configuring the TOML content, click the `Convert` button to complete the SML instruction conversion, then click the `Save` button to save it locally.
+
+<div align=center>
+<img src="./README_IMAGES/event-bind.png" width="800" height="500" />
+</div>
+
+example:
+
+```toml
+# DefineLink Configuration Template
+# Format: CEID_RPTID_BINDING section maps Collection Event IDs to Report IDs
+# Format: RPTID_CEID_BINDING section shows which CEIDs use each RPTID (for reference)
+
+# value is an array of Report IDs
+[CEID_RPTID_BINDING]
+# CEID = RPTID
+1001 = [2001, 2002]
+1002 = [2002, 3001]
+1003 = [2001]
+
+# value is an array of Collection Event IDs
+[RPTID_CEID_BINDING]
+# RPTID = CEID (optional - shows reference mapping)
+2001 = [2004]
+2002 = [2005]
+3001 = [2001]
+```

@@ -4,6 +4,18 @@
     <div class="header">
       <span class="title" :title="title">{{ title }}</span>
       <div class="actions">
+        <a-input
+          v-if="true"
+          v-model="searchText"
+          placeholder="Search..."
+          size="mini"
+          allow-clear
+          class="search-input"
+        >
+          <template #prefix>
+            <icon-search />
+          </template>
+        </a-input>
         <a-button size="mini" type="text" @click="handleClear">
           <template #icon><icon-refresh /></template>
         </a-button>
@@ -14,23 +26,23 @@
     </div>
 
     <div ref="logContainerRef" class="log-container">
-      <div v-for="(log, index) in logs" :key="index" class="log-item">
+      <div v-for="(log, index) in filteredLogs" :key="index" class="log-item">
         <span class="log-time">{{ log.time }}</span>
         <span :class="['log-level', `level-${log.level.toLowerCase()}`]">[{{ log.level }}]</span>
         <span class="log-message">{{ log.message }}</span>
       </div>
 
       <!-- Empty State -->
-      <div v-if="logs.length === 0" class="empty-log">
-        No logs available
+      <div v-if="filteredLogs.length === 0" class="empty-log">
+        {{ searchText ? 'No matching logs' : 'No logs available' }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue';
-import { IconRefresh, IconClose } from '@arco-design/web-vue/es/icon';
+import { ref, watch, nextTick, onMounted, computed } from 'vue';
+import { IconRefresh, IconClose, IconSearch } from '@arco-design/web-vue/es/icon';
 import type { LogEntry } from '../types';
 
 const props = defineProps<{
@@ -44,6 +56,17 @@ const emit = defineEmits<{
 }>();
 
 const logContainerRef = ref<HTMLElement | null>(null);
+const searchText = ref('');
+
+const filteredLogs = computed(() => {
+  if (!searchText.value) return props.logs;
+  const query = searchText.value.toLowerCase();
+  return props.logs.filter(log => 
+    log.message.toLowerCase().includes(query) ||
+    log.level.toLowerCase().includes(query) ||
+    log.time.toLowerCase().includes(query)
+  );
+});
 
 const handleClear = () => {
   emit('clear');
@@ -60,10 +83,21 @@ const scrollToBottom = () => {
 };
 
 watch(
-  () => props.logs.length,
+  () => [props.logs.length, props.logs[props.logs.length - 1]],
   async () => {
+    // Only auto-scroll if we are not searching, or if the user wants it (simplified: always scroll for now if new logs come)
+    // However, if searching, the list might be short.
     await nextTick();
     scrollToBottom();
+  }
+);
+
+watch(
+  () => searchText.value,
+  async () => {
+    await nextTick();
+    // Maybe scroll to top or keep position? 
+    // Usually when searching, you want to see results.
   }
 );
 
@@ -118,6 +152,19 @@ onMounted(() => {
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+
+    .search-input {
+      width: 120px;
+      transition: width 0.3s;
+      background-color: var(--color-fill-2);
+      border-color: transparent;
+
+      &:focus-within {
+        width: 180px;
+        background-color: var(--color-bg-1);
+        border-color: rgb(var(--primary-6));
+      }
+    }
   }
 }
 

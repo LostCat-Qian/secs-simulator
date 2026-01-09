@@ -98,6 +98,10 @@ export function useLogPanels() {
           level,
           message
         })
+        // Performance optimization: limit log entries
+        if (panel.logs.length > 1000) {
+          panel.logs.shift()
+        }
       }
     })
 
