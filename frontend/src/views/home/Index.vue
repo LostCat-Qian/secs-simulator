@@ -128,6 +128,7 @@
     <AddEngineModal
       v-model:visible="addEngineModalVisible"
       :initial-data="editingEngine ? editingEngine.config : undefined"
+      :existing-names="engineList.map(e => e.name)"
       @submit="handleAddEngine"
     />
 
@@ -154,9 +155,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { TreeNodeData, Message } from '@arco-design/web-vue'
-import { IconLink, IconThunderbolt } from '@arco-design/web-vue/es/icon'
+import { IconLink } from '@arco-design/web-vue/es/icon'
 import { ipc } from '@/utils/ipcRenderer'
 import { ipcApiRoute } from '@/api'
 

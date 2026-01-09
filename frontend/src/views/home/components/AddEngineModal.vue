@@ -160,6 +160,7 @@ import { ipcApiRoute } from '@/api';
 const props = defineProps<{
   visible: boolean;
   initialData?: Record<string, any>;
+  existingNames?: string[];
 }>();
 
 const emit = defineEmits<{
@@ -286,14 +287,6 @@ watch(
 
 const handleOk = () => {
   const name = String(form.value.name || '');
-
-  // Trigger validation
-  if (!name || /\s/.test(name) || name.includes('-')) {
-     // Re-run watch logic to set error
-     const event = { target: { value: name } }; // Mock event if needed, or just force update
-     // Actually the watch handles setting nameError.
-     // We just need to check if nameError is present or needs to be set.
-  }
 
   // Force re-validation logic
   let error = '';
