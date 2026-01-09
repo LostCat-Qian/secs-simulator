@@ -132,6 +132,7 @@
     <AddEngineModal
       v-model:visible="addEngineModalVisible"
       :initial-data="editingEngine ? editingEngine.config : undefined"
+      :existing-names="engineList.map(e => e.name)"
       @submit="handleAddEngine"
     />
 
