@@ -1,15 +1,15 @@
 <template>
-   <a-modal
-     :visible="visible"
-     @update:visible="val => $emit('update:visible', val)"
-     title="EventBind Configuration"
-     width="85vw"
-     :footer="true"
-     @cancel="handleCancel"
-     :mask-closable="false"
-     :body-style="{ padding: '16px', height: '80vh', display: 'flex', flexDirection: 'column' }"
-   >
-    <div class="define-link-container">
+  <a-modal
+    :visible="visible"
+    @update:visible="(val) => $emit('update:visible', val)"
+    title="EventBind Configuration"
+    width="85vw"
+    :footer="true"
+    @cancel="handleCancel"
+    :mask-closable="false"
+    :body-style="{ padding: '16px', height: '80vh', display: 'flex', flexDirection: 'column' }"
+  >
+    <div class="event-bind-container">
       <!-- Editor Section -->
       <div class="editor-section">
         <div class="section-header">
@@ -32,31 +32,49 @@
       <!-- Preview Section -->
       <div class="preview-section">
         <div class="section-header">
-           <span class="section-title">Generated SML Preview</span>
-           <a-radio-group v-model:value="previewType" size="small">
-             <a-radio-button value="all">All 6 Files</a-radio-button>
-             <a-radio-button value="s2f37">S2F37</a-radio-button>
-             <a-radio-button value="s2f35">S2F35</a-radio-button>
-             <a-radio-button value="s2f33">S2F33</a-radio-button>
-           </a-radio-group>
+          <span class="section-title">Generated SML Preview</span>
         </div>
         <div class="preview-tabs" v-if="previewType === 'all'">
-          <div class="preview-tab" :class="{ active: activePreviewTab === 's2f37DisableAllEvents' }" @click="activePreviewTab = 's2f37DisableAllEvents'">
+          <div
+            class="preview-tab"
+            :class="{ active: activePreviewTab === 's2f37DisableAllEvents' }"
+            @click="activePreviewTab = 's2f37DisableAllEvents'"
+          >
             01: Disable All Events
           </div>
-          <div class="preview-tab" :class="{ active: activePreviewTab === 's2f35DisableLink' }" @click="activePreviewTab = 's2f35DisableLink'">
+          <div
+            class="preview-tab"
+            :class="{ active: activePreviewTab === 's2f35DisableLink' }"
+            @click="activePreviewTab = 's2f35DisableLink'"
+          >
             02: Disable Link
           </div>
-          <div class="preview-tab" :class="{ active: activePreviewTab === 's2f33DisableReport' }" @click="activePreviewTab = 's2f33DisableReport'">
+          <div
+            class="preview-tab"
+            :class="{ active: activePreviewTab === 's2f33DisableReport' }"
+            @click="activePreviewTab = 's2f33DisableReport'"
+          >
             03: Disable Report
           </div>
-          <div class="preview-tab" :class="{ active: activePreviewTab === 's2f33DefineReport' }" @click="activePreviewTab = 's2f33DefineReport'">
+          <div
+            class="preview-tab"
+            :class="{ active: activePreviewTab === 's2f33DefineReport' }"
+            @click="activePreviewTab = 's2f33DefineReport'"
+          >
             04: Define Report
           </div>
-          <div class="preview-tab" :class="{ active: activePreviewTab === 's2f35EnableLinkEvent' }" @click="activePreviewTab = 's2f35EnableLinkEvent'">
+          <div
+            class="preview-tab"
+            :class="{ active: activePreviewTab === 's2f35EnableLinkEvent' }"
+            @click="activePreviewTab = 's2f35EnableLinkEvent'"
+          >
             05: Enable Link
           </div>
-          <div class="preview-tab" :class="{ active: activePreviewTab === 's2f37EnableAllEvents' }" @click="activePreviewTab = 's2f37EnableAllEvents'">
+          <div
+            class="preview-tab"
+            :class="{ active: activePreviewTab === 's2f37EnableAllEvents' }"
+            @click="activePreviewTab = 's2f37EnableAllEvents'"
+          >
             06: Enable All Events
           </div>
         </div>
@@ -71,36 +89,43 @@
       </div>
     </div>
 
-      <template #footer>
-        <div class="footer-actions">
-          <div class="status-info">
-             <span v-if="generatedFiles" class="file-count">
-               <icon-file />
-               <template v-if="previewType === 'all'">
-                 Will generate: 6 files (Disable/Enable S2F37, S2F35, S2F33)
-               </template>
-               <template v-else>
-                 Will generate: All 6 EventBind files
-               </template>
-             </span>
-             <span v-if="savePath" class="save-path">
-               <icon-folder />
-               EventBind_{{ savePath }}
-             </span>
-           </div>
-          <div class="button-group">
-            <a-button @click="handleCancel">Cancel</a-button>
-            <a-button :disabled="!canConvert" @click="handleConvert" :loading="converting">
-              <icon-swap />
-              Convert
-            </a-button>
-            <a-button type="primary" @click="handleSave" :disabled="!canSave" :loading="saving">
-              <icon-save />
-              Save
-            </a-button>
-          </div>
+    <template #footer>
+      <div class="footer-actions">
+        <div class="status-info">
+          <span v-if="generatedFiles" class="file-count">
+            <icon-file />
+            <template v-if="previewType === 'all'">
+              Will generate: 6 files (Disable/Enable S2F37, S2F35, S2F33)
+            </template>
+            <template v-else> Will generate: All 6 EventBind files </template>
+          </span>
+          <span v-if="savePath" class="save-path">
+            <icon-folder />
+            EventBind_{{ savePath }}
+          </span>
         </div>
-      </template>
+        <div class="button-group">
+          <a-button @click="handleCancel">
+            <template #icon>
+              <icon-close-circle />
+            </template>
+            <template #default>Cancel</template>
+          </a-button>
+          <a-button :disabled="!canConvert" @click="handleConvert" :loading="converting">
+            <template #icon>
+              <icon-swap />
+            </template>
+            <template #default>Convert</template>
+          </a-button>
+          <a-button type="primary" @click="handleSave" :disabled="!canSave" :loading="saving">
+            <template #icon>
+              <icon-save />
+            </template>
+            <template #default>Save</template>
+          </a-button>
+        </div>
+      </div>
+    </template>
   </a-modal>
 </template>
 
@@ -108,11 +133,15 @@
 import { ref, computed, watch } from 'vue'
 import { Message } from '@arco-design/web-vue'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
-import { IconFile, IconFolder, IconSave, IconSwap, IconExclamationCircleFill } from '@arco-design/web-vue/es/icon'
 import {
-  validateDefineLinkToml,
-  DEFAULT_DEFINE_LINK_TEMPLATE
-} from '@/utils/smlGenerator'
+  IconCloseCircle,
+  IconFile,
+  IconFolder,
+  IconSave,
+  IconSwap,
+  IconExclamationCircleFill
+} from '@arco-design/web-vue/es/icon'
+import { validateDefineLinkToml, DEFAULT_DEFINE_LINK_TEMPLATE } from '@/utils/smlGenerator'
 import { useEventBind } from '../composables/useEventBind'
 
 const props = defineProps<{
@@ -132,21 +161,32 @@ const originalContent = ref(DEFAULT_DEFINE_LINK_TEMPLATE)
 
 // Preview state
 const previewType = ref<'s2f37' | 's2f35' | 's2f33' | 'all'>('all')
-const activePreviewTab = ref<'s2f37DisableAllEvents' | 's2f35DisableLink' | 's2f33DisableReport' | 's2f33DefineReport' | 's2f35EnableLinkEvent' | 's2f37EnableAllEvents'>('s2f37EnableAllEvents')
+const activePreviewTab = ref<
+  | 's2f37DisableAllEvents'
+  | 's2f35DisableLink'
+  | 's2f33DisableReport'
+  | 's2f33DefineReport'
+  | 's2f35EnableLinkEvent'
+  | 's2f37EnableAllEvents'
+>('s2f33DefineReport')
 const previewContent = ref('')
 
 // Validation
 const validationError = ref('')
 
 // Generated files
-const generatedFiles = ref<{
-  s2f37DisableAllEvents: string
-  s2f35DisableLink: string
-  s2f33DisableReport: string
-  s2f33DefineReport: string
-  s2f35EnableLinkEvent: string
-  s2f37EnableAllEvents: string
-} | null | undefined>(null)
+const generatedFiles = ref<
+  | {
+      s2f37DisableAllEvents: string
+      s2f35DisableLink: string
+      s2f33DisableReport: string
+      s2f33DefineReport: string
+      s2f35EnableLinkEvent: string
+      s2f37EnableAllEvents: string
+    }
+  | null
+  | undefined
+>(null)
 const savePath = ref('')
 
 // Loading states
@@ -268,7 +308,8 @@ async function handleConvert() {
 // Generate save path
 function generateSavePath(): string {
   const now = new Date()
-  const timestamp = now.getFullYear().toString().slice(-2) +
+  const timestamp =
+    now.getFullYear().toString().slice(-2) +
     String(now.getMonth() + 1).padStart(2, '0') +
     String(now.getDate()).padStart(2, '0') +
     String(now.getHours()).padStart(2, '0') +
@@ -314,7 +355,7 @@ function handleCancel() {
 </script>
 
 <style scoped lang="less">
-.define-link-container {
+.event-bind-container {
   flex: 1;
   display: flex;
   gap: 16px;

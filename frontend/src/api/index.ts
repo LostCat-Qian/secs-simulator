@@ -28,8 +28,8 @@ interface IpcApiRoute {
   listScripts: string
   listSerialPorts: string
   // define link
-  createDefineLinkFolder: string
-  saveDefineLinkFiles: string
+  createEventBindFolder: string
+  saveEventBindFiles: string
   generateEventBindFiles: string
 }
 
@@ -58,10 +58,10 @@ const ipcApiRoute: IpcApiRoute = {
   isAutoReplyEnabled: 'controller/autoReply/isEnabled',
   listScripts: 'controller/autoReply/listScripts',
   listSerialPorts: 'controller/engine/listSerialPorts',
-  // define link
-  createDefineLinkFolder: 'controller/defineLink/createFolder',
-  saveDefineLinkFiles: 'controller/defineLink/saveFiles',
-  generateEventBindFiles: 'controller/defineLink/generateEventBindFiles'
+  // event bind
+  createEventBindFolder: 'controller/eventBind/createFolder',
+  saveEventBindFiles: 'controller/eventBind/saveFiles',
+  generateEventBindFiles: 'controller/eventBind/generateEventBindFiles'
 }
 
 export { ipcApiRoute }

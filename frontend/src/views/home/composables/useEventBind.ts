@@ -52,17 +52,14 @@ export function useEventBind() {
     }
   }
 
-  async function saveDefineLinkFiles(
-    folderPath: string,
-    files: EventBindFile[]
-  ): Promise<SaveResult> {
+  async function saveEventBindFiles(folderPath: string, files: EventBindFile[]): Promise<SaveResult> {
     if (!ipc) {
       throw new Error('IPC not available')
     }
 
     saving.value = true
     try {
-      const result: any = await ipc.invoke(ipcApiRoute.saveDefineLinkFiles, {
+      const result: any = await ipc.invoke(ipcApiRoute.saveEventBindFiles, {
         folderPath,
         files
       })
@@ -82,14 +79,13 @@ export function useEventBind() {
     }
   }
 
-  async function handleSaveDefineLink(payload: {
-    folderPath: string
-    files: EventBindFile[]
-  }) {
+  async function handleSaveEventBind(eventBindPayload: { folderPath: string; files: EventBindFile[] }) {
     try {
-      const result = await saveDefineLinkFiles(payload.folderPath, payload.files)
+      const result = await saveEventBindFiles(eventBindPayload.folderPath, eventBindPayload.files)
       Message.success(
-        `EventBind saved successfully!\nSaved to: sml/DefineLink/${payload.folderPath}/\nFiles: ${result.files?.join(', ')}`
+        `EventBind saved successfully!\nSaved to: sml/EventBind/${
+          eventBindPayload.folderPath
+        }/\nFiles: ${result.files?.join(', ')}`
       )
       return result
     } catch (error: any) {
@@ -104,7 +100,7 @@ export function useEventBind() {
     saving,
     generating,
     generateEventBindFiles,
-    saveDefineLinkFiles,
-    handleSaveDefineLink
+    saveEventBindFiles,
+    handleSaveEventBind
   }
 }

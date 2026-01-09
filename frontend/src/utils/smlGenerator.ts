@@ -8,8 +8,8 @@
 import toml from 'toml'
 
 export interface DefineLinkConfig {
-  ceidRptidBinding: Record<string, string>
-  rptidCeidBinding: Record<string, string>
+  ceidRptidBinding: Record<string, string[]>
+  rptidCeidBinding: Record<string, string[]>
 }
 
 /**
@@ -49,16 +49,17 @@ export const DEFAULT_DEFINE_LINK_TEMPLATE = `# DefineLink Configuration Template
 # Format: CEID_RPTID_BINDING section maps Collection Event IDs to Report IDs
 # Format: RPTID_CEID_BINDING section shows which CEIDs use each RPTID (for reference)
 
+# value is an array of Report IDs
 [CEID_RPTID_BINDING]
 # CEID = RPTID
-# Example: When CEID 1001 occurs, send Report 2001
-1001 = 2001
-1002 = 3001
-1003 = 2001
+1001 = [2001, 2002]
+1002 = [2002, 3001]
+1003 = [2001]
 
+# value is an array of Collection Event IDs
 [RPTID_CEID_BINDING]
 # RPTID = CEID (optional - shows reference mapping)
-# Example: Report 2001 is sent when CEID 2004 occurs
-2001 = 2004
-3001 = 2001
+2001 = [2004]
+2002 = [2005]
+3001 = [2001]
 `

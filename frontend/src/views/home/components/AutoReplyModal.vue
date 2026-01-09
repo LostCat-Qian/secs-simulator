@@ -1,6 +1,14 @@
 <template>
-  <a-modal :visible="visible" :title="isEditMode ? 'Edit Auto Reply Script' : 'Add Auto Reply Script'"
-    :mask-closable="false" width="80vw" ok-text="Save" cancel-text="Cancel" @ok="handleOk" @cancel="handleCancel">
+  <a-modal
+    :visible="visible"
+    :title="isEditMode ? 'Edit Auto Reply Script' : 'Add Auto Reply Script'"
+    :mask-closable="false"
+    width="80vw"
+    ok-text="Save"
+    cancel-text="Cancel"
+    @ok="handleOk"
+    @cancel="handleCancel"
+  >
     <a-form layout="vertical" :model="form">
       <a-row :gutter="16">
         <a-col :span="4">
@@ -30,8 +38,12 @@
       </a-row>
       <a-form-item label="Script">
         <div class="auto-reply-editor-wrapper">
-          <vue-monaco-editor v-model:value="form.script" language="javascript" theme="vs-dark"
-            :options="editorOptions" />
+          <vue-monaco-editor
+            v-model:value="form.script"
+            language="javascript"
+            theme="vs-dark"
+            :options="editorOptions"
+          />
         </div>
       </a-form-item>
     </a-form>
@@ -39,20 +51,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
-import type { AutoReplyFormData, EngineData } from '../types';
+import { ref, watch, computed } from 'vue'
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+import type { AutoReplyFormData, EngineData } from '../types'
 
 const props = defineProps<{
-  visible: boolean;
-  initialData: AutoReplyFormData | null;
-  engines: EngineData[];
-}>();
+  visible: boolean
+  initialData: AutoReplyFormData | null
+  engines: EngineData[]
+}>()
 
 const emit = defineEmits<{
-  (e: 'update:visible', visible: boolean): void;
-  (e: 'submit', data: AutoReplyFormData): void;
-}>();
+  (e: 'update:visible', visible: boolean): void
+  (e: 'submit', data: AutoReplyFormData): void
+}>()
 
 const defaultAutoReplyScript = `/**
  * Auto reply handler
@@ -80,9 +92,9 @@ const form = ref<AutoReplyFormData>({
   active: true,
   delaySeconds: 0,
   script: defaultAutoReplyScript
-});
+})
 
-const isEditMode = computed(() => !!props.initialData?.handlerSf); // Heuristic for edit mode, or pass it as prop if needed
+const isEditMode = computed(() => !!props.initialData?.handlerSf) // Heuristic for edit mode, or pass it as prop if needed
 
 const editorOptions = {
   automaticLayout: true,
@@ -91,14 +103,14 @@ const editorOptions = {
   lineNumbers: 'on',
   scrollBeyondLastLine: false,
   wordWrap: 'on'
-};
+}
 
 watch(
   () => props.visible,
   (val) => {
     if (val) {
       if (props.initialData) {
-        form.value = { ...props.initialData };
+        form.value = { ...props.initialData }
       } else {
         // Reset form for new entry
         form.value = {
@@ -107,19 +119,19 @@ watch(
           active: true,
           delaySeconds: 0,
           script: defaultAutoReplyScript
-        };
+        }
       }
     }
   }
-);
+)
 
 const handleOk = () => {
-  emit('submit', form.value);
-};
+  emit('submit', form.value)
+}
 
 const handleCancel = () => {
-  emit('update:visible', false);
-};
+  emit('update:visible', false)
+}
 </script>
 
 <style scoped>

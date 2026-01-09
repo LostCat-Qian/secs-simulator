@@ -23,16 +23,32 @@
         <div class="sider-content">
           <!-- Engines List Area -->
           <a-resize-box :directions="['bottom']" class="engine-box">
-            <EngineList :engines="engineList" @add="openAddEngineModal" @select="selectEngine" @open="handleOpenEngine"
-              @close="handleCloseEngine" @edit="handleEditEngine" @delete="handleDeleteEngine"
-              @viewConfig="handleViewConfig" />
+            <EngineList
+              :engines="engineList"
+              @add="openAddEngineModal"
+              @select="selectEngine"
+              @open="handleOpenEngine"
+              @close="handleCloseEngine"
+              @edit="handleEditEngine"
+              @delete="handleDeleteEngine"
+              @viewConfig="handleViewConfig"
+            />
           </a-resize-box>
 
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
-            <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" @addFile="handleAddFile"
-              @addFolder="handleAddFolder" @addRootFile="handleAddRootFile" @addRootFolder="openAddRootFolderModal" />
+            <FileTree
+              :tree-data="fileTreeData"
+              :engines="engineList"
+              @edit="handleEditFile"
+              @delete="handleDeleteFile"
+              @sendTo="handleSendFileTo"
+              @selectFile="handlePreviewFile"
+              @addFile="handleAddFile"
+              @addFolder="handleAddFolder"
+              @addRootFile="handleAddRootFile"
+              @addRootFolder="openAddRootFolderModal"
+            />
           </div>
 
           <!-- File Preview Area -->
@@ -55,16 +71,30 @@
             <!-- Single Log Panel -->
             <template v-if="logPanels.length === 1">
               <div class="log-panel-item single-panel">
-                <LogPanel :title="logPanels[0].title" :logs="logPanels[0].logs" @clear="clearLogs(logPanels[0].id)"
-                  @close="handleCloseLogPanel(logPanels[0].id)" />
+                <LogPanel
+                  :title="logPanels[0].title"
+                  :logs="logPanels[0].logs"
+                  @clear="clearLogs(logPanels[0].id)"
+                  @close="handleCloseLogPanel(logPanels[0].id)"
+                />
               </div>
             </template>
             <!-- Multiple Log Panels -->
             <template v-else-if="logPanels.length > 1">
-              <a-resize-box v-for="panel in logPanels" :key="panel.id" :directions="['right']" class="log-panel-item"
-                :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }" :min-width="200">
-                <LogPanel :title="panel.title" :logs="panel.logs" @clear="clearLogs(panel.id)"
-                  @close="handleCloseLogPanel(panel.id)" />
+              <a-resize-box
+                v-for="panel in logPanels"
+                :key="panel.id"
+                :directions="['right']"
+                class="log-panel-item"
+                :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }"
+                :min-width="200"
+              >
+                <LogPanel
+                  :title="panel.title"
+                  :logs="panel.logs"
+                  @clear="clearLogs(panel.id)"
+                  @close="handleCloseLogPanel(panel.id)"
+                />
               </a-resize-box>
             </template>
             <!-- No Log Panels -->
@@ -77,75 +107,79 @@
         </div>
 
         <a-resize-box :directions="['top']" class="auto-reply-box">
-          <AutoReplyPanel :data="tableData" v-model:searchText="searchText" @add="addAutoReply" @edit="editAutoReply"
-            @delete="handleDeleteAutoReply" />
+          <AutoReplyPanel
+            :data="tableData"
+            v-model:searchText="searchText"
+            @add="addAutoReply"
+            @edit="editAutoReply"
+            @delete="handleDeleteAutoReply"
+          />
         </a-resize-box>
       </a-layout-content>
     </a-layout>
 
     <!-- Modals -->
-    <AddEngineModal v-model:visible="addEngineModalVisible"
-      :initial-data="editingEngine ? editingEngine.config : undefined" @submit="handleAddEngine" />
+    <AddEngineModal
+      v-model:visible="addEngineModalVisible"
+      :initial-data="editingEngine ? editingEngine.config : undefined"
+      @submit="handleAddEngine"
+    />
 
-    <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
-      :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
+    <FileEditorModal
+      v-model:visible="fileEditorModalVisible"
+      :file-name="editingFileName"
+      :initial-content="editingFileContent"
+      :editable-name="isCreateMode"
+      @save="handleSaveFile"
+    />
 
     <AddFolderModal v-model:visible="addRootFolderModalVisible" @submit="confirmAddRootFolder" />
     <AddFolderModal v-model:visible="addSubFolderModalVisible" @submit="confirmAddSubFolder" />
 
-    <AutoReplyModal v-model:visible="autoReplyModalVisible" :initial-data="autoReplyForm" :engines="engineList"
-      @submit="handleSaveAutoReply" />
+    <AutoReplyModal
+      v-model:visible="autoReplyModalVisible"
+      :initial-data="autoReplyForm"
+      :engines="engineList"
+      @submit="handleSaveAutoReply"
+    />
 
     <EventBindModal v-model:visible="eventBindModalVisible" @save="handleSaveEventBind" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { TreeNodeData, Message } from '@arco-design/web-vue';
-import { ipc } from '@/utils/ipcRenderer';
-import { ipcApiRoute } from '@/api';
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { TreeNodeData, Message } from '@arco-design/web-vue'
+import { ipc } from '@/utils/ipcRenderer'
+import { ipcApiRoute } from '@/api'
 
 // Components
-import EngineList from './components/EngineList.vue';
-import FileTree from './components/FileTree.vue';
-import FilePreview from './components/FilePreview.vue';
-import LogPanel from './components/LogPanel.vue';
-import AutoReplyPanel from './components/AutoReplyPanel.vue';
-import AddEngineModal from './components/AddEngineModal.vue';
-import FileEditorModal from './components/FileEditorModal.vue';
-import AddFolderModal from './components/AddFolderModal.vue';
-import AutoReplyModal from './components/AutoReplyModal.vue';
-import EventBindModal from './components/EventBindModal.vue';
+import EngineList from './components/EngineList.vue'
+import FileTree from './components/FileTree.vue'
+import FilePreview from './components/FilePreview.vue'
+import LogPanel from './components/LogPanel.vue'
+import AutoReplyPanel from './components/AutoReplyPanel.vue'
+import AddEngineModal from './components/AddEngineModal.vue'
+import FileEditorModal from './components/FileEditorModal.vue'
+import AddFolderModal from './components/AddFolderModal.vue'
+import AutoReplyModal from './components/AutoReplyModal.vue'
+import EventBindModal from './components/EventBindModal.vue'
 
 // Types
-import type { EngineData, AutoReplyFormData, AutoReplyItem, SmlTreeNode } from './types';
+import type { EngineData, AutoReplyFormData, AutoReplyItem, SmlTreeNode } from './types'
 
 // Composables
-import { useEngine } from './composables/useEngine';
-import { useLogPanels } from './composables/useLogPanels';
-import { useFileTree } from './composables/useFileTree';
-import { useAutoReply } from './composables/useAutoReply';
-import { useEventBind } from './composables/useEventBind';
+import { useEngine } from './composables/useEngine'
+import { useLogPanels } from './composables/useLogPanels'
+import { useFileTree } from './composables/useFileTree'
+import { useAutoReply } from './composables/useAutoReply'
+import { useEventBind } from './composables/useEventBind'
 
 // #region --- Composables Setup ---
-const {
-  engineList,
-  loadEngineConfigs,
-  saveEngineConfig,
-  deleteEngine,
-  startEngine,
-  stopEngine,
-  updateEngineStatus
-} = useEngine();
+const { engineList, loadEngineConfigs, saveEngineConfig, deleteEngine, startEngine, stopEngine, updateEngineStatus } =
+  useEngine()
 
-const {
-  logPanels,
-  addLogPanel,
-  removePanel,
-  clearLogs,
-  addLogEntry
-} = useLogPanels();
+const { logPanels, addLogPanel, removePanel, clearLogs, addLogEntry } = useLogPanels()
 
 const {
   fileTreeData,
@@ -162,7 +196,7 @@ const {
   deleteNode,
   prepareAddFile,
   prepareEditFile
-} = useFileTree();
+} = useFileTree()
 
 const {
   tableData,
@@ -171,213 +205,208 @@ const {
   getScriptDetail,
   saveAutoReplyScript,
   deleteAutoReplyScript
-} = useAutoReply();
+} = useAutoReply()
 
-const {
-  saveDefineLinkFiles
-} = useEventBind();
+const { saveEventBindFiles } = useEventBind()
 
 // #endregion
 
 // #region --- Local State ---
 
 // Engine Modal State
-const addEngineModalVisible = ref(false);
-const editingEngine = ref<EngineData | null>(null);
-const selectedEngineFileName = ref<string | null>(null);
+const addEngineModalVisible = ref(false)
+const editingEngine = ref<EngineData | null>(null)
+const selectedEngineFileName = ref<string | null>(null)
 
 // File Modal State
-const fileEditorModalVisible = ref(false);
-const addRootFolderModalVisible = ref(false);
-const addSubFolderModalVisible = ref(false);
-const creatingSubFolderPath = ref('');
+const fileEditorModalVisible = ref(false)
+const addRootFolderModalVisible = ref(false)
+const addSubFolderModalVisible = ref(false)
+const creatingSubFolderPath = ref('')
 
 // Auto Reply State
-const searchText = ref('');
-const autoReplyModalVisible = ref(false);
-const autoReplyForm = ref<AutoReplyFormData | null>(null);
-const editingAutoReplyName = ref<string | null>(null);
+const searchText = ref('')
+const autoReplyModalVisible = ref(false)
+const autoReplyForm = ref<AutoReplyFormData | null>(null)
+const editingAutoReplyName = ref<string | null>(null)
 
 // EventBind State
-const eventBindModalVisible = ref(false);
+const eventBindModalVisible = ref(false)
 
 // #endregion
 
 // #region --- Engine Handlers ---
 
 const openAddEngineModal = () => {
-  editingEngine.value = null;
-  addEngineModalVisible.value = true;
-};
+  editingEngine.value = null
+  addEngineModalVisible.value = true
+}
 
 const handleEditEngine = (engine: EngineData) => {
-  editingEngine.value = engine;
-  addEngineModalVisible.value = true;
-};
+  editingEngine.value = engine
+  addEngineModalVisible.value = true
+}
 
 const handleAddEngine = async (formData: any) => {
-  const success = await saveEngineConfig(formData, editingEngine.value);
+  const success = await saveEngineConfig(formData, editingEngine.value)
   if (success) {
-    addEngineModalVisible.value = false;
-    editingEngine.value = null;
+    addEngineModalVisible.value = false
+    editingEngine.value = null
   }
-};
+}
 
 const handleDeleteEngine = async (engine: EngineData) => {
-  await deleteEngine(engine);
-};
+  await deleteEngine(engine)
+}
 
 const selectEngine = (engine: EngineData) => {
-  selectedEngineFileName.value = engine.fileName;
-};
+  selectedEngineFileName.value = engine.fileName
+}
 
 const handleOpenEngine = (engine: EngineData) => {
-  startEngine(engine);
+  startEngine(engine)
   // Add log panel when opening engine
-  const index = engineList.value.findIndex(e => e.fileName === engine.fileName);
-  addLogPanel(engine, index);
-};
+  const index = engineList.value.findIndex((e) => e.fileName === engine.fileName)
+  addLogPanel(engine, index)
+}
 
 const handleCloseEngine = async (engine: EngineData) => {
   try {
-    await stopEngine(engine.name, engine.fileName);
+    await stopEngine(engine.name, engine.fileName)
     // Close associated log panels
-    const panels = logPanels.value.filter(panel => panel.engineName === engine.name);
-    panels.forEach(panel => {
-      clearLogs(panel.id);
-      removePanel(panel.id); // Direct remove without stopping engine again
-    });
+    const panels = logPanels.value.filter((panel) => panel.engineName === engine.name)
+    panels.forEach((panel) => {
+      clearLogs(panel.id)
+      removePanel(panel.id) // Direct remove without stopping engine again
+    })
   } catch (error) {
     // Error handled in useEngine
   }
-};
+}
 
 const handleViewConfig = (engine: EngineData) => {
-  const pretty = JSON.stringify(engine.config || {}, null, 2);
-  filePreviewContent.value = `// Configuration for ${engine.name}\n${pretty}`;
-};
+  const pretty = JSON.stringify(engine.config || {}, null, 2)
+  filePreviewContent.value = `// Configuration for ${engine.name}\n${pretty}`
+}
 
 // #endregion
 
 // #region --- Log Panel Handlers ---
 
 const handleCloseLogPanel = async (panelId: string) => {
-  const panel = logPanels.value.find(p => p.id === panelId);
-  if (!panel) return;
+  const panel = logPanels.value.find((p) => p.id === panelId)
+  if (!panel) return
 
-  const engineName = panel.engineName || '';
-  const isEnginePanel = engineName && engineName !== 'All Engines';
+  const engineName = panel.engineName || ''
+  const isEnginePanel = engineName && engineName !== 'All Engines'
 
   // If it's an engine panel, stop the engine first
   if (isEnginePanel) {
     try {
-      await stopEngine(engineName);
+      await stopEngine(engineName)
     } catch (error) {
-      console.error('Failed to stop engine when closing log panel:', error);
-      // We still remove the panel even if stop failed? 
+      console.error('Failed to stop engine when closing log panel:', error)
+      // We still remove the panel even if stop failed?
       // Original code did removePanel() in catch block.
     }
   }
 
-  removePanel(panelId);
-};
+  removePanel(panelId)
+}
 
 // #endregion
 
 // #region --- File Tree Handlers ---
 
 const handleAddRootFile = () => {
-  prepareAddFile('');
-  fileEditorModalVisible.value = true;
-};
+  prepareAddFile('')
+  fileEditorModalVisible.value = true
+}
 
 const handleAddFile = (node: TreeNodeData) => {
-  const target = node as SmlTreeNode;
-  prepareAddFile(target.key || '');
-  fileEditorModalVisible.value = true;
-};
+  const target = node as SmlTreeNode
+  prepareAddFile(target.key || '')
+  fileEditorModalVisible.value = true
+}
 
 const handleEditFile = async (node: TreeNodeData) => {
-  await prepareEditFile(node);
+  await prepareEditFile(node)
   if (editingFileContent.value) {
-    fileEditorModalVisible.value = true;
+    fileEditorModalVisible.value = true
   }
-};
+}
 
 const handlePreviewFile = async (node: TreeNodeData) => {
-  await loadFileContent(node);
-};
+  await loadFileContent(node)
+}
 
 const handleSaveFile = async (payload: { name: string; content: string }) => {
-  const success = await saveFile(payload);
+  const success = await saveFile(payload)
   if (success) {
-    fileEditorModalVisible.value = false;
+    fileEditorModalVisible.value = false
   }
-};
+}
 
 const handleDeleteFile = async (node: TreeNodeData) => {
-  await deleteNode(node);
-};
+  await deleteNode(node)
+}
 
 const openAddRootFolderModal = () => {
-  addRootFolderModalVisible.value = true;
-};
+  addRootFolderModalVisible.value = true
+}
 
 const confirmAddRootFolder = async (folderName: string) => {
-  const success = await createFolder(folderName);
+  const success = await createFolder(folderName)
   if (success) {
-    addRootFolderModalVisible.value = false;
+    addRootFolderModalVisible.value = false
   }
-};
+}
 
 const handleAddFolder = (node: TreeNodeData) => {
-  const target = node as SmlTreeNode;
-  creatingSubFolderPath.value = target.key || '';
-  addSubFolderModalVisible.value = true;
-};
+  const target = node as SmlTreeNode
+  creatingSubFolderPath.value = target.key || ''
+  addSubFolderModalVisible.value = true
+}
 
 const confirmAddSubFolder = async (folderName: string) => {
-  const success = await createFolder(folderName, creatingSubFolderPath.value);
+  const success = await createFolder(folderName, creatingSubFolderPath.value)
   if (success) {
-    addSubFolderModalVisible.value = false;
-    creatingSubFolderPath.value = '';
+    addSubFolderModalVisible.value = false
+    creatingSubFolderPath.value = ''
   }
-};
+}
 
-const handleSendFileTo = async (payload: { file: TreeNodeData, engineName: string }) => {
-  const target = payload.file as SmlTreeNode;
-  const filePath = String(target.key || '');
+const handleSendFileTo = async (payload: { file: TreeNodeData; engineName: string }) => {
+  const target = payload.file as SmlTreeNode
+  const filePath = String(target.key || '')
 
   if (!ipc) {
-    Message.error('Cannot send message');
-    return;
+    Message.error('Cannot send message')
+    return
   }
 
   if (!filePath) {
-    Message.error('Invalid file path');
-    return;
+    Message.error('Invalid file path')
+    return
   }
 
   try {
     const result: any = await ipc.invoke(ipcApiRoute.sendMessageFromFile, {
       name: payload.engineName,
       filePath
-    });
+    })
 
     if (result && result.hasReply && result.replySml) {
-      Message.success(`Sent ${target.title} to ${payload.engineName} (reply received)`);
+      Message.success(`Sent ${target.title} to ${payload.engineName} (reply received)`)
     } else {
-      Message.success(`Sent ${target.title} to ${payload.engineName}`);
+      Message.success(`Sent ${target.title} to ${payload.engineName}`)
     }
   } catch (error: any) {
-    console.error('Failed to send file to engine:', error);
-    const msg =
-      error && typeof error.message === 'string'
-        ? error.message
-        : 'Failed to send file to engine';
-    Message.error(msg);
+    console.error('Failed to send file to engine:', error)
+    const msg = error && typeof error.message === 'string' ? error.message : 'Failed to send file to engine'
+    Message.error(msg)
   }
-};
+}
 
 // #endregion
 
@@ -390,56 +419,56 @@ const addAutoReply = () => {
     active: true,
     delaySeconds: 0,
     script: defaultAutoReplyScript
-  };
-  editingAutoReplyName.value = null;
-  autoReplyModalVisible.value = true;
-};
+  }
+  editingAutoReplyName.value = null
+  autoReplyModalVisible.value = true
+}
 
 const editAutoReply = async (item: AutoReplyItem) => {
   try {
-    const result: any = await getScriptDetail(item.name);
+    const result: any = await getScriptDetail(item.name)
     autoReplyForm.value = {
       tool: String(result.tool || item.tool || ''),
       handlerSf: String(result.sf || item.sf || ''),
       active: Boolean(typeof result.active === 'boolean' ? result.active : item.active),
-      delaySeconds: Number.isFinite(Number(result.delaySeconds))
-        ? Number(result.delaySeconds)
-        : item.delaySeconds,
+      delaySeconds: Number.isFinite(Number(result.delaySeconds)) ? Number(result.delaySeconds) : item.delaySeconds,
       script: String(result.code || '')
-    };
-    editingAutoReplyName.value = item.name;
-    autoReplyModalVisible.value = true;
+    }
+    editingAutoReplyName.value = item.name
+    autoReplyModalVisible.value = true
   } catch (error) {
-    console.error('Failed to load auto reply script detail:', error);
-    Message.error('Failed to load auto reply script detail');
+    console.error('Failed to load auto reply script detail:', error)
+    Message.error('Failed to load auto reply script detail')
   }
-};
+}
 
 const handleSaveAutoReply = async (form: AutoReplyFormData) => {
-  const success = await saveAutoReplyScript(form, editingAutoReplyName.value);
+  const success = await saveAutoReplyScript(form, editingAutoReplyName.value)
   if (success) {
-    editingAutoReplyName.value = null;
-    autoReplyModalVisible.value = false;
+    editingAutoReplyName.value = null
+    autoReplyModalVisible.value = false
   }
-};
+}
 
 const handleDeleteAutoReply = async (item: AutoReplyItem) => {
-  await deleteAutoReplyScript(item);
-};
+  await deleteAutoReplyScript(item)
+}
 
 // #endregion
 
 // #region --- EventBind Handlers ---
 
 const openEventBindModal = () => {
-  eventBindModalVisible.value = true;
-};
+  eventBindModalVisible.value = true
+}
 
 const handleSaveEventBind = async (payload: { folderPath: string; files: { name: string; content: string }[] }) => {
   try {
-    const result = await saveDefineLinkFiles(payload.folderPath, payload.files)
+    const result = await saveEventBindFiles(payload.folderPath, payload.files)
     Message.success(
-      `EventBind saved successfully!\nSaved to: sml/DefineLink/${payload.folderPath}/\nFiles: ${result.files?.join(', ')}`
+      `EventBind saved successfully!\nSaved to: sml/EventBind/${payload.folderPath}/\nFiles: ${result.files?.join(
+        ', '
+      )}`
     )
     // 刷新FileTree目录
     loadFileTree()
@@ -458,37 +487,37 @@ onMounted(() => {
   if (ipc) {
     ipc.on('engine/log', (_event, payload: { name: string; level: string; type: string; message: string }) => {
       // Add log
-      addLogEntry(payload.name, payload.level || 'INFO', String(payload.message ?? ''));
+      addLogEntry(payload.name, payload.level || 'INFO', String(payload.message ?? ''))
 
       // If engine log comes in but no panel exists, create one
       // Note: addLogPanel checks for duplicates internally
-      const engine = engineList.value.find(e => e.name === payload.name);
+      const engine = engineList.value.find((e) => e.name === payload.name)
       if (engine) {
         // We only auto-add panel if it doesn't exist.
         // But addLogPanel already checks this.
         // However, we need the index.
-        const index = engineList.value.indexOf(engine);
+        const index = engineList.value.indexOf(engine)
         // Maybe we don't force open panel on every log? Original code did:
         // if (targetPanels.length === 0) { addLogPanel(engine); }
         // So yes, it auto-opens.
-        addLogPanel(engine, index);
+        addLogPanel(engine, index)
       }
 
       // Update engine status
-      updateEngineStatus(payload.name, payload.type);
-    });
+      updateEngineStatus(payload.name, payload.type)
+    })
   }
 
-  loadEngineConfigs();
-  loadFileTree();
-  loadAutoReplyScripts();
-});
+  loadEngineConfigs()
+  loadFileTree()
+  loadAutoReplyScripts()
+})
 
 onBeforeUnmount(() => {
   if (ipc) {
-    ipc.removeAllListeners('engine/log');
+    ipc.removeAllListeners('engine/log')
   }
-});
+})
 
 // #endregion
 </script>
