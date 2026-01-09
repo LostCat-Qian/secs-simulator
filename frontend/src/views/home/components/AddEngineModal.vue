@@ -266,7 +266,19 @@ watch(
     } else if (/\s/.test(name) || name.includes('-')) {
       nameError.value = 'Engine name cannot contain spaces or "-"';
     } else {
-      nameError.value = '';
+      // Check for duplicate names
+      const isDuplicate = props.existingNames?.some(
+        (existingName) => existingName.toLowerCase() === name.toLowerCase()
+      );
+      
+      // If editing, ignore the current name
+      const isSelf = props.initialData && String(props.initialData.name).toLowerCase() === name.toLowerCase();
+      
+      if (isDuplicate && !isSelf) {
+        nameError.value = 'Engine name already exists';
+      } else {
+        nameError.value = '';
+      }
     }
   },
   { immediate: true }
@@ -275,14 +287,32 @@ watch(
 const handleOk = () => {
   const name = String(form.value.name || '');
 
+  // Trigger validation
   if (!name || /\s/.test(name) || name.includes('-')) {
-    if (!nameError.value) {
-      if (!name) {
-        nameError.value = 'Engine name is required';
-      } else {
-        nameError.value = 'Engine name cannot contain spaces or "-"';
-      }
+     // Re-run watch logic to set error
+     const event = { target: { value: name } }; // Mock event if needed, or just force update
+     // Actually the watch handles setting nameError.
+     // We just need to check if nameError is present or needs to be set.
+  }
+
+  // Force re-validation logic
+  let error = '';
+  if (!name) {
+    error = 'Engine name is required';
+  } else if (/\s/.test(name) || name.includes('-')) {
+    error = 'Engine name cannot contain spaces or "-"';
+  } else {
+    const isDuplicate = props.existingNames?.some(
+      (existingName) => existingName.toLowerCase() === name.toLowerCase()
+    );
+    const isSelf = props.initialData && String(props.initialData.name).toLowerCase() === name.toLowerCase();
+    if (isDuplicate && !isSelf) {
+      error = 'Engine name already exists';
     }
+  }
+  nameError.value = error;
+
+  if (nameError.value) {
     return;
   }
 

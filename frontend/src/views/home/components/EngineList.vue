@@ -11,33 +11,41 @@
 
     <!-- Engine List -->
     <div class="list-container">
-      <div v-for="(item, index) in engines" :key="index" :class="[
-        'engine-item',
-        {
-          active: item.status === 'running',
-          waiting: item.status === 'connecting'
-        }
-      ]" @click="$emit('select', item)">
+      <div
+        v-for="(item, index) in engines"
+        :key="index"
+        :class="[
+          'engine-item',
+          {
+            active: item.status === 'running',
+            waiting: item.status === 'connecting'
+          }
+        ]"
+        @click="$emit('select', item)"
+      >
         <div class="engine-icon">
           <icon-folder />
         </div>
         <div class="engine-info">
           <div class="engine-name" :title="item.name">{{ item.name }}</div>
           <div v-if="item.status === 'running' || item.status === 'connecting'" class="engine-status">
-            <span class="status-dot" :class="{
-              waiting: item.status === 'connecting',
-              active: item.status === 'running'
-            }"></span>
+            <span
+              class="status-dot"
+              :class="{
+                waiting: item.status === 'connecting',
+                active: item.status === 'running'
+              }"
+            ></span>
             <span v-if="item.status === 'running'" class="status-text active">ACTIVE</span>
             <span v-else-if="item.status === 'connecting'" class="status-text waiting">Waiting connect</span>
           </div>
         </div>
 
-        <a-dropdown @select="(value: string | number | Record<string, any>) => handleMenuSelect(value, item)"
-          :popup-max-height="false">
-          <a-button size="mini" class="action-btn" @click.stop>
-            Options <icon-down />
-          </a-button>
+        <a-dropdown
+          @select="(value: string | number | Record<string, any>) => handleMenuSelect(value, item)"
+          :popup-max-height="false"
+        >
+          <a-button size="mini" class="action-btn" @click.stop> Options <icon-down /> </a-button>
           <template #content>
             <a-doption value="open" :disabled="item.status === 'running' || item.status === 'connecting'">
               <icon-apps /> Open
@@ -46,9 +54,13 @@
               <icon-close-circle /> Close
             </a-doption>
             <a-doption value="viewConfig"><icon-settings /> View Config</a-doption>
-            <a-doption value="edit" :disabled="item.status === 'running' || item.status === 'connecting'"><icon-edit />
-              Edit Config</a-doption>
-            <a-doption value="delete"><icon-delete /> Delete</a-doption>
+            <a-doption value="edit" :disabled="item.status === 'running' || item.status === 'connecting'"
+              ><icon-edit /> Edit Config
+            </a-doption>
+            <a-doption value="delete" :disabled="item.status === 'running' || item.status === 'connecting'">
+              <icon-delete />
+              Delete
+            </a-doption>
           </template>
         </a-dropdown>
       </div>
@@ -62,22 +74,31 @@
 </template>
 
 <script setup lang="ts">
-import { IconPlus, IconFolder, IconEdit, IconDelete, IconApps, IconSettings, IconDown, IconCloseCircle } from '@arco-design/web-vue/es/icon';
-import type { EngineData } from '../types';
+import {
+  IconPlus,
+  IconFolder,
+  IconEdit,
+  IconDelete,
+  IconApps,
+  IconSettings,
+  IconDown,
+  IconCloseCircle
+} from '@arco-design/web-vue/es/icon'
+import type { EngineData } from '../types'
 
 defineProps<{
-  engines: EngineData[];
-}>();
+  engines: EngineData[]
+}>()
 
 const emit = defineEmits<{
-  (e: 'add'): void;
-  (e: 'select', engine: EngineData): void;
-  (e: 'open', engine: EngineData): void;
-  (e: 'close', engine: EngineData): void;
-  (e: 'edit', engine: EngineData): void;
-  (e: 'delete', engine: EngineData): void;
-  (e: 'viewConfig', engine: EngineData): void;
-}>();
+  (e: 'add'): void
+  (e: 'select', engine: EngineData): void
+  (e: 'open', engine: EngineData): void
+  (e: 'close', engine: EngineData): void
+  (e: 'edit', engine: EngineData): void
+  (e: 'delete', engine: EngineData): void
+  (e: 'viewConfig', engine: EngineData): void
+}>()
 
 /**
  * Handles dropdown menu selection for a specific engine.
@@ -85,25 +106,25 @@ const emit = defineEmits<{
  * @param item The engine item
  */
 const handleMenuSelect = (value: string | number | Record<string, any>, item: EngineData) => {
-  const action = String(value);
+  const action = String(value)
   switch (action) {
     case 'open':
-      emit('open', item);
-      break;
+      emit('open', item)
+      break
     case 'close':
-      emit('close', item);
-      break;
+      emit('close', item)
+      break
     case 'viewConfig':
-      emit('viewConfig', item);
-      break;
+      emit('viewConfig', item)
+      break
     case 'edit':
-      emit('edit', item);
-      break;
+      emit('edit', item)
+      break
     case 'delete':
-      emit('delete', item);
-      break;
+      emit('delete', item)
+      break
   }
-};
+}
 </script>
 
 <style scoped lang="less">

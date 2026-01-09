@@ -62,12 +62,16 @@ class EngineService {
           const content = await fs.readFile(filePath, 'utf-8')
           const config = JSON.parse(content)
 
+          // Check if engine is running
+          const isRunning = engineInstances.has(config.name)
+
           configs.push({
             fileName: fileName,
-            config: config
+            config: config,
+            running: isRunning
           })
 
-          logger.debug(`✅ [getConfig] Loaded config: ${fileName}`)
+          logger.debug(`✅ [getConfig] Loaded config: ${fileName}, running: ${isRunning}`)
         } catch (fileError) {
           logger.error(`❌ [getConfig] Failed to read ${fileName}:`, fileError.message)
           // 继续处理其他文件，不中断整个流程

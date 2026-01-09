@@ -23,10 +23,11 @@ export function useEngine() {
           const fileName = String(item.fileName || '')
           const config = item.config || {}
           const name = String(config.name || fileName.replace(/\.json$/i, ''))
+          const isRunning = !!item.running
           return {
             name,
-            active: false,
-            status: 'idle',
+            active: isRunning,
+            status: isRunning ? 'running' : 'idle',
             fileName,
             config
           } as EngineData
@@ -102,8 +103,24 @@ export function useEngine() {
 
     const config = buildEngineConfigFromForm(formData)
 
+    // Client-side duplicate check
+    const existingEngine = engineList.value.find((e) => e.name.toLowerCase() === config.name.toLowerCase())
+
+    if (existingEngine) {
+      if (!editingEngine) {
+        // Creating new engine: name already exists
+        Message.error(`Engine "${config.name}" already exists`)
+        return false
+      } else if (editingEngine.name.toLowerCase() !== config.name.toLowerCase()) {
+        // Renaming engine: new name already exists
+        Message.error(`Engine "${config.name}" already exists`)
+        return false
+      }
+    }
+
     try {
-      await ipc.invoke(ipcApiRoute.saveEngineConfig, { config })
+      const oldName = editingEngine ? editingEngine.name : undefined
+      await ipc.invoke(ipcApiRoute.saveEngineConfig, { config, oldName })
 
       if (editingEngine && editingEngine.fileName) {
         const originalName = editingEngine.name

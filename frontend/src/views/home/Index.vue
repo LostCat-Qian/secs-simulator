@@ -7,6 +7,10 @@
           <icon-link />
           EventBind
         </a-button>
+        <a-button type="text" @click="handleAutoFlow">
+          <icon-link />
+          AutoFlow
+        </a-button>
       </div>
       <div class="toolbar-right">
         <img src="../../assets/logo.png" alt="Logo" class="app-logo" />
@@ -150,8 +154,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { TreeNodeData, Message } from '@arco-design/web-vue'
+import { IconLink, IconThunderbolt } from '@arco-design/web-vue/es/icon'
 import { ipc } from '@/utils/ipcRenderer'
 import { ipcApiRoute } from '@/api'
 
@@ -462,6 +467,10 @@ const handleDeleteAutoReply = async (item: AutoReplyItem) => {
 
 const openEventBindModal = () => {
   eventBindModalVisible.value = true
+}
+
+const handleAutoFlow = () => {
+  Message.info('comming soon...')
 }
 
 const handleSaveEventBind = async (payload: { folderPath: string; files: { name: string; content: string }[] }) => {
