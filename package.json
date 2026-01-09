@@ -1,6 +1,6 @@
 {
   "name": "secs-simulator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A SECS simulator based on electron-egg and secs4js.",
   "main": "./public/electron/main.js",
   "scripts": {
