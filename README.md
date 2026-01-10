@@ -32,6 +32,18 @@ Core Dependencies:
 <img src="./README_IMAGES/index.png" width="800" height="500" />
 </div>
 
+## 1.1 Communication with SECS/GEM Simulators
+
+`SEComSimulator`:
+<div align=center>
+<img src="./README_IMAGES/communicate-with-SEComSimulator.png" width="800" height="500" />
+</div>
+
+`FASTSim`:
+<div align=center>
+<img src="./README_IMAGES/communicate-with-FASTSim.png" width="800" height="500" />
+</div>
+
 # 2. Core Features
 
 ## 2.1 Engines

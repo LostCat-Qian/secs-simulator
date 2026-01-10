@@ -32,6 +32,18 @@
 <img src="./README_IMAGES/index.png" width="800" height="500" />
 </div>
 
+## 1.1 与现有 SECS/GEM Simulator 的通信表现
+
+`SEComSimulator`:
+<div align=center>
+<img src="./README_IMAGES/communicate-with-SEComSimulator.png" width="800" height="500" />
+</div>
+
+`FASTSim`:
+<div align=center>
+<img src="./README_IMAGES/communicate-with-FASTSim.png" width="800" height="500" />
+</div>
+
 # 2. 核心功能
 
 ## 2.1 Engines
