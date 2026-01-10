@@ -1,22 +1,12 @@
 {
   "productName": "ee",
-  "appId": "com.electron.ee",
-  "copyright": "© 2025 duola Technology Co., Ltd.",
+  "appId": "com.electron.secs-simulator",
+  "copyright": "© 2025 LostCat-Qian",
   "directories": {
     "output": "out"
   },
   "asar": true,
-  "files": [
-    "**/*",
-    "!cmd/",
-    "!data/",
-    "!electron/",
-    "!frontend/",
-    "!logs/",
-    "!out/",
-    "!go/",
-    "!python/"
-  ],
+  "files": ["**/*", "!cmd/", "!data/", "!electron/", "!frontend/", "!logs/", "!out/", "!go/", "!python/"],
   "extraFiles": [
     {
       "from": "engines/",
@@ -33,6 +23,10 @@
     {
       "from": "secs-logs/",
       "to": "secs-logs"
+    },
+    {
+      "from": "autoflows/",
+      "to": "autoflows"
     }
   ],
   "extraResources": {
@@ -48,12 +42,12 @@
     "installerHeaderIcon": "build/icons/icon.ico",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "ee"
+    "shortcutName": "secs-simulator"
   },
   "publish": [
     {
       "provider": "generic",
-      "url": "https://github.com/wallace5303/electron-egg"
+      "url": "https://github.com/LostCat-Qian/secs-simulator"
     }
   ],
   "win": {

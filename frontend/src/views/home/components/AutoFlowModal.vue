@@ -4,8 +4,8 @@
     <div class="autoflow-container">
       <div class="left-panel">
         <div class="panel-header">
-          <span class="title">流程列表</span>
-          <a-button size="mini" type="primary" @click="handleNewFlow">新建</a-button>
+          <span class="title">AutoFlow List</span>
+          <a-button size="mini" type="primary" @click="handleNewFlow">New</a-button>
         </div>
         <div class="flow-list">
           <a-list :bordered="false" size="small" :split="false">
@@ -26,39 +26,41 @@
       <div class="center-panel">
         <div class="top-toolbar">
           <a-space>
-            <a-select v-model="localTool" class="tool-select" placeholder="选择引擎" :disabled="runState === 'running'">
+            <a-select v-model="localTool" class="tool-select" placeholder="Select Engine"
+              :disabled="runState === 'running'">
               <a-option v-for="e in allEngines" :key="e.fileName || e.name" :value="e.name"
                 :disabled="String(e.config?.simulate || '') !== 'Equipment'">
                 {{ e.name }} <span v-if="String(e.config?.simulate || '') !== 'Equipment'">(Host)</span>
               </a-option>
             </a-select>
-            <a-input v-model="localName" class="name-input" placeholder="流程名称" :disabled="runState === 'running'" />
+            <a-input v-model="localName" class="name-input" placeholder="Flow Name"
+              :disabled="runState === 'running'" />
           </a-space>
 
           <a-space>
-            <a-button size="small" type="secondary" @click="handleRefresh">刷新</a-button>
-            <a-button size="small" type="primary" @click="handleSave" :disabled="!canEdit">保存</a-button>
+            <a-button size="small" type="secondary" @click="handleRefresh">Refresh</a-button>
+            <a-button size="small" type="primary" @click="handleSave" :disabled="!canEdit">Save</a-button>
             <a-button size="small" status="danger" type="dashed" @click="handleDelete"
               :disabled="!canEdit || !selectedFlowName">
-              删除
+              Delete
             </a-button>
 
             <a-divider direction="vertical" />
 
-            <a-button size="small" type="primary" :disabled="!canRun" @click="handleRun">运行</a-button>
-            <a-button size="small" type="secondary" :disabled="!canPause" @click="pauseRun">暂停</a-button>
-            <a-button size="small" type="secondary" :disabled="!canResume" @click="resumeRun">继续</a-button>
-            <a-button size="small" status="danger" type="dashed" :disabled="!canStop" @click="stopRun">停止</a-button>
+            <a-button size="small" type="primary" :disabled="!canRun" @click="handleRun">Run</a-button>
+            <a-button size="small" type="secondary" :disabled="!canPause" @click="pauseRun">Pause</a-button>
+            <a-button size="small" type="secondary" :disabled="!canResume" @click="resumeRun">Resume</a-button>
+            <a-button size="small" status="danger" type="dashed" :disabled="!canStop" @click="stopRun">Stop</a-button>
           </a-space>
         </div>
 
         <div class="work-area">
           <a-tabs default-active-key="config" size="small">
-            <a-tab-pane key="config" title="配置编辑">
+            <a-tab-pane key="config" title="Flow Config">
               <div class="config-area">
                 <div class="steps-area">
                   <div class="steps-header">
-                    <span class="title">步骤</span>
+                    <span class="title">Steps</span>
                     <a-space>
                       <a-button size="mini" @click="addSendStep">+ Send</a-button>
                       <a-button size="mini" @click="addWaitStep">+ Wait</a-button>
@@ -74,7 +76,7 @@
                       <a-table-column title="#" :width="50">
                         <template #cell="{ rowIndex }">{{ rowIndex + 1 }}</template>
                       </a-table-column>
-                      <a-table-column title="类型" :width="120">
+                      <a-table-column title="Node Type" :width="120">
                         <template #cell="{ record }">
                           <a-select v-model="record.type" size="mini" style="width: 110px"
                             :disabled="runState === 'running'">
@@ -86,11 +88,11 @@
                           </a-select>
                         </template>
                       </a-table-column>
-                      <a-table-column title="参数" :width="420">
+                      <a-table-column title="Parameters" :width="420">
                         <template #cell="{ record }">
                           <template v-if="record.type === 'send'">
-                            <a-select v-model="record.filePath" size="mini" style="width: 260px" placeholder="选择 SML"
-                              :disabled="runState === 'running'" allow-search>
+                            <a-select v-model="record.filePath" size="mini" style="width: 260px"
+                              placeholder="Select SML" :disabled="runState === 'running'" allow-search>
                               <a-option v-for="p in smlFiles" :key="p" :value="p">{{ p }}</a-option>
                             </a-select>
                             &nbsp;
@@ -102,25 +104,26 @@
                               placeholder="expect SF" @update:model-value="(v: string) => updateExpectSf(record, v)" />
                             &nbsp;
                             <a-input :model-value="record.expect?.smlIncludes" size="mini" style="width: 220px"
-                              placeholder="SML 包含..."
+                              placeholder="SML includes..."
                               @update:model-value="(v: string) => updateExpectSmlIncludes(record, v)" />
                           </template>
                           <template v-else-if="record.type === 'delay'">
                             <a-input-number v-model="record.ms" size="mini" :min="0" :step="100" />
                           </template>
                           <template v-else-if="record.type === 'log'">
-                            <a-input v-model="record.message" size="mini" style="width: 420px" placeholder="message" />
+                            <a-input v-model="record.message" size="mini" style="width: 420px"
+                              placeholder="message..." />
                           </template>
                           <template v-else-if="record.type === 'end'">-</template>
                         </template>
                       </a-table-column>
-                      <a-table-column title="超时(ms)" :width="120">
+                      <a-table-column title="Timeout(ms)" :width="120">
                         <template #cell="{ record }">
                           <a-input-number v-if="record.type === 'send' || record.type === 'wait'"
                             v-model="record.timeoutMs" size="mini" :min="1000" :step="1000" />
                         </template>
                       </a-table-column>
-                      <a-table-column title="操作" :width="120">
+                      <a-table-column title="Actions" :width="120">
                         <template #cell="{ rowIndex }">
                           <a-button size="mini" type="text" @click="moveStepUp(rowIndex)"
                             :disabled="rowIndex === 0">↑</a-button>
@@ -135,10 +138,10 @@
 
                 <div class="json-area">
                   <div class="json-header">
-                    <span class="title">高级 JSON</span>
+                    <span class="title">JSON</span>
                     <a-space>
-                      <a-button size="mini" @click="syncJsonFromLocal">刷新 JSON</a-button>
-                      <a-button size="mini" type="primary" @click="applyJsonToLocal">应用 JSON</a-button>
+                      <a-button size="mini" @click="syncJsonFromLocal">Refresh JSON</a-button>
+                      <a-button size="mini" type="primary" @click="applyJsonToLocal">Apply JSON</a-button>
                     </a-space>
                   </div>
                   <div class="editor-wrapper">
@@ -149,18 +152,18 @@
               </div>
             </a-tab-pane>
 
-            <a-tab-pane key="monitor" title="执行监控">
+            <a-tab-pane key="monitor" title="Monitor">
               <div class="monitor-area">
                 <a-descriptions size="small" :column="2" bordered>
-                  <a-descriptions-item label="状态">{{ runState }}</a-descriptions-item>
+                  <a-descriptions-item label="Status">{{ runState }}</a-descriptions-item>
                   <a-descriptions-item label="RunId">{{ runId || '-' }}</a-descriptions-item>
-                  <a-descriptions-item label="进度">
+                  <a-descriptions-item label="Progress">
                     <span v-if="progress">
                       {{ progress.currentStepIndex + 1 }} / {{ progress.totalSteps }}
                     </span>
                     <span v-else>-</span>
                   </a-descriptions-item>
-                  <a-descriptions-item label="当前流程">{{ selectedFlowName || '-' }}</a-descriptions-item>
+                  <a-descriptions-item label="Current Flow">{{ selectedFlowName || '-' }}</a-descriptions-item>
                 </a-descriptions>
 
                 <div class="log-view">
@@ -175,7 +178,7 @@
               </div>
             </a-tab-pane>
 
-            <a-tab-pane key="logs" title="日志查看">
+            <a-tab-pane key="logs" title="Logs">
               <div class="log-view">
                 <a-list size="small" :bordered="true">
                   <a-list-item v-for="(l, idx) in runLogs" :key="idx">
@@ -190,10 +193,10 @@
         </div>
 
         <div class="status-bar">
-          <span class="status-item">设备引擎：{{ localTool || '-' }}</span>
-          <span class="status-item">连接：{{ engineStatusText }}</span>
+          <span class="status-item">Engine：{{ localTool || '-' }}</span>
+          <span class="status-item">Connection：{{ engineStatusText }}</span>
           <span class="status-item" v-if="progress">
-            进度：{{ progress.currentStepIndex + 1 }}/{{ progress.totalSteps }}
+            Progress：{{ progress.currentStepIndex + 1 }}/{{ progress.totalSteps }}
           </span>
         </div>
       </div>
@@ -321,15 +324,15 @@ const syncJsonFromLocal = () => {
 const applyJsonToLocal = () => {
   try {
     const obj = JSON.parse(String(jsonText.value || '{}')) as AutoFlowConfig
-    if (!obj || typeof obj !== 'object') throw new Error('JSON 不是对象')
+    if (!obj || typeof obj !== 'object') throw new Error('JSON is not an object')
     localName.value = String(obj.name || '')
     localTool.value = String(obj.tool || '')
     localSteps.value = Array.isArray(obj.steps) ? (obj.steps as AutoFlowStep[]) : []
     currentFlow.value = obj
     currentFlowName.value = obj.name || null
-    Message.success('已应用 JSON')
+    Message.success('JSON applied successfully')
   } catch (error: any) {
-    const msg = error?.message || 'JSON 解析失败'
+    const msg = error?.message || 'JSON parsing failed'
     Message.error(msg)
   }
 }
@@ -373,19 +376,19 @@ const handleNewFlow = () => {
 const handleSave = async () => {
   const flow = buildLocalFlowObject()
   if (!flow.name) {
-    Message.error('流程名称不能为空')
+    Message.error('Flow name cannot be empty')
     return
   }
   if (!flow.tool) {
-    Message.error('请选择设备引擎')
+    Message.error('Please select an equipment engine')
     return
   }
   if (!Array.isArray(flow.steps) || flow.steps.length === 0) {
-    Message.error('至少配置一个步骤')
+    Message.error('At least one step is required')
     return
   }
   if (flow.steps[0]?.type !== 'send') {
-    Message.error('第一步必须是 send（用于触发流程开始）')
+    Message.error('The first step must be send (to trigger the flow start)')
     return
   }
   await saveFlow(flow)
@@ -406,16 +409,17 @@ const handleDelete = async () => {
 
 const handleRun = async () => {
   if (!selectedFlowName.value) {
-    Message.error('请先保存并选择一个流程')
+    Message.error('Please save and select a flow first')
     return
   }
   const engine = props.engines.find((e) => e.name === localTool.value)
   if (!engine?.active) {
-    Message.error(`Engine ${String(localTool.value || '')} 未启动`)
+    Message.error(`Engine ${String(localTool.value || '')} is not active`)
     return
   }
   await handleSave()
   await runFlow(selectedFlowName.value)
+  Message.success('Flow started successfully')
 }
 
 const handleRefresh = async () => {
