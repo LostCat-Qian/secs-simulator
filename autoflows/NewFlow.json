@@ -1,0 +1,28 @@
+{
+  "name": "NewFlow",
+  "tool": "TOOL",
+  "steps": [
+    {
+      "type": "send",
+      "filePath": "Commnication\\S1F1.txt",
+      "timeoutMs": 1000,
+      "expect": {
+        "sf": "S1F1"
+      }
+    },
+    {
+      "type": "wait",
+      "timeoutMs": 1000,
+      "expect": {
+        "sf": "S1F2",
+        "smlIncludes": "MDLN"
+      }
+    },
+    {
+      "type": "end"
+    }
+  ],
+  "version": 1,
+  "updatedAt": "2026-01-10T17:38:44.854Z",
+  "createdAt": "2026-01-10T17:38:44.854Z"
+}

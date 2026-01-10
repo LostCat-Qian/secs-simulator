@@ -45,3 +45,71 @@ export type SmlTreeNode = TreeNodeData & {
   isFolder?: boolean
   children?: SmlTreeNode[]
 }
+
+export type AutoFlowStepType = 'send' | 'wait' | 'delay' | 'log' | 'end'
+
+export interface AutoFlowCondition {
+  path: string
+  op: 'exists' | 'eq' | 'neq' | 'contains' | 'regex' | 'gt' | 'gte' | 'lt' | 'lte'
+  value?: any
+}
+
+export interface AutoFlowExpect {
+  sf?: string
+  stream?: number
+  func?: number
+  wBit?: boolean
+  smlIncludes?: string
+  conditions?: AutoFlowCondition[]
+}
+
+export type AutoFlowStep =
+  | {
+      type: 'send'
+      filePath: string
+      waitReply?: boolean
+      timeoutMs?: number
+      expect?: AutoFlowExpect
+    }
+  | {
+      type: 'wait'
+      timeoutMs?: number
+      expect: AutoFlowExpect
+    }
+  | {
+      type: 'delay'
+      ms: number
+    }
+  | {
+      type: 'log'
+      level?: 'INFO' | 'WARN' | 'ERROR'
+      message: string
+    }
+  | {
+      type: 'end'
+    }
+
+export interface AutoFlowConfig {
+  version?: number
+  name: string
+  description?: string
+  tool: string
+  steps: AutoFlowStep[]
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface AutoFlowSummary {
+  name: string
+  tool: string
+  fileName: string
+  stepCount: number
+  updatedAt: string | null
+  invalid?: boolean
+}
+
+export interface AutoFlowRunEvent {
+  type: string
+  runId: string
+  [key: string]: any
+}

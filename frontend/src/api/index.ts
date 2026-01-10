@@ -31,6 +31,15 @@ interface IpcApiRoute {
   createEventBindFolder: string
   saveEventBindFiles: string
   generateEventBindFiles: string
+  // auto flow
+  listAutoFlows: string
+  getAutoFlow: string
+  saveAutoFlow: string
+  deleteAutoFlow: string
+  runAutoFlow: string
+  pauseAutoFlow: string
+  resumeAutoFlow: string
+  stopAutoFlow: string
 }
 
 const ipcApiRoute: IpcApiRoute = {
@@ -61,7 +70,16 @@ const ipcApiRoute: IpcApiRoute = {
   // event bind
   createEventBindFolder: 'controller/eventBind/createFolder',
   saveEventBindFiles: 'controller/eventBind/saveFiles',
-  generateEventBindFiles: 'controller/eventBind/generateEventBindFiles'
+  generateEventBindFiles: 'controller/eventBind/generateEventBindFiles',
+  // auto flow
+  listAutoFlows: 'controller/autoFlow/listFlows',
+  getAutoFlow: 'controller/autoFlow/getFlow',
+  saveAutoFlow: 'controller/autoFlow/saveFlow',
+  deleteAutoFlow: 'controller/autoFlow/deleteFlow',
+  runAutoFlow: 'controller/autoFlow/run',
+  pauseAutoFlow: 'controller/autoFlow/pause',
+  resumeAutoFlow: 'controller/autoFlow/resume',
+  stopAutoFlow: 'controller/autoFlow/stop'
 }
 
 export { ipcApiRoute }

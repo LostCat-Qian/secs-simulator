@@ -56,6 +56,28 @@ export function useLogPanels() {
     // Message.success(`Log Panel ${panelCounter} added for ${engine.name}`);
   }
 
+  const ensureLogPanel = (engineName: string, title?: string) => {
+    const name = String(engineName || '').trim()
+    if (!name) return null
+    const existingPanel = logPanels.value.find((panel) => panel.engineName === name)
+    if (existingPanel) {
+      if (title) existingPanel.title = title
+      return existingPanel
+    }
+
+    panelCounter++
+    const newPanel: LogPanelData = {
+      id: String(panelCounter),
+      title: title || `${name} Logs`,
+      engineName: name,
+      width: '0%',
+      logs: []
+    }
+    logPanels.value.push(newPanel)
+    redistributePanelWidths()
+    return newPanel
+  }
+
   /**
    * Removes a log panel by ID.
    * @param panelId The ID of the panel to remove
@@ -118,6 +140,7 @@ export function useLogPanels() {
   return {
     logPanels,
     addLogPanel,
+    ensureLogPanel,
     removePanel,
     clearLogs,
     addLogEntry

@@ -31,33 +31,17 @@
         <div class="sider-content">
           <!-- Engines List Area -->
           <a-resize-box :directions="['bottom']" class="engine-box">
-            <EngineList
-              :engines="engineList"
-              @add="openAddEngineModal"
-              @select="selectEngine"
-              @open="handleOpenEngine"
-              @close="handleCloseEngine"
-              @edit="handleEditEngine"
-              @delete="handleDeleteEngine"
-              @viewConfig="handleViewConfig"
-            />
+            <EngineList :engines="engineList" @add="openAddEngineModal" @select="selectEngine" @open="handleOpenEngine"
+              @close="handleCloseEngine" @edit="handleEditEngine" @delete="handleDeleteEngine"
+              @viewConfig="handleViewConfig" />
           </a-resize-box>
 
           <!-- File Tree Area -->
           <div class="file-tree-wrapper">
-            <FileTree
-              :tree-data="fileTreeData"
-              :engines="engineList"
-              @edit="handleEditFile"
-              @delete="handleDeleteFile"
-              @sendTo="handleSendFileTo"
-              @selectFile="handlePreviewFile"
-              @addFile="handleAddFile"
-              @addFolder="handleAddFolder"
-              @addRootFile="handleAddRootFile"
-              @addRootFolder="openAddRootFolderModal"
-              @refresh="loadFileTree"
-            />
+            <FileTree :tree-data="fileTreeData" :engines="engineList" @edit="handleEditFile" @delete="handleDeleteFile"
+              @sendTo="handleSendFileTo" @selectFile="handlePreviewFile" @addFile="handleAddFile"
+              @addFolder="handleAddFolder" @addRootFile="handleAddRootFile" @addRootFolder="openAddRootFolderModal"
+              @refresh="loadFileTree" />
           </div>
 
           <!-- File Preview Area -->
@@ -80,30 +64,16 @@
             <!-- Single Log Panel -->
             <template v-if="logPanels.length === 1">
               <div class="log-panel-item single-panel">
-                <LogPanel
-                  :title="logPanels[0].title"
-                  :logs="logPanels[0].logs"
-                  @clear="clearLogs(logPanels[0].id)"
-                  @close="handleCloseLogPanel(logPanels[0].id)"
-                />
+                <LogPanel :title="logPanels[0].title" :logs="logPanels[0].logs" @clear="clearLogs(logPanels[0].id)"
+                  @close="handleCloseLogPanel(logPanels[0].id)" />
               </div>
             </template>
             <!-- Multiple Log Panels -->
             <template v-else-if="logPanels.length > 1">
-              <a-resize-box
-                v-for="panel in logPanels"
-                :key="panel.id"
-                :directions="['right']"
-                class="log-panel-item"
-                :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }"
-                :min-width="200"
-              >
-                <LogPanel
-                  :title="panel.title"
-                  :logs="panel.logs"
-                  @clear="clearLogs(panel.id)"
-                  @close="handleCloseLogPanel(panel.id)"
-                />
+              <a-resize-box v-for="panel in logPanels" :key="panel.id" :directions="['right']" class="log-panel-item"
+                :style="{ flex: '0 1 auto', width: panel.width, minWidth: '200px' }" :min-width="200">
+                <LogPanel :title="panel.title" :logs="panel.logs" @clear="clearLogs(panel.id)"
+                  @close="handleCloseLogPanel(panel.id)" />
               </a-resize-box>
             </template>
             <!-- No Log Panels -->
@@ -116,50 +86,34 @@
         </div>
 
         <a-resize-box :directions="['top']" class="auto-reply-box">
-          <AutoReplyPanel
-            :data="tableData"
-            v-model:searchText="searchText"
-            @add="addAutoReply"
-            @edit="editAutoReply"
-            @delete="handleDeleteAutoReply"
-            @refresh="loadAutoReplyScripts"
-          />
+          <AutoReplyPanel :data="tableData" v-model:searchText="searchText" @add="addAutoReply" @edit="editAutoReply"
+            @delete="handleDeleteAutoReply" @refresh="loadAutoReplyScripts" />
         </a-resize-box>
       </a-layout-content>
     </a-layout>
 
     <!-- Modals -->
-    <AddEngineModal
-      v-model:visible="addEngineModalVisible"
-      :initial-data="editingEngine ? editingEngine.config : undefined"
-      :existing-names="engineList.map(e => e.name)"
-      @submit="handleAddEngine"
-    />
+    <AddEngineModal v-model:visible="addEngineModalVisible"
+      :initial-data="editingEngine ? editingEngine.config : undefined" :existing-names="engineList.map(e => e.name)"
+      @submit="handleAddEngine" />
 
-    <FileEditorModal
-      v-model:visible="fileEditorModalVisible"
-      :file-name="editingFileName"
-      :initial-content="editingFileContent"
-      :editable-name="isCreateMode"
-      @save="handleSaveFile"
-    />
+    <FileEditorModal v-model:visible="fileEditorModalVisible" :file-name="editingFileName"
+      :initial-content="editingFileContent" :editable-name="isCreateMode" @save="handleSaveFile" />
 
     <AddFolderModal v-model:visible="addRootFolderModalVisible" @submit="confirmAddRootFolder" />
     <AddFolderModal v-model:visible="addSubFolderModalVisible" @submit="confirmAddSubFolder" />
 
-    <AutoReplyModal
-      v-model:visible="autoReplyModalVisible"
-      :initial-data="autoReplyForm"
-      :engines="engineList"
-      @submit="handleSaveAutoReply"
-    />
+    <AutoReplyModal v-model:visible="autoReplyModalVisible" :initial-data="autoReplyForm" :engines="engineList"
+      @submit="handleSaveAutoReply" />
+
+    <AutoFlowModal v-model:visible="autoFlowModalVisible" :engines="engineList" :sml-files="allSmlFiles" />
 
     <EventBindModal v-model:visible="eventBindModalVisible" @save="handleSaveEventBind" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { TreeNodeData, Message } from '@arco-design/web-vue'
 import { IconLink } from '@arco-design/web-vue/es/icon'
 import { ipc } from '@/utils/ipcRenderer'
@@ -176,6 +130,7 @@ import FileEditorModal from './components/FileEditorModal.vue'
 import AddFolderModal from './components/AddFolderModal.vue'
 import AutoReplyModal from './components/AutoReplyModal.vue'
 import EventBindModal from './components/EventBindModal.vue'
+import AutoFlowModal from './components/AutoFlowModal.vue'
 
 // Types
 import type { EngineData, AutoReplyFormData, AutoReplyItem, SmlTreeNode } from './types'
@@ -223,6 +178,21 @@ const { saveEventBindFiles } = useEventBind()
 
 // #endregion
 
+const allSmlFiles = computed(() => {
+  const files: string[] = []
+  const walk = (nodes: SmlTreeNode[]) => {
+    for (const n of nodes) {
+      if (n.isFolder) {
+        if (Array.isArray(n.children)) walk(n.children)
+      } else if (typeof n.key === 'string') {
+        files.push(n.key)
+      }
+    }
+  }
+  walk((fileTreeData.value || []) as SmlTreeNode[])
+  return files
+})
+
 // #region --- Local State ---
 
 // Engine Modal State
@@ -244,6 +214,9 @@ const editingAutoReplyName = ref<string | null>(null)
 
 // EventBind State
 const eventBindModalVisible = ref(false)
+
+// AutoFlow State
+const autoFlowModalVisible = ref(false)
 
 // #endregion
 
@@ -477,7 +450,12 @@ const openEventBindModal = () => {
 }
 
 const handleAutoFlow = () => {
-  Message.info('comming soon...')
+  const hasEquip = engineList.value.some((e) => String(e.config?.simulate || '') === 'Equipment')
+  if (!hasEquip) {
+    Message.warning('AutoFlow 仅在模拟 Equipment 端时可用')
+    return
+  }
+  autoFlowModalVisible.value = true
 }
 
 const handleSaveEventBind = async (payload: { folderPath: string; files: { name: string; content: string }[] }) => {
@@ -503,6 +481,9 @@ const handleSaveEventBind = async (payload: { folderPath: string; files: { name:
 
 onMounted(() => {
   if (ipc) {
+    let currentAutoFlowRunId = ''
+    let currentAutoFlowTool = ''
+
     ipc.on('engine/log', (_event, payload: { name: string; level: string; type: string; message: string }) => {
       // Add log
       addLogEntry(payload.name, payload.level || 'INFO', String(payload.message ?? ''))
@@ -524,6 +505,56 @@ onMounted(() => {
       // Update engine status
       updateEngineStatus(payload.name, payload.type)
     })
+
+    ipc.on('autoflow/event', (_event, payload: any) => {
+      if (!payload || typeof payload !== 'object') return
+      const type = String(payload.type || '')
+      const evtRunId = String(payload.runId || '')
+
+      if (type === 'created') {
+        currentAutoFlowRunId = evtRunId
+        currentAutoFlowTool = String(payload.tool || '')
+
+        const toolEngine = engineList.value.find((e) => e.name === currentAutoFlowTool)
+        if (!toolEngine?.active) return
+        addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
+        addLogEntry(
+          currentAutoFlowTool,
+          'INFO',
+          `[AutoFlow] created: ${String(payload.flowName || '')}`
+        )
+        return
+      }
+
+      if (currentAutoFlowRunId && evtRunId && evtRunId !== currentAutoFlowRunId) return
+
+      const toolName = String(currentAutoFlowTool || payload.tool || '')
+      const toolEngine = toolName ? engineList.value.find((e) => e.name === toolName) : null
+      if (!toolEngine?.active) return
+
+      if (type === 'log') {
+        addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
+        addLogEntry(
+          toolName,
+          String(payload.level || 'INFO'),
+          `[AutoFlow] ${String(payload.message ?? '')}`
+        )
+        return
+      }
+      if (type === 'state') {
+        addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
+        addLogEntry(toolName, 'INFO', `[AutoFlow] state: ${String(payload.state || '')}`)
+        return
+      }
+      if (type === 'stopped' || type === 'disposed') {
+        addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
+        addLogEntry(toolName, 'INFO', `[AutoFlow] ${type}`)
+        if (type === 'disposed') {
+          currentAutoFlowRunId = ''
+          currentAutoFlowTool = ''
+        }
+      }
+    })
   }
 
   loadEngineConfigs()
@@ -534,6 +565,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (ipc) {
     ipc.removeAllListeners('engine/log')
+    ipc.removeAllListeners('autoflow/event')
   }
 })
 

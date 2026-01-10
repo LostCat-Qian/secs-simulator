@@ -17,6 +17,7 @@ const { SerialPort } = require('serialport')
 const { smlFileService } = require('./smlFile')
 const { autoReplyService } = require('./autoReply')
 const { getExtraResourceDir } = require('./pathHelper')
+const { engineBus } = require('./engineBus')
 
 const engineInstances = new Map()
 
@@ -107,6 +108,7 @@ class EngineService {
 
     try {
       let instance = null
+      const isEquip = String(config.simulate || '') === 'Equipment'
       const timeoutConfig = {
         timeoutT1: config.timeoutT1 || 10,
         timeoutT2: config.timeoutT2 || 45,
@@ -129,7 +131,6 @@ class EngineService {
 
       switch (config.type) {
         case 'HSMS':
-          const isEquip = String(config.simulate || '') === 'Equipment'
           if (isEquip) {
             instance = new HsmsPassiveCommunicator({
               ip: config.ip || '0.0.0.0',
@@ -158,7 +159,7 @@ class EngineService {
             path: config.path || '',
             baudRate: config.baudRate || 9600,
             deviceId: config.deviceId,
-            isEquip: config.simulate === 'Equipment',
+            isEquip,
             log: logConfig,
             ...timeoutConfig
           })
@@ -250,6 +251,7 @@ class EngineService {
                 message: receivedMsg
               })
             }
+            engineBus.emit('engine:message', { name: key, direction: 'in', kind: 'recv', msg, sml, ts: Date.now() })
 
             // 获取所有 SML 文件路径
             const filePaths = await smlFileService.getAllFilePaths()
@@ -394,6 +396,7 @@ class EngineService {
           message: `[Active Send] Send Message: S${msg.stream}F${msg.func}\n${msg.toSml()}`
         })
       }
+      engineBus.emit('engine:message', { name, direction: 'out', kind: 'send', msg, sml: msg.toSml(), ts: Date.now() })
 
       const reply = await instance.send(msg.stream, msg.func, expectReply, msg.body)
 
@@ -403,6 +406,16 @@ class EngineService {
           level: 'INFO',
           type: 'message',
           message: `[Active Send Reply] Reply Message: S${reply.stream}F${reply.func}\n${reply.toSml()}`
+        })
+      }
+      if (reply) {
+        engineBus.emit('engine:message', {
+          name,
+          direction: 'in',
+          kind: 'reply',
+          msg: reply,
+          sml: reply.toSml(),
+          ts: Date.now()
         })
       }
 
@@ -416,7 +429,16 @@ class EngineService {
         filePath,
         expectReply,
         hasReply: !!reply,
-        replySml: reply ? reply.toSml() : null
+        replySml: reply ? reply.toSml() : null,
+        replyInfo: reply
+          ? {
+              stream: reply.stream,
+              func: reply.func,
+              wBit: reply.wBit,
+              deviceId: reply.deviceId,
+              systemBytes: reply.systemBytes
+            }
+          : null
       }
     } catch (error) {
       logger.error('❌ [sendMessageFromFile] Failed to send message from file:', error)
