@@ -188,13 +188,45 @@ S1F2
 
 ## 3.6 Configure Event Bind
 
-Automatically generate Event Bind instructions based on the TOML configuration.
+EventBind generates a complete set of GEM event-binding related SML commands from a TOML configuration, so you can quickly apply DefineReport / DefineLink bindings on the equipment side.
 
-After configuring the TOML content, click the `Convert` button to complete the SML instruction conversion, then click the `Save` button to save it locally.
+### 3.6.1 Steps
+
+1. Click `EventBind` in the top toolbar.
+2. Fill in or adjust the TOML configuration in the left editor.
+3. Click `Convert` to generate the preview (switch tabs on the right to view all 6 SML outputs).
+4. Click `Save` to write files to: `sml/EventBind/EventBind_YYMMDDHHmm/`.
+5. In the left `SML File` tree, locate the generated folder and send the files to the equipment (recommended order below).
+
+### 3.6.2 TOML Configuration
+
+- `[CEID_RPTID_BINDING]`: maps a CEID (Collection Event) to a list of RPTIDs (Reports).
+- `[RPTID_CEID_BINDING]`: maps an RPTID (Report) to a list of CEIDs (used to generate DefineReport content).
+
+You can provide only one section, but it is recommended to keep both sections consistent to get a complete set of generated files.
 
 <div align=center>
 <img src="./README_IMAGES/event-bind.png" width="800" height="500" />
 </div>
+
+### 3.6.3 Generated Files (6 in total)
+
+- `01_S2F37_DisableAllEvents.txt`: S2F37, Disable All Events.
+- `02_S2F35_DisableLink.txt`: S2F35, Disable Link (generated from CEIDs in `CEID_RPTID_BINDING`).
+- `03_S2F33_DisableReport.txt`: S2F33, Disable Report (generated from RPTIDs in `RPTID_CEID_BINDING`).
+- `04_S2F33_DefineReport.txt`: S2F33, Define Report (generated from `RPTID_CEID_BINDING`).
+- `05_S2F35_EnableLinkEvent.txt`: S2F35, Enable Link Event (generated from `CEID_RPTID_BINDING`).
+- `06_S2F37_EnableAllEvents.txt`: S2F37, Enable All Events.
+
+### 3.6.4 Recommended Send Order
+
+In most cases, send files in filename order (01 → 06) to clear existing bindings first and then re-define them.
+
+### 3.6.5 Troubleshooting
+
+- `Convert` is disabled: check whether TOML is empty, has syntax errors, or is missing required section names (`CEID_RPTID_BINDING` / `RPTID_CEID_BINDING`).
+- Some generated outputs look empty: the related section may be missing (e.g., only `CEID_RPTID_BINDING` is provided, so report-related outputs may contain empty lists).
+- Cannot find the saved folder: in dev it is under project root `sml/EventBind/`; in packaged app it is under the exe sibling folder `sml/EventBind/`.
 
 example:
 
@@ -216,4 +248,78 @@ example:
 2001 = [2004]
 2002 = [2005]
 3001 = [2001]
+```
+
+## 3.7 AutoFlow
+
+AutoFlow lets you chain “send / wait / delay / log” steps into a runnable flow, with live progress and run logs. It is designed for automating EAP/GEM interaction sequences.
+
+### 3.7.1 Prerequisites
+
+- Only `simulate=Equipment` engines are supported (Host engines are not selectable).
+- The target equipment engine must be opened and in RUNNING state.
+- `send` steps require existing SML files from the `SML File` tree (`filePath` uses the relative path shown there).
+
+### 3.7.2 Quick Start
+
+1. Click `AutoFlow` in the top toolbar.
+2. Click `New`, select an equipment engine in `Select Engine`, and enter a `Flow Name`.
+3. Add steps via `+ Send / + Wait / + Delay / + Log / + End`.
+4. Click `Save`.
+5. Click `Run` to start; use `Pause / Resume / Stop` during execution if needed.
+
+### 3.7.3 Storage
+
+- Each flow is stored as a JSON file: `autoflows/<FlowName>.json`.
+- Dev: under project root `autoflows/`; packaged: under the exe sibling folder `autoflows/`.
+
+### 3.7.4 Step Types
+
+- `send`: send an SML file.
+  - Required: `filePath`.
+  - Optional: `timeoutMs` (default 30000).
+  - Optional: `waitReply` (use engine “wait reply” send mode).
+  - Optional: `expect` (wait for an incoming message matching the condition after sending).
+- `wait`: wait for an incoming message matching `expect`.
+  - Required: `expect`.
+  - Optional: `timeoutMs` (default 30000).
+- `delay`: wait for a duration.
+  - Required: `ms` (milliseconds, can be 0).
+- `log`: write an internal AutoFlow log (does not go to engine LogPanel).
+  - Required: `message`.
+  - Optional: `level` (`INFO` / `WARN` / `ERROR`).
+- `end`: end the flow.
+
+Note: the first step must be `send` (used to trigger the flow start).
+
+### 3.7.5 expect Matching
+
+`expect` defines what message to wait for. It supports:
+
+- `sf`: shortcut like `S6F12`.
+- `stream` / `func` / `wBit`: detailed matching (can be used with or without `sf`).
+- `smlIncludes`: requires the SML text to contain a substring.
+- `conditions`: an AND list of advanced conditions, each contains:
+  - `path`: value path like `a.b[0].c` / `a[0][1].value`.
+  - `op`: `exists` / `eq` / `neq` / `contains` / `regex` / `gt` / `gte` / `lt` / `lte`.
+  - `value`: required for most ops except `exists`.
+
+### 3.7.6 Example
+
+Minimal example: send S1F1 and wait for S1F2, then end.
+
+```json
+{
+  "name": "DemoFlow",
+  "tool": "TOOL",
+  "steps": [
+    {
+      "type": "send",
+      "filePath": "Commnication\\S1F1.txt",
+      "timeoutMs": 30000,
+      "expect": { "sf": "S1F2", "smlIncludes": "MDLN" }
+    },
+    { "type": "end" }
+  ]
+}
 ```

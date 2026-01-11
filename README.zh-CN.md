@@ -188,13 +188,45 @@ S1F2
 
 ## 3.6 配置 Event Bind
 
-根据 TOML 配置自动生成 Event Bind 指令。
+EventBind 用于根据一份 TOML 配置，一键生成 GEM 事件绑定相关的 6 份 SML 指令文件，便于在设备侧快速完成 DefineReport / DefineLink 的常见配置流程。
 
-配置好 TOML 内容后，点击 `Convert` 按钮即可完成 SML 指令转换，然后点击 `Save` 按钮即可保存到本地。
+### 3.6.1 使用步骤
+
+1. 在主界面顶部工具栏点击 `EventBind` 打开配置窗口。
+2. 在左侧编辑器中填写/修改 TOML 配置。
+3. 点击 `Convert` 生成预览（右侧可切换查看 6 个指令的 SML 内容）。
+4. 点击 `Save` 保存到本地目录：`sml/EventBind/EventBind_YYMMDDHHmm/`。
+5. 回到左侧 `SML File` 文件树中找到生成目录，按顺序将文件发送到设备（建议顺序见下文）。
+
+### 3.6.2 TOML 配置说明
+
+- `[CEID_RPTID_BINDING]`：定义某个 CEID（Collection Event）绑定哪些 RPTID（Report）。
+- `[RPTID_CEID_BINDING]`：定义某个 RPTID（Report）包含哪些 CEID（用于生成 DefineReport 内容）。
+
+两段配置可以只写其中一段，但建议两段保持一致（这样 6 份文件会更完整）。
 
 <div align=center>
 <img src="./README_IMAGES/event-bind.png" width="800" height="500" />
 </div>
+
+### 3.6.3 生成文件说明（共 6 份）
+
+- `01_S2F37_DisableAllEvents.txt`：S2F37，Disable All Events。
+- `02_S2F35_DisableLink.txt`：S2F35，Disable Link（基于 `CEID_RPTID_BINDING` 的 CEID 列表生成）。
+- `03_S2F33_DisableReport.txt`：S2F33，Disable Report（基于 `RPTID_CEID_BINDING` 的 RPTID 列表生成）。
+- `04_S2F33_DefineReport.txt`：S2F33，Define Report（基于 `RPTID_CEID_BINDING` 生成每个 RPTID 的 CEID 列表）。
+- `05_S2F35_EnableLinkEvent.txt`：S2F35，Enable Link Event（基于 `CEID_RPTID_BINDING` 生成 CEID -> RPTID 绑定关系）。
+- `06_S2F37_EnableAllEvents.txt`：S2F37，Enable All Events。
+
+### 3.6.4 建议下发顺序
+
+通常建议按文件名顺序依次发送（01 → 06），用于先清空再重新定义。
+
+### 3.6.5 常见问题
+
+- `Convert` 按钮不可用：请检查 TOML 是否为空、是否存在语法错误，或缺少必要的段落名（`CEID_RPTID_BINDING` / `RPTID_CEID_BINDING`）。
+- 生成的某些文件为空内容：通常是某个段落未填写（例如只填了 `CEID_RPTID_BINDING`，则与 Report 相关的文件可能只有空列表）。
+- 找不到保存目录：开发环境保存到项目根目录下的 `sml/EventBind/`；打包后保存到 exe 同级目录下的 `sml/EventBind/`。
 
 example:
 
@@ -216,4 +248,78 @@ example:
 2001 = [2004]
 2002 = [2005]
 3001 = [2001]
+```
+
+## 3.7 AutoFlow（自动流程）
+
+AutoFlow 用于把一组“发送/等待/延时/记录”等动作串成流程，一键运行并在运行面板中实时查看进度与日志，适合 EAP/GEM 交互流程的自动化回归。
+
+### 3.7.1 前置条件
+
+- 仅支持对 `simulate=Equipment` 的引擎运行（Host 引擎不可选）。
+- 运行前需先打开对应的 Equipment 引擎（引擎状态为 RUNNING）。
+- `send` 步骤依赖 `SML File` 中已有的 SML 文件（`filePath` 使用文件树中的相对路径）。
+
+### 3.7.2 快速开始
+
+1. 在主界面顶部工具栏点击 `AutoFlow`。
+2. 点击 `New` 创建流程，选择 `Select Engine`（Equipment 引擎）并填写 `Flow Name`。
+3. 在 `Steps` 区域使用 `+ Send / + Wait / + Delay / + Log / + End` 添加步骤。
+4. 点击 `Save` 保存流程。
+5. 点击 `Run` 启动执行；执行中可 `Pause / Resume / Stop`。
+
+### 3.7.3 配置文件与保存位置
+
+- 每个流程会保存为一个 JSON 文件：`autoflows/<FlowName>.json`。
+- 开发环境保存到项目根目录下的 `autoflows/`；打包后保存到 exe 同级目录下的 `autoflows/`。
+
+### 3.7.4 Step 类型说明
+
+- `send`：发送一条 SML 文件。
+  - 必填：`filePath`（SML 相对路径）。
+  - 可选：`timeoutMs`（等待超时，默认 30000）。
+  - 可选：`waitReply`（是否使用引擎的“等待回复”发送模式）。
+  - 可选：`expect`（发送后等待对端发来满足条件的消息）。
+- `wait`：不发送消息，仅等待对端发来满足 `expect` 的消息。
+  - 必填：`expect`。
+  - 可选：`timeoutMs`（默认 30000）。
+- `delay`：延时等待。
+  - 必填：`ms`（毫秒，允许为 0）。
+- `log`：写一条 AutoFlow 内部日志（不会写入引擎 LogPanel）。
+  - 必填：`message`。
+  - 可选：`level`（`INFO` / `WARN` / `ERROR`）。
+- `end`：结束流程。
+
+注意：流程第一步必须是 `send`（用于触发流程开始）。
+
+### 3.7.5 expect 匹配规则
+
+`expect` 用于描述“等到什么消息才继续”。支持以下条件（可组合）：
+
+- `sf`：形如 `S6F12` 的快捷写法。
+- `stream` / `func` / `wBit`：更细粒度的匹配（与 `sf` 二选一或同时使用）。
+- `smlIncludes`：要求消息的 SML 文本包含某段字符串。
+- `conditions`：更复杂的条件数组（AND 关系），每个条件包含：
+  - `path`：从消息对象中取值的路径，支持 `a.b[0].c` / `a[0][1].value`。
+  - `op`：`exists` / `eq` / `neq` / `contains` / `regex` / `gt` / `gte` / `lt` / `lte`。
+  - `value`：除 `exists` 外通常需要填写。
+
+### 3.7.6 示例
+
+下面是一个最小示例：发送 S1F1 后等待 S1F2，并在满足条件后结束。
+
+```json
+{
+  "name": "DemoFlow",
+  "tool": "TOOL",
+  "steps": [
+    {
+      "type": "send",
+      "filePath": "Commnication\\S1F1.txt",
+      "timeoutMs": 30000,
+      "expect": { "sf": "S1F2", "smlIncludes": "MDLN" }
+    },
+    { "type": "end" }
+  ]
+}
 ```
