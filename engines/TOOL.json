@@ -1,7 +1,7 @@
 {
   "type": "HSMS",
   "name": "TOOL",
-  "deviceId": 10,
+  "deviceId": 0,
   "path": "COM1",
   "baudRate": 9600,
   "master": true,

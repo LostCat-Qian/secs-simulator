@@ -1,0 +1,66 @@
+S14F10
+<L
+	<A "Equipment:Lam300Start>ControlJob:CJOBID001>">
+	<L
+		<L
+			<A "ObjID">
+			<A "CJOBID001">
+		>
+		<L
+			<A "ObjType">
+			<A "ControlJob">
+		>
+		<L
+			<A "CarrierInputSpec">
+			<L
+				<A "BM0026">
+			>
+		>
+		<L
+			<A "CurrentPRJob">
+			<L>
+		>
+		<L
+			<A "DataCollectionPlan">
+			<A "">
+		>
+		<L
+			<A "MtrlOutSpec">
+			<L>
+		>
+		<L
+			<A "MtrlOutByStatus">
+			<L>
+		>
+		<L
+			<A "PauseEvent">
+			<L>
+		>
+		<L
+			<A "ProcessingCtrlSpec">
+			<L
+				<L
+					<A "PJOBID002">
+					<B 0x00>
+					<B 0x00>
+				>
+			>
+		>
+		<L
+			<A "ProcessOrderMgmt">
+			<U1 1>
+		>
+		<L
+			<A "StartMethod">
+			<BOOLEAN T>
+		>
+		<L
+			<A "State">
+			<U1 0>
+		>
+	>
+	<L
+		<U1 0>
+		<L>
+	>
+>.

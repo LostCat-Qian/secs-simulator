@@ -1,0 +1,72 @@
+{
+  "name": "Lam2300_AutoFlow",
+  "tool": "TOOL",
+  "steps": [
+    {
+      "type": "send",
+      "filePath": "Lam2300\\S6F11 Port3PDOPodStatusChange.txt",
+      "timeoutMs": 30000,
+      "expect": {
+        "sf": "S6F12"
+      }
+    },
+    {
+      "type": "delay",
+      "ms": 1000
+    },
+    {
+      "type": "send",
+      "filePath": "Lam2300\\S6F11 WaferMappingEndedS3F17ForPort3.txt",
+      "timeoutMs": 30000,
+      "expect": {
+        "sf": "S6F12"
+      }
+    },
+    {
+      "type": "delay",
+      "ms": 1000
+    },
+    {
+      "type": "send",
+      "filePath": "Lam2300\\S6F11 CarrierStartedForPort3.txt",
+      "timeoutMs": 30000,
+      "expect": {
+        "sf": "S6F12"
+      }
+    },
+    {
+      "type": "delay",
+      "ms": 1000
+    },
+    {
+      "type": "send",
+      "filePath": "Lam2300\\S6F11 CarrierCompletedForPort3.txt",
+      "timeoutMs": 30000,
+      "expect": {
+        "sf": "S6F12"
+      }
+    },
+    {
+      "type": "delay",
+      "ms": 1000
+    },
+    {
+      "type": "send",
+      "filePath": "Lam2300\\S6F11 Port3PDOPodStatusAbsent.txt",
+      "timeoutMs": 30000,
+      "expect": {
+        "sf": "S6F12"
+      }
+    },
+    {
+      "type": "delay",
+      "ms": 1000
+    },
+    {
+      "type": "end"
+    }
+  ],
+  "version": 1,
+  "updatedAt": "2026-01-13T15:48:36.869Z",
+  "createdAt": "2026-01-13T15:48:36.869Z"
+}

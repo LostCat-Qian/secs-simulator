@@ -1,0 +1,10 @@
+S16F16
+<L
+	<L
+		<A "PJOBID001">
+	>
+	<L
+		<BOOLEAN T>
+		<L>
+	>
+>.
