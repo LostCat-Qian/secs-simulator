@@ -3,48 +3,45 @@
     <!-- Header -->
     <div class="header">
       <span class="title">Engines</span>
-      <a-button type="primary" size="mini" @click="$emit('add')">
-        <template #icon><icon-plus /></template>
-        Add
-      </a-button>
+      <div class="actions">
+        <a-input v-model="searchText" placeholder="Search..." size="mini" allow-clear class="search-input">
+          <template #prefix>
+            <icon-search />
+          </template>
+        </a-input>
+        <a-button type="primary" size="mini" @click="$emit('add')">
+          <template #icon><icon-plus /></template>
+          <template #default>Add</template>
+        </a-button>
+      </div>
     </div>
 
     <!-- Engine List -->
     <div class="list-container">
-      <div
-        v-for="(item, index) in engines"
-        :key="index"
-        :class="[
-          'engine-item',
-          {
-            active: item.status === 'running',
-            waiting: item.status === 'connecting'
-          }
-        ]"
-        @click="$emit('select', item)"
-      >
+      <div v-for="(item, index) in filteredEngines" :key="item.fileName || index" :class="[
+        'engine-item',
+        {
+          active: item.status === 'running',
+          waiting: item.status === 'connecting'
+        }
+      ]" @click="$emit('select', item)">
         <div class="engine-icon">
           <icon-folder />
         </div>
         <div class="engine-info">
           <div class="engine-name" :title="item.name">{{ item.name }}</div>
           <div v-if="item.status === 'running' || item.status === 'connecting'" class="engine-status">
-            <span
-              class="status-dot"
-              :class="{
-                waiting: item.status === 'connecting',
-                active: item.status === 'running'
-              }"
-            ></span>
+            <span class="status-dot" :class="{
+              waiting: item.status === 'connecting',
+              active: item.status === 'running'
+            }"></span>
             <span v-if="item.status === 'running'" class="status-text active">ACTIVE</span>
             <span v-else-if="item.status === 'connecting'" class="status-text waiting">Waiting connect</span>
           </div>
         </div>
 
-        <a-dropdown
-          @select="(value: string | number | Record<string, any>) => handleMenuSelect(value, item)"
-          :popup-max-height="false"
-        >
+        <a-dropdown @select="(value: string | number | Record<string, any>) => handleMenuSelect(value, item)"
+          :popup-max-height="false">
           <a-button size="mini" class="action-btn" @click.stop> Options <icon-down /> </a-button>
           <template #content>
             <a-doption value="open" :disabled="item.status === 'running' || item.status === 'connecting'">
@@ -54,8 +51,8 @@
               <icon-close-circle /> Close
             </a-doption>
             <a-doption value="viewConfig"><icon-settings /> View Config</a-doption>
-            <a-doption value="edit" :disabled="item.status === 'running' || item.status === 'connecting'"
-              ><icon-edit /> Edit Config
+            <a-doption value="edit" :disabled="item.status === 'running' || item.status === 'connecting'"><icon-edit />
+              Edit Config
             </a-doption>
             <a-doption value="delete" :disabled="item.status === 'running' || item.status === 'connecting'">
               <icon-delete />
@@ -66,14 +63,15 @@
       </div>
 
       <!-- Empty State -->
-      <div v-if="engines.length === 0" class="empty-state">
-        <a-empty description="No engines found" />
+      <div v-if="filteredEngines.length === 0" class="empty-state">
+        <a-empty :description="searchText ? 'No matching engines' : 'No engines found'" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import {
   IconPlus,
   IconFolder,
@@ -82,11 +80,12 @@ import {
   IconApps,
   IconSettings,
   IconDown,
-  IconCloseCircle
+  IconCloseCircle,
+  IconSearch
 } from '@arco-design/web-vue/es/icon'
 import type { EngineData } from '../types'
 
-defineProps<{
+const props = defineProps<{
   engines: EngineData[]
 }>()
 
@@ -99,6 +98,19 @@ const emit = defineEmits<{
   (e: 'delete', engine: EngineData): void
   (e: 'viewConfig', engine: EngineData): void
 }>()
+
+const searchText = ref('')
+
+const filteredEngines = computed(() => {
+  const query = searchText.value.trim().toLowerCase()
+  if (!query) return props.engines
+
+  return props.engines.filter((engine) => {
+    const name = String(engine.name || '').toLowerCase()
+    const fileName = String(engine.fileName || '').toLowerCase()
+    return name.includes(query) || fileName.includes(query)
+  })
+})
 
 /**
  * Handles dropdown menu selection for a specific engine.
@@ -147,6 +159,16 @@ const handleMenuSelect = (value: string | number | Record<string, any>, item: En
     font-weight: 600;
     color: var(--color-text-1);
   }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-input {
+  width: 160px;
 }
 
 .list-container {
