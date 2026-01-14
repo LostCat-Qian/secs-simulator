@@ -1,13 +1,14 @@
 <template>
-  <a-modal :visible="visible" title="AutoFlow" :mask-closable="false" width="92vw" :footer="false"
-    @cancel="handleClose">
-    <div class="autoflow-container">
+  <a-drawer :visible="visible" title="AutoFlow" :mask-closable="true" width="90%" :footer="false" unmount-on-close
+    render-to-body @cancel="handleClose">
+    <div class="autoflow-layout">
+      <!-- Left Panel: Flow List -->
       <div class="left-panel">
         <div class="panel-header">
           <span class="title">AutoFlow List</span>
           <a-button size="mini" type="primary" @click="handleNewFlow">New</a-button>
         </div>
-        <div class="flow-list">
+        <div class="flow-list-container">
           <a-list :bordered="false" size="small" :split="false">
             <a-list-item v-for="item in flowList" :key="item.fileName"
               :class="['flow-item', { active: item.name === selectedFlowName }]" @click="selectFlow(item.name)">
@@ -23,14 +24,17 @@
         </div>
       </div>
 
-      <div class="center-panel">
+      <!-- Right Panel: Workspace -->
+      <div class="right-panel">
+        <!-- Toolbar -->
         <div class="top-toolbar">
           <a-space>
             <a-select v-model="localTool" class="tool-select" placeholder="Select Engine"
               :disabled="runState === 'running'">
               <a-option v-for="e in allEngines" :key="e.fileName || e.name" :value="e.name"
                 :disabled="String(e.config?.simulate || '') !== 'Equipment'">
-                {{ e.name }} <span v-if="String(e.config?.simulate || '') !== 'Equipment'">(Host)</span>
+                {{ e.name }}
+                <span v-if="String(e.config?.simulate || '') !== 'Equipment'">(Host)</span>
               </a-option>
             </a-select>
             <a-input v-model="localName" class="name-input" placeholder="Flow Name"
@@ -54,12 +58,14 @@
           </a-space>
         </div>
 
+        <!-- Main Work Area -->
         <div class="work-area">
-          <a-tabs default-active-key="config" size="small">
+          <a-tabs default-active-key="config" size="small" type="card-gutter">
             <a-tab-pane key="config" title="Flow Config">
-              <div class="config-area">
-                <div class="steps-area">
-                  <div class="steps-header">
+              <div class="config-container">
+                <!-- Steps Section -->
+                <div class="steps-section">
+                  <div class="section-header">
                     <span class="title">Steps</span>
                     <a-space>
                       <a-button size="mini" @click="addSendStep">+ Send</a-button>
@@ -70,75 +76,90 @@
                     </a-space>
                   </div>
 
-                  <a-table :data="localSteps" :pagination="false" :bordered="{ cell: true }" size="small"
-                    :scroll="{ x: 900 }">
-                    <template #columns>
-                      <a-table-column title="#" :width="50">
-                        <template #cell="{ rowIndex }">{{ rowIndex + 1 }}</template>
-                      </a-table-column>
-                      <a-table-column title="Node Type" :width="120">
-                        <template #cell="{ record }">
-                          <a-select v-model="record.type" size="mini" style="width: 110px"
-                            :disabled="runState === 'running'">
-                            <a-option value="send">send</a-option>
-                            <a-option value="wait">wait</a-option>
-                            <a-option value="delay">delay</a-option>
-                            <a-option value="log">log</a-option>
-                            <a-option value="end">end</a-option>
-                          </a-select>
-                        </template>
-                      </a-table-column>
-                      <a-table-column title="Parameters" :width="420">
-                        <template #cell="{ record }">
-                          <template v-if="record.type === 'send'">
-                            <a-select v-model="record.filePath" size="mini" style="width: 260px"
-                              placeholder="Select SML" :disabled="runState === 'running'" allow-search>
-                              <a-option v-for="p in smlFiles" :key="p" :value="p">{{ p }}</a-option>
+                  <div class="table-wrapper">
+                    <a-table :data="localSteps" :pagination="false" :bordered="{ cell: true }" size="small"
+                      :scroll="{ x: 1000, y: '100%' }" :scrollbar="true">
+                      <template #columns>
+                        <a-table-column title="#" :width="50" align="center">
+                          <template #cell="{ rowIndex }">{{ rowIndex + 1 }}</template>
+                        </a-table-column>
+                        <a-table-column title="Node Type" :width="120">
+                          <template #cell="{ record }">
+                            <a-select v-model="record.type" size="mini" style="width: 100%"
+                              :disabled="runState === 'running'">
+                              <a-option value="send">send</a-option>
+                              <a-option value="wait">wait</a-option>
+                              <a-option value="delay">delay</a-option>
+                              <a-option value="log">log</a-option>
+                              <a-option value="end">end</a-option>
                             </a-select>
-                            &nbsp;
-                            <a-input :model-value="record.expect?.sf" size="mini" style="width: 120px"
-                              placeholder="expect SF" @update:model-value="(v: string) => updateExpectSf(record, v)" />
                           </template>
-                          <template v-else-if="record.type === 'wait'">
-                            <a-input :model-value="record.expect?.sf" size="mini" style="width: 180px"
-                              placeholder="expect SF" @update:model-value="(v: string) => updateExpectSf(record, v)" />
-                            &nbsp;
-                            <a-input :model-value="record.expect?.smlIncludes" size="mini" style="width: 220px"
-                              placeholder="SML includes..."
-                              @update:model-value="(v: string) => updateExpectSmlIncludes(record, v)" />
+                        </a-table-column>
+                        <a-table-column title="Parameters" :width="450">
+                          <template #cell="{ record }">
+                            <div class="param-cell">
+                              <template v-if="record.type === 'send'">
+                                <a-select v-model="record.filePath" size="mini" style="flex: 1" placeholder="Select SML"
+                                  :disabled="runState === 'running'" allow-search>
+                                  <a-option v-for="p in smlFiles" :key="p" :value="p">{{ p }}</a-option>
+                                </a-select>
+                                <a-input :model-value="record.expect?.sf" size="mini" style="width: 120px"
+                                  placeholder="expect SF"
+                                  @update:model-value="(v: string) => updateExpectSf(record, v)" />
+                              </template>
+                              <template v-else-if="record.type === 'wait'">
+                                <a-input :model-value="record.expect?.sf" size="mini" style="width: 140px"
+                                  placeholder="expect SF"
+                                  @update:model-value="(v: string) => updateExpectSf(record, v)" />
+                                <a-input :model-value="record.expect?.smlIncludes" size="mini" style="flex: 1"
+                                  placeholder="SML includes..."
+                                  @update:model-value="(v: string) => updateExpectSmlIncludes(record, v)" />
+                              </template>
+                              <template v-else-if="record.type === 'delay'">
+                                <a-input-number v-model="record.ms" size="mini" :min="0" :step="100"
+                                  style="width: 120px" />
+                                <span class="unit">ms</span>
+                              </template>
+                              <template v-else-if="record.type === 'log'">
+                                <a-input v-model="record.message" size="mini" style="width: 100%"
+                                  placeholder="message..." />
+                              </template>
+                              <template v-else-if="record.type === 'end'">-</template>
+                            </div>
                           </template>
-                          <template v-else-if="record.type === 'delay'">
-                            <a-input-number v-model="record.ms" size="mini" :min="0" :step="100" />
+                        </a-table-column>
+                        <a-table-column title="Timeout(ms)" :width="120">
+                          <template #cell="{ record }">
+                            <a-input-number v-if="record.type === 'send' || record.type === 'wait'"
+                              v-model="record.timeoutMs" size="mini" :min="1000" :step="1000" />
                           </template>
-                          <template v-else-if="record.type === 'log'">
-                            <a-input v-model="record.message" size="mini" style="width: 420px"
-                              placeholder="message..." />
+                        </a-table-column>
+                        <a-table-column title="Actions" :width="120" align="center">
+                          <template #cell="{ rowIndex }">
+                            <a-space size="mini">
+                              <a-button size="mini" type="text" @click="moveStepUp(rowIndex)"
+                                :disabled="rowIndex === 0">
+                                <icon-arrow-up />
+                              </a-button>
+                              <a-button size="mini" type="text" @click="moveStepDown(rowIndex)"
+                                :disabled="rowIndex === localSteps.length - 1">
+                                <icon-arrow-down />
+                              </a-button>
+                              <a-button size="mini" type="text" status="danger" @click="removeStep(rowIndex)">
+                                <icon-close />
+                              </a-button>
+                            </a-space>
                           </template>
-                          <template v-else-if="record.type === 'end'">-</template>
-                        </template>
-                      </a-table-column>
-                      <a-table-column title="Timeout(ms)" :width="120">
-                        <template #cell="{ record }">
-                          <a-input-number v-if="record.type === 'send' || record.type === 'wait'"
-                            v-model="record.timeoutMs" size="mini" :min="1000" :step="1000" />
-                        </template>
-                      </a-table-column>
-                      <a-table-column title="Actions" :width="120">
-                        <template #cell="{ rowIndex }">
-                          <a-button size="mini" type="text" @click="moveStepUp(rowIndex)"
-                            :disabled="rowIndex === 0">↑</a-button>
-                          <a-button size="mini" type="text" @click="moveStepDown(rowIndex)"
-                            :disabled="rowIndex === localSteps.length - 1">↓</a-button>
-                          <a-button size="mini" type="text" status="danger" @click="removeStep(rowIndex)">✕</a-button>
-                        </template>
-                      </a-table-column>
-                    </template>
-                  </a-table>
+                        </a-table-column>
+                      </template>
+                    </a-table>
+                  </div>
                 </div>
 
-                <div class="json-area">
-                  <div class="json-header">
-                    <span class="title">JSON</span>
+                <!-- JSON Section -->
+                <div class="json-section">
+                  <div class="section-header">
+                    <span class="title">JSON Config</span>
                     <a-space>
                       <a-button size="mini" @click="syncJsonFromLocal">Refresh JSON</a-button>
                       <a-button size="mini" type="primary" @click="applyJsonToLocal">Apply JSON</a-button>
@@ -153,61 +174,69 @@
             </a-tab-pane>
 
             <a-tab-pane key="monitor" title="Monitor">
-              <div class="monitor-area">
-                <a-descriptions size="small" :column="2" bordered>
-                  <a-descriptions-item label="Status">{{ runState }}</a-descriptions-item>
-                  <a-descriptions-item label="RunId">{{ runId || '-' }}</a-descriptions-item>
-                  <a-descriptions-item label="Progress">
-                    <span v-if="progress">
-                      {{ progress.currentStepIndex + 1 }} / {{ progress.totalSteps }}
-                    </span>
-                    <span v-else>-</span>
-                  </a-descriptions-item>
-                  <a-descriptions-item label="Current Flow">{{ selectedFlowName || '-' }}</a-descriptions-item>
-                </a-descriptions>
+              <div class="monitor-container">
+                <div class="run-status-section">
+                  <div class="section-header">
+                    <span class="title">Run Status</span>
+                  </div>
+                  <div class="status-content">
+                    <a-descriptions size="small" :column="2" :bordered="false">
+                      <a-descriptions-item label="Status">
+                        <a-tag :color="runStateColor">{{ runState }}</a-tag>
+                      </a-descriptions-item>
+                      <a-descriptions-item label="RunId">{{ runId || '-' }}</a-descriptions-item>
+                      <a-descriptions-item label="Progress">
+                        <a-progress v-if="progress" :percent="progress.currentStepIndex / progress.totalSteps"
+                          :text="`${progress.currentStepIndex + 1} / ${progress.totalSteps}`" size="small"
+                          style="width: 200px" />
+                        <span v-else>-</span>
+                      </a-descriptions-item>
+                      <a-descriptions-item label="Current Flow">{{ selectedFlowName || '-' }}</a-descriptions-item>
+                    </a-descriptions>
+                  </div>
+                </div>
 
-                <div class="log-view">
-                  <a-list size="small" :bordered="true">
+                <div class="monitor-logs">
+                  <div class="section-header">
+                    <span class="title">Execution Logs</span>
+                  </div>
+                  <a-list :max-height="300" size="small">
                     <a-list-item v-for="(l, idx) in runLogs" :key="idx">
-                      <span class="log-ts">{{ formatTs(l.ts) }}</span>
-                      <span class="log-level" :class="l.level">{{ l.level }}</span>
-                      <span class="log-msg">{{ l.message }}</span>
+                      <div class="log-item">
+                        <span class="log-ts">{{ formatTs(l.ts) }}</span>
+                        <span class="log-level" :class="l.level">{{ l.level }}</span>
+                        <span class="log-msg">{{ l.message }}</span>
+                      </div>
                     </a-list-item>
                   </a-list>
                 </div>
               </div>
             </a-tab-pane>
-
-            <a-tab-pane key="logs" title="Logs">
-              <div class="log-view">
-                <a-list size="small" :bordered="true">
-                  <a-list-item v-for="(l, idx) in runLogs" :key="idx">
-                    <span class="log-ts">{{ formatTs(l.ts) }}</span>
-                    <span class="log-level" :class="l.level">{{ l.level }}</span>
-                    <span class="log-msg">{{ l.message }}</span>
-                  </a-list-item>
-                </a-list>
-              </div>
-            </a-tab-pane>
           </a-tabs>
         </div>
 
+        <!-- Status Bar -->
         <div class="status-bar">
-          <span class="status-item">Engine：{{ localTool || '-' }}</span>
-          <span class="status-item">Connection：{{ engineStatusText }}</span>
-          <span class="status-item" v-if="progress">
-            Progress：{{ progress.currentStepIndex + 1 }}/{{ progress.totalSteps }}
+          <span class="status-item">Engine: {{ localTool || '-' }}</span>
+          <a-divider direction="vertical" />
+          <span class="status-item">Connection:
+            <a-badge status="processing" v-if="engineStatusText === 'RUNNING'" text="RUNNING" />
+            <a-badge status="default" v-else text="IDLE" />
           </span>
+          <template v-if="progress">
+            <a-divider direction="vertical" />
+            <span class="status-item">Progress: {{ progress.currentStepIndex + 1 }}/{{ progress.totalSteps }}</span>
+          </template>
         </div>
       </div>
-
     </div>
-  </a-modal>
+  </a-drawer>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Message } from '@arco-design/web-vue'
+import { IconArrowUp, IconArrowDown, IconClose } from '@arco-design/web-vue/es/icon'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { ipc } from '@/utils/ipcRenderer'
 import type { AutoFlowConfig, AutoFlowStep, AutoFlowSummary, EngineData } from '../types'
@@ -260,6 +289,16 @@ const engineStatusText = computed(() => {
   return e.active ? 'RUNNING' : 'IDLE'
 })
 
+const runStateColor = computed(() => {
+  switch (runState.value) {
+    case 'running': return 'green'
+    case 'paused': return 'orange'
+    case 'error': return 'red'
+    case 'completed': return 'blue'
+    default: return 'gray'
+  }
+})
+
 const canEdit = computed(() => runState.value !== 'running' && runState.value !== 'paused')
 const canRun = computed(() => {
   if (!selectedFlowName.value) return false
@@ -293,16 +332,17 @@ const updateExpectSmlIncludes = (record: any, value: string) => {
 const editorOptions = {
   automaticLayout: true,
   minimap: { enabled: false },
-  fontSize: 14,
+  fontSize: 13,
   lineNumbers: 'on',
   scrollBeyondLastLine: false,
-  wordWrap: 'on'
+  wordWrap: 'on',
+  theme: 'vs-dark'
 }
 
 const formatTs = (ts: number) => {
   try {
     const d = new Date(ts)
-    return d.toLocaleTimeString()
+    return d.toLocaleTimeString() + '.' + String(d.getMilliseconds()).padStart(3, '0')
   } catch (_) {
     return ''
   }
@@ -546,74 +586,80 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="less">
-.autoflow-container {
+/* Layout Container */
+.autoflow-layout {
   display: flex;
-  height: 78vh;
-  gap: 12px;
-  min-height: 0;
-}
-
-.left-panel {
-  flex: 0 0 240px;
-  width: 240px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-2);
-  display: flex;
-  flex-direction: column;
-  min-width: 200px;
-  min-height: 0;
-}
-
-.center-panel {
-  flex: 1;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-2);
-  display: flex;
-  flex-direction: column;
+  height: 100%;
+  width: 100%;
   overflow: hidden;
-  min-width: 0;
-  min-height: 0;
+  background-color: var(--color-bg-1);
+}
+
+/* Left Panel */
+.left-panel {
+  flex: 0 0 280px;
+  width: 280px;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg-2);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 
   .title {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
+    color: var(--color-text-1);
   }
 }
 
-.flow-list {
+.flow-list-container {
   flex: 1;
-  overflow: auto;
-  padding: 6px;
+  overflow-y: auto;
+  padding: 8px;
 }
 
 .flow-item {
   cursor: pointer;
-  padding: 6px 8px;
-  border-radius: 6px;
-  user-select: none;
+  padding: 8px 10px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: var(--color-fill-2);
+  }
 
   &.active {
-    background: var(--color-fill-2);
+    background-color: var(--color-primary-light-1);
+
+    .flow-name {
+      color: rgb(var(--primary-6));
+      font-weight: 600;
+    }
   }
 }
 
 .flow-item-main {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .flow-name {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text-1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .flow-sub {
@@ -621,20 +667,34 @@ onBeforeUnmount(() => {
   color: var(--color-text-3);
 }
 
+/* Right Panel */
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-width: 0;
+}
+
 .top-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-2);
+  flex-shrink: 0;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 8px;
 }
 
-.tool-select,
+.tool-select {
+  width: 200px;
+}
+
 .name-input {
-  width: 220px;
-  max-width: 100%;
+  width: 240px;
 }
 
 .work-area {
@@ -642,93 +702,106 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 8px 10px;
-  min-height: 0;
+  padding: 16px;
+  background-color: var(--color-bg-1);
+
+  :deep(.arco-tabs) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.arco-tabs-content) {
+    flex: 1;
+    overflow: hidden;
+    padding-top: 12px;
+  }
+
+  :deep(.arco-tabs-pane) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 }
 
-.work-area :deep(.arco-tabs) {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.work-area :deep(.arco-tabs-content) {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.work-area :deep(.arco-tabs-content-item) {
-  height: 100%;
-  min-height: 0;
-}
-
-.status-bar {
+/* Config Tab */
+.config-container {
   display: flex;
   gap: 16px;
-  align-items: center;
-  padding: 8px 12px;
-  border-top: 1px solid var(--color-border);
-  font-size: 12px;
-  color: var(--color-text-3);
-
-  .status-item {
-    white-space: nowrap;
-  }
-}
-
-.config-area {
-  display: flex;
-  gap: 10px;
   height: 100%;
   overflow: hidden;
-  min-height: 0;
 }
 
-.steps-area {
-  flex: 1 1 520px;
+.steps-section {
+  flex: 3;
   display: flex;
   flex-direction: column;
-  overflow: auto;
-  min-height: 0;
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
-.steps-header {
+.json-section {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0 10px 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-fill-1);
+  flex-shrink: 0;
 
   .title {
     font-weight: 600;
+    font-size: 13px;
   }
 }
 
-.json-area {
-  flex: 1 1 420px;
-  display: flex;
-  flex-direction: column;
+.table-wrapper {
+  flex: 1;
   overflow: hidden;
-  min-height: 0;
+  position: relative;
+
+  :deep(.arco-table) {
+    height: 100%;
+
+    .arco-table-container {
+      height: 100%;
+    }
+
+    .arco-table-body {
+      height: calc(100% - 40px);
+      /* Adjust for header height */
+      overflow-y: auto;
+    }
+  }
 }
 
-.json-header {
+.param-cell {
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
   align-items: center;
-  padding: 6px 0 10px 0;
 
-  .title {
-    font-weight: 600;
+  .unit {
+    color: var(--color-text-3);
+    font-size: 12px;
   }
 }
 
 .editor-wrapper {
   flex: 1;
-  border: 1px solid var(--color-border);
   overflow: hidden;
-  min-height: 400px;
+  position: relative;
 }
 
 .editor-wrapper :deep(.monaco-editor),
@@ -738,30 +811,56 @@ onBeforeUnmount(() => {
   height: 100%;
 }
 
-.monitor-area {
+/* Monitor Tab */
+.monitor-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
   height: 100%;
+  overflow: hidden;
+}
+
+.run-status-section {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.status-content {
+  padding: 12px;
+}
+
+.monitor-logs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-2);
+  border-radius: 4px;
   overflow: hidden;
   min-height: 0;
 }
 
-.log-view {
-  flex: 1;
-  overflow: auto;
+.log-item {
+  display: flex;
+  gap: 8px;
+  font-family: monospace;
+  font-size: 12px;
 }
 
 .log-ts {
-  display: inline-block;
-  width: 90px;
   color: var(--color-text-3);
+  width: 100px;
+  flex-shrink: 0;
 }
 
 .log-level {
-  display: inline-block;
-  width: 60px;
-  font-weight: 600;
+  width: 50px;
+  font-weight: bold;
+  flex-shrink: 0;
 
   &.ERROR {
     color: rgb(var(--danger-6));
@@ -778,29 +877,25 @@ onBeforeUnmount(() => {
 
 .log-msg {
   color: var(--color-text-1);
+  word-break: break-all;
 }
 
-@media (max-width: 1100px) {
-  .autoflow-container {
-    flex-direction: column;
-    height: 80vh;
-  }
+/* Status Bar */
+.status-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-2);
+  font-size: 12px;
+  color: var(--color-text-2);
+  flex-shrink: 0;
 
-  .left-panel {
-    width: 100%;
-    flex: 0 0 auto;
-    max-height: 28vh;
-    min-width: 0;
-  }
-
-  .config-area {
-    flex-direction: column;
-    height: 100%;
-  }
-
-  .tool-select,
-  .name-input {
-    width: 100%;
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 }
 </style>

@@ -65,63 +65,63 @@ async function writeJsonFile(filePath, obj) {
  */
 function validateAutoFlow(flow) {
   if (!flow || typeof flow !== 'object') {
-    throw new Error('AutoFlow 配置必须是对象')
+    throw new Error('AutoFlow config must be an object')
   }
   if (!flow.name || typeof flow.name !== 'string') {
-    throw new Error('AutoFlow 配置必须包含 name（字符串）')
+    throw new Error('AutoFlow config must contain name (string)')
   }
   if (!flow.tool || typeof flow.tool !== 'string') {
-    throw new Error('AutoFlow 配置必须包含 tool（引擎名称，字符串）')
+    throw new Error('AutoFlow config must contain tool (engine name, string)')
   }
   if (flow.variables != null) {
-    throw new Error('AutoFlow 不支持 variables 字段')
+    throw new Error('AutoFlow does not support variables field')
   }
   if (!Array.isArray(flow.steps) || flow.steps.length === 0) {
-    throw new Error('AutoFlow 配置必须包含 steps（非空数组）')
+    throw new Error('AutoFlow config must contain steps (non-empty array)')
   }
   if (flow.steps[0]?.type !== 'send') {
-    throw new Error('AutoFlow 的第一步必须是 send（用于触发 EAP 流程开始）')
+    throw new Error('The first step of AutoFlow must be send (to trigger EAP flow start)')
   }
 
   for (let i = 0; i < flow.steps.length; i += 1) {
     const step = flow.steps[i]
     if (!step || typeof step !== 'object') {
-      throw new Error(`第 ${i + 1} 步配置非法：必须是对象`)
+      throw new Error(`Step ${i + 1} config invalid: must be an object`)
     }
     const type = step.type
     if (!['send', 'wait', 'delay', 'log', 'end'].includes(String(type))) {
-      throw new Error(`第 ${i + 1} 步 type 不支持：${String(type)}`)
+      throw new Error(`Step ${i + 1} type not supported: ${String(type)}`)
     }
     if (type === 'send') {
       if (!step.filePath || typeof step.filePath !== 'string') {
-        throw new Error(`第 ${i + 1} 步（send）必须包含 filePath（SML 相对路径）`)
+        throw new Error(`Step ${i + 1} (send) must contain filePath (SML relative path)`)
       }
       if (step.saveVars != null) {
-        throw new Error(`第 ${i + 1} 步（send）不支持 saveVars`)
+        throw new Error(`Step ${i + 1} (send) does not support saveVars`)
       }
       if (step.timeoutMs != null && (!Number.isFinite(Number(step.timeoutMs)) || Number(step.timeoutMs) <= 0)) {
-        throw new Error(`第 ${i + 1} 步（send）timeoutMs 必须是正数`)
+        throw new Error(`Step ${i + 1} (send) timeoutMs must be a positive number`)
       }
     }
     if (type === 'wait') {
       if (!step.expect || typeof step.expect !== 'object') {
-        throw new Error(`第 ${i + 1} 步（wait）必须包含 expect（匹配条件）`)
+        throw new Error(`Step ${i + 1} (wait) must contain expect (match condition)`)
       }
       if (step.saveVars != null) {
-        throw new Error(`第 ${i + 1} 步（wait）不支持 saveVars`)
+        throw new Error(`Step ${i + 1} (wait) does not support saveVars`)
       }
       if (step.timeoutMs != null && (!Number.isFinite(Number(step.timeoutMs)) || Number(step.timeoutMs) <= 0)) {
-        throw new Error(`第 ${i + 1} 步（wait）timeoutMs 必须是正数`)
+        throw new Error(`Step ${i + 1} (wait) timeoutMs must be a positive number`)
       }
     }
     if (type === 'delay') {
       if (!Number.isFinite(Number(step.ms)) || Number(step.ms) < 0) {
-        throw new Error(`第 ${i + 1} 步（delay）ms 必须是非负数`)
+        throw new Error(`Step ${i + 1} (delay) ms must be a non-negative number`)
       }
     }
     if (type === 'log') {
       if (typeof step.message !== 'string') {
-        throw new Error(`第 ${i + 1} 步（log）必须包含 message（字符串）`)
+        throw new Error(`Step ${i + 1} (log) must contain message (string)`)
       }
     }
   }
@@ -349,10 +349,10 @@ class AutoFlowRunner {
    */
   async _waitMessage(expect, timeoutMs) {
     if (this._stopped) throw new Error('Stopped')
-    if (this._waiting) throw new Error('当前已有等待中的条件，配置不允许并行等待')
+    if (this._waiting) throw new Error('There is already a waiting condition, parallel waiting is not allowed')
 
     const to = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0 ? Number(timeoutMs) : 30000
-    this._log('INFO', `等待消息：timeout=${to}ms`)
+    this._log('INFO', `Waiting for message: timeout=${to}ms`)
 
     return await new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -393,10 +393,10 @@ class AutoFlowRunner {
       const configs = await engineService.getConfig()
       const cfg = Array.isArray(configs) ? configs.find((c) => c?.config?.name === this.flow.tool) : null
       if (!cfg || !cfg.config) {
-        throw new Error(`未找到引擎配置：${this.flow.tool}`)
+        throw new Error(`Engine config not found: ${this.flow.tool}`)
       }
       if (String(cfg.config.simulate || '') !== 'Equipment') {
-        throw new Error('AutoFlow 仅允许在模拟 Equipment 端时使用')
+        throw new Error('AutoFlow can only be used when simulating Equipment')
       }
 
       for (this.currentStepIndex = 0; this.currentStepIndex < this.totalSteps; this.currentStepIndex += 1) {
@@ -422,7 +422,7 @@ class AutoFlowRunner {
         if (step.type === 'delay') {
           const ms = Number(step.ms)
           if (ms > 0) {
-            this._log('INFO', `延时 ${ms}ms`)
+            this._log('INFO', `Delay ${ms}ms`)
             await new Promise((r) => setTimeout(r, ms))
           }
           continue
@@ -432,7 +432,7 @@ class AutoFlowRunner {
           const timeoutMs = step.timeoutMs != null ? Number(step.timeoutMs) : 30000
           if (!isBeforeEnd) {
             await this._waitMessage(step.expect, timeoutMs)
-            this._log('INFO', '等待条件满足，继续执行')
+            this._log('INFO', 'Condition met, continuing execution')
           }
           continue
         }
@@ -440,7 +440,7 @@ class AutoFlowRunner {
         if (step.type === 'send') {
           const timeoutMs = step.timeoutMs != null ? Number(step.timeoutMs) : 30000
           const waitReply = typeof step.waitReply === 'boolean' ? step.waitReply : undefined
-          this._log('INFO', `发送：${String(step.filePath)}`)
+          this._log('INFO', `Sending: ${String(step.filePath)}`)
 
           const waitPromise = step.expect && !isBeforeEnd ? this._waitMessage(step.expect, timeoutMs) : null
 
@@ -461,7 +461,7 @@ class AutoFlowRunner {
 
           if (waitPromise) {
             await waitPromise
-            this._log('INFO', 'expect 条件满足，继续执行')
+            this._log('INFO', 'Expect condition met, continuing execution')
           }
 
           continue
@@ -470,14 +470,14 @@ class AutoFlowRunner {
 
       this._setState('completed')
       if (!endedByEndStep) {
-        this._log('INFO', '流程执行完成')
+        this._log('INFO', 'Flow execution completed')
       }
       return { success: true }
     } catch (error) {
       const msg = error?.message || String(error)
       if (msg === 'Stopped') {
         this._setState('stopped')
-        this._log('WARN', '流程已停止')
+        this._log('WARN', 'Flow stopped')
         return { success: false, stopped: true }
       }
       this._setState('error')
@@ -538,7 +538,7 @@ class AutoFlowService {
    */
   async getFlow(args) {
     const name = String(args?.name || '').trim()
-    if (!name) throw new Error('name 不能为空')
+    if (!name) throw new Error('name cannot be empty')
     const dir = getAutoFlowDir()
     const fileName = `${toSafeBaseName(name)}.json`
     const fullPath = path.join(dir, fileName)
@@ -558,7 +558,7 @@ class AutoFlowService {
     await fs.mkdir(dir, { recursive: true })
 
     const safeName = toSafeBaseName(flow.name)
-    if (!safeName) throw new Error('name 非法')
+    if (!safeName) throw new Error('name invalid')
 
     const now = new Date().toISOString()
     const next = { ...flow, version: 1, updatedAt: now, createdAt: flow.createdAt || now }
@@ -575,7 +575,7 @@ class AutoFlowService {
    */
   async deleteFlow(args) {
     const name = String(args?.name || '').trim()
-    if (!name) throw new Error('name 不能为空')
+    if (!name) throw new Error('name cannot be empty')
     const dir = getAutoFlowDir()
     const fileName = `${toSafeBaseName(name)}.json`
     const fullPath = path.join(dir, fileName)
@@ -590,7 +590,7 @@ class AutoFlowService {
    */
   async runFlow(args, hooks) {
     const name = String(args?.name || '').trim()
-    if (!name) throw new Error('name 不能为空')
+    if (!name) throw new Error('name cannot be empty')
 
     const flow = await this.getFlow({ name })
     validateAutoFlow(flow)
@@ -617,7 +617,7 @@ class AutoFlowService {
   pauseRun(args) {
     const runId = String(args?.runId || '')
     const r = this.runners.get(runId)
-    if (!r) throw new Error('runId 不存在')
+    if (!r) throw new Error('runId does not exist')
     r.pause()
     return { success: true }
   }
@@ -625,7 +625,7 @@ class AutoFlowService {
   resumeRun(args) {
     const runId = String(args?.runId || '')
     const r = this.runners.get(runId)
-    if (!r) throw new Error('runId 不存在')
+    if (!r) throw new Error('runId does not exist')
     r.resume()
     return { success: true }
   }
@@ -633,7 +633,7 @@ class AutoFlowService {
   stopRun(args) {
     const runId = String(args?.runId || '')
     const r = this.runners.get(runId)
-    if (!r) throw new Error('runId 不存在')
+    if (!r) throw new Error('runId does not exist')
     r.stop()
     return { success: true }
   }

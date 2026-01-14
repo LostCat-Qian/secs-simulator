@@ -106,7 +106,7 @@
     <AutoReplyModal v-model:visible="autoReplyModalVisible" :initial-data="autoReplyForm" :engines="engineList"
       @submit="handleSaveAutoReply" />
 
-    <AutoFlowModal v-model:visible="autoFlowModalVisible" :engines="engineList" :sml-files="allSmlFiles" />
+    <AutoFlowDrawer v-model:visible="autoFlowDrawerVisible" :engines="engineList" :sml-files="allSmlFiles" />
 
     <EventBindModal v-model:visible="eventBindModalVisible" @save="handleSaveEventBind" />
   </div>
@@ -130,7 +130,7 @@ import FileEditorModal from './components/FileEditorModal.vue'
 import AddFolderModal from './components/AddFolderModal.vue'
 import AutoReplyModal from './components/AutoReplyModal.vue'
 import EventBindModal from './components/EventBindModal.vue'
-import AutoFlowModal from './components/AutoFlowModal.vue'
+import AutoFlowDrawer from './components/AutoFlowDrawer.vue'
 
 // Types
 import type { EngineData, AutoReplyFormData, AutoReplyItem, SmlTreeNode } from './types'
@@ -216,7 +216,7 @@ const editingAutoReplyName = ref<string | null>(null)
 const eventBindModalVisible = ref(false)
 
 // AutoFlow State
-const autoFlowModalVisible = ref(false)
+const autoFlowDrawerVisible = ref(false)
 
 // #endregion
 
@@ -455,7 +455,7 @@ const handleAutoFlow = () => {
     Message.warning('AutoFlow 仅在模拟 Equipment 端时可用')
     return
   }
-  autoFlowModalVisible.value = true
+  autoFlowDrawerVisible.value = true
 }
 
 const handleSaveEventBind = async (payload: { folderPath: string; files: { name: string; content: string }[] }) => {
