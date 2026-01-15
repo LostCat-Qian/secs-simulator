@@ -12,10 +12,84 @@
       <VueFlow v-model="elements" class="flow-chart" :default-viewport="{ zoom: 1 }" :min-zoom="0.2" :max-zoom="4"
         @pane-ready="onPaneReady" @node-click="onNodeClick">
         <Background pattern-color="#aaa" :gap="16" />
-        <Controls />
 
         <template #node-custom="props">
           <div class="custom-node" :class="{ selected: props.selected }">
+            <NodeToolbar :is-visible="props.selected" :position="Position.Right" :align="'start'">
+              <div class="node-popover-content" v-if="selectedNodeData && selectedNodeData.type === props.data.type">
+                <div class="popover-header">
+                  <span>Edit {{ selectedNodeData.type.toUpperCase() }}</span>
+                  <a-button size="mini" type="text" @click="selectedNodeId = null">
+                    <icon-close />
+                  </a-button>
+                </div>
+                <div class="popover-body">
+                  <a-form :model="selectedNodeData" layout="vertical" size="small">
+                    <!-- Send Node Params -->
+                    <template v-if="selectedNodeData.type === 'send'">
+                      <a-form-item label="SML File">
+                        <a-select v-model="selectedNodeData.filePath" allow-search placeholder="Select SML">
+                          <a-option v-for="p in smlFiles" :key="p" :value="p">{{ p }}</a-option>
+                        </a-select>
+                      </a-form-item>
+                      <a-form-item label="Expect SF">
+                        <a-input v-model="selectedNodeData.expectSf" placeholder="S6F12" />
+                      </a-form-item>
+                      <a-form-item label="Timeout (ms)">
+                        <a-input-number v-model="selectedNodeData.timeoutMs" :min="1000" :step="1000" />
+                      </a-form-item>
+                      <a-form-item label="Engines">
+                        <a-select v-model="selectedNodeData.tools" multiple allow-clear>
+                          <a-option v-for="t in availableTools" :key="t" :value="t">{{ t }}</a-option>
+                        </a-select>
+                      </a-form-item>
+                    </template>
+
+                    <!-- Wait Node Params -->
+                    <template v-if="selectedNodeData.type === 'wait'">
+                      <a-form-item label="Expect SF">
+                        <a-input v-model="selectedNodeData.expectSf" placeholder="S6F11" />
+                      </a-form-item>
+                      <a-form-item label="Includes">
+                        <a-input v-model="selectedNodeData.smlIncludes" placeholder="content..." />
+                      </a-form-item>
+                      <a-form-item label="Timeout (ms)">
+                        <a-input-number v-model="selectedNodeData.timeoutMs" :min="1000" :step="1000" />
+                      </a-form-item>
+                      <a-form-item label="Engines">
+                        <a-select v-model="selectedNodeData.tools" multiple allow-clear>
+                          <a-option v-for="t in availableTools" :key="t" :value="t">{{ t }}</a-option>
+                        </a-select>
+                      </a-form-item>
+                    </template>
+
+                    <!-- Delay Node Params -->
+                    <template v-if="selectedNodeData.type === 'delay'">
+                      <a-form-item label="Delay (ms)">
+                        <a-input-number v-model="selectedNodeData.ms" :min="0" :step="100" />
+                      </a-form-item>
+                    </template>
+
+                    <!-- Log Node Params -->
+                    <template v-if="selectedNodeData.type === 'log'">
+                      <a-form-item label="Message">
+                        <a-textarea v-model="selectedNodeData.message" />
+                      </a-form-item>
+                      <a-form-item label="Level">
+                        <a-select v-model="selectedNodeData.level">
+                          <a-option>INFO</a-option>
+                          <a-option>WARN</a-option>
+                          <a-option>ERROR</a-option>
+                        </a-select>
+                      </a-form-item>
+                    </template>
+
+                    <a-divider />
+                    <a-button type="primary" status="danger" long @click="deleteSelectedNode">Delete Node</a-button>
+                  </a-form>
+                </div>
+              </div>
+            </NodeToolbar>
             <div class="node-header" :class="props.data.type">
               {{ props.data.type.toUpperCase() }}
             </div>
@@ -29,84 +103,6 @@
         </template>
       </VueFlow>
     </div>
-
-    <div class="properties-panel" v-if="selectedNodeData">
-      <div class="panel-header">
-        <span>Properties</span>
-        <a-button size="mini" type="text" @click="selectedNodeId = null">
-          <icon-close />
-        </a-button>
-      </div>
-      <div class="panel-content">
-        <a-form :model="selectedNodeData" layout="vertical" size="small">
-          <a-form-item label="Type">
-            <a-tag>{{ selectedNodeData.type }}</a-tag>
-          </a-form-item>
-
-          <!-- Send Node Params -->
-          <template v-if="selectedNodeData.type === 'send'">
-            <a-form-item label="SML File">
-              <a-select v-model="selectedNodeData.filePath" allow-search placeholder="Select SML">
-                <a-option v-for="p in smlFiles" :key="p" :value="p">{{ p }}</a-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="Expect SF">
-              <a-input v-model="selectedNodeData.expectSf" placeholder="S6F12" />
-            </a-form-item>
-            <a-form-item label="Timeout (ms)">
-              <a-input-number v-model="selectedNodeData.timeoutMs" :min="1000" :step="1000" />
-            </a-form-item>
-            <a-form-item label="Engines">
-              <a-select v-model="selectedNodeData.tools" multiple allow-clear>
-                <a-option v-for="t in availableTools" :key="t" :value="t">{{ t }}</a-option>
-              </a-select>
-            </a-form-item>
-          </template>
-
-          <!-- Wait Node Params -->
-          <template v-if="selectedNodeData.type === 'wait'">
-            <a-form-item label="Expect SF">
-              <a-input v-model="selectedNodeData.expectSf" placeholder="S6F11" />
-            </a-form-item>
-            <a-form-item label="Includes">
-              <a-input v-model="selectedNodeData.smlIncludes" placeholder="content..." />
-            </a-form-item>
-            <a-form-item label="Timeout (ms)">
-              <a-input-number v-model="selectedNodeData.timeoutMs" :min="1000" :step="1000" />
-            </a-form-item>
-            <a-form-item label="Engines">
-              <a-select v-model="selectedNodeData.tools" multiple allow-clear>
-                <a-option v-for="t in availableTools" :key="t" :value="t">{{ t }}</a-option>
-              </a-select>
-            </a-form-item>
-          </template>
-
-          <!-- Delay Node Params -->
-          <template v-if="selectedNodeData.type === 'delay'">
-            <a-form-item label="Delay (ms)">
-              <a-input-number v-model="selectedNodeData.ms" :min="0" :step="100" />
-            </a-form-item>
-          </template>
-
-          <!-- Log Node Params -->
-          <template v-if="selectedNodeData.type === 'log'">
-            <a-form-item label="Message">
-              <a-textarea v-model="selectedNodeData.message" />
-            </a-form-item>
-            <a-form-item label="Level">
-              <a-select v-model="selectedNodeData.level">
-                <a-option>INFO</a-option>
-                <a-option>WARN</a-option>
-                <a-option>ERROR</a-option>
-              </a-select>
-            </a-form-item>
-          </template>
-
-          <a-divider />
-          <a-button type="primary" status="danger" long @click="deleteSelectedNode">Delete Node</a-button>
-        </a-form>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -114,7 +110,7 @@
 import { ref, watch, computed } from 'vue'
 import { VueFlow, useVueFlow, Position, Handle } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
-import { Controls } from '@vue-flow/controls'
+import { NodeToolbar } from '@vue-flow/node-toolbar'
 import { IconClose } from '@arco-design/web-vue/es/icon'
 import type { AutoFlowStep } from '../../types'
 
@@ -409,26 +405,31 @@ const onPaneReady = (instance: any) => {
   width: 100%;
 }
 
-.properties-panel {
-  width: 300px;
+.node-popover-content {
   background: var(--color-bg-2);
-  border-left: 1px solid var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 320px;
+  max-height: 400px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
-  .panel-header {
-    padding: 12px;
+  .popover-header {
+    padding: 10px 12px;
     border-bottom: 1px solid var(--color-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-weight: 600;
+    background: var(--color-fill-1);
   }
 
-  .panel-content {
-    flex: 1;
-    overflow-y: auto;
+  .popover-body {
     padding: 12px;
+    overflow-y: auto;
+    flex: 1;
   }
 }
 

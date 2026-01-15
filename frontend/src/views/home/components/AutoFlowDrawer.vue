@@ -19,7 +19,7 @@
                 </div>
                 <div class="flow-sub">{{ (item.tools?.length ? item.tools.join(', ') : item.tool) || '-' }} · {{
                   item.stepCount
-                }} steps</div>
+                  }} steps</div>
               </div>
             </a-list-item>
           </a-list>
@@ -69,31 +69,30 @@
                 <div class="steps-section">
                   <div class="section-header">
                     <span class="title">Visual Flow Orchestration</span>
+                    <a-button size="mini" type="secondary" @click="openJsonModal">
+                      <template #icon><icon-code /></template>
+                      Edit JSON
+                    </a-button>
                   </div>
 
                   <div class="graph-wrapper">
-                    <FlowGraphEditor
-                      v-model:steps="localSteps"
-                      :sml-files="smlFiles"
-                      :available-tools="localTools"
-                    />
+                    <FlowGraphEditor v-model:steps="localSteps" :sml-files="smlFiles" :available-tools="localTools" />
                   </div>
                 </div>
 
-                <!-- JSON Section -->
-                <div class="json-section">
-                  <div class="section-header">
-                    <span class="title">JSON Config</span>
-                    <a-space>
-                      <a-button size="mini" @click="syncJsonFromLocal">Refresh JSON</a-button>
-                      <a-button size="mini" type="primary" @click="applyJsonToLocal">Apply JSON</a-button>
-                    </a-space>
+                <!-- JSON Modal -->
+                <a-modal v-model:visible="jsonModalVisible" title="JSON Config" width="800px" :mask-closable="false"
+                  draggable @ok="applyJsonModal" @cancel="closeJsonModal">
+                  <div class="json-modal-toolbar">
+                    <input type="file" ref="fileInput" accept=".json" style="display: none"
+                      @change="handleImportJson" />
+                    <a-button size="small" @click="triggerImportJson">Import JSON</a-button>
                   </div>
-                  <div class="editor-wrapper">
+                  <div class="json-modal-editor">
                     <vue-monaco-editor v-model:value="jsonText" language="json" theme="vs-dark"
                       :options="editorOptions" />
                   </div>
-                </div>
+                </a-modal>
               </div>
             </a-tab-pane>
 
@@ -160,6 +159,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Message } from '@arco-design/web-vue'
+import { IconCode } from '@arco-design/web-vue/es/icon'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { ipc } from '@/utils/ipcRenderer'
 import type { AutoFlowConfig, AutoFlowStep, AutoFlowSummary, EngineData } from '../types'
@@ -203,6 +203,8 @@ const localTools = ref<string[]>([])
 const localSteps = ref<AutoFlowStep[]>([])
 
 const jsonText = ref<string>('')
+const jsonModalVisible = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
 
 const allEngines = computed(() => props.engines)
 
@@ -333,6 +335,48 @@ const buildLocalFlowObject = (): AutoFlowConfig => {
 const syncJsonFromLocal = () => {
   const flow = normalizeFlowForJson(buildLocalFlowObject())
   jsonText.value = JSON.stringify(flow, null, 2)
+}
+
+const openJsonModal = () => {
+  syncJsonFromLocal()
+  jsonModalVisible.value = true
+}
+
+const closeJsonModal = () => {
+  jsonModalVisible.value = false
+}
+
+const applyJsonModal = () => {
+  applyJsonToLocal()
+  jsonModalVisible.value = false
+}
+
+const triggerImportJson = () => {
+  if (fileInput.value) {
+    fileInput.value.value = ''
+    fileInput.value.click()
+  }
+}
+
+const handleImportJson = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (evt) => {
+    try {
+      const text = evt.target?.result as string
+      // Validate JSON
+      const obj = JSON.parse(text)
+      if (!obj || typeof obj !== 'object') throw new Error('Invalid JSON format')
+      jsonText.value = JSON.stringify(obj, null, 2)
+      Message.success('JSON imported successfully')
+    } catch (err: any) {
+      Message.error('Failed to import JSON: ' + err.message)
+    }
+  }
+  reader.readAsText(file)
 }
 
 const applyJsonToLocal = () => {
@@ -665,16 +709,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.json-section {
-  flex: 0 0 350px;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-bg-2);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -707,17 +741,15 @@ onBeforeUnmount(() => {
   }
 }
 
-.editor-wrapper {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
+.json-modal-toolbar {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.editor-wrapper :deep(.monaco-editor),
-.editor-wrapper :deep(.monaco-editor .monaco-editor-background),
-.editor-wrapper :deep(.monaco-editor .overflow-guard) {
-  width: 100%;
-  height: 100%;
+.json-modal-editor {
+  height: 60vh;
+  border: 1px solid var(--color-border);
 }
 
 /* Monitor Tab */
