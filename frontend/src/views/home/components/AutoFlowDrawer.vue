@@ -1,5 +1,5 @@
 <template>
-  <a-drawer :visible="visible" title="AutoFlow" :mask-closable="true" width="90%" :footer="false" unmount-on-close
+  <a-drawer :visible="visible" title="AutoFlow" :mask-closable="true" width="100%" :footer="false" unmount-on-close
     render-to-body @cancel="handleClose">
     <div class="autoflow-layout">
       <!-- Left Panel: Flow List -->
@@ -68,111 +68,15 @@
                 <!-- Steps Section -->
                 <div class="steps-section">
                   <div class="section-header">
-                    <span class="title">Steps</span>
-                    <a-space>
-                      <a-button size="mini" @click="addSendStep">+ Send</a-button>
-                      <a-button size="mini" @click="addWaitStep">+ Wait</a-button>
-                      <a-button size="mini" @click="addDelayStep">+ Delay</a-button>
-                      <a-button size="mini" @click="addLogStep">+ Log</a-button>
-                      <a-button size="mini" @click="addEndStep">+ End</a-button>
-                    </a-space>
+                    <span class="title">Visual Flow Orchestration</span>
                   </div>
 
-                  <div class="table-wrapper">
-                    <a-table :data="localSteps" :pagination="false" :bordered="{ cell: true }" size="small"
-                      :scroll="{ x: 1000, y: '100%' }" :scrollbar="true">
-                      <template #columns>
-                        <a-table-column title="#" :width="50" align="center">
-                          <template #cell="{ rowIndex }">{{ rowIndex + 1 }}</template>
-                        </a-table-column>
-                        <a-table-column title="Node Type" :width="120">
-                          <template #cell="{ record }">
-                            <a-select v-model="record.type" size="mini" style="width: 100%"
-                              :disabled="runState === 'running'">
-                              <a-option value="send">send</a-option>
-                              <a-option value="wait">wait</a-option>
-                              <a-option value="delay">delay</a-option>
-                              <a-option value="log">log</a-option>
-                              <a-option value="end">end</a-option>
-                            </a-select>
-                          </template>
-                        </a-table-column>
-                        <a-table-column title="Parameters" :width="450">
-                          <template #cell="{ record }">
-                            <div class="param-cell">
-                              <template v-if="record.type === 'send'">
-                                <a-select v-model="record.filePath" size="mini" style="flex: 1" placeholder="Select SML"
-                                  :disabled="runState === 'running'" allow-search>
-                                  <a-option v-for="p in smlFiles" :key="p" :value="p">{{ p }}</a-option>
-                                </a-select>
-                                <a-input :model-value="record.expect?.sf" size="mini" style="width: 120px"
-                                  placeholder="expect SF"
-                                  @update:model-value="(v: string) => updateExpectSf(record, v)" />
-                              </template>
-                              <template v-else-if="record.type === 'wait'">
-                                <a-input :model-value="record.expect?.sf" size="mini" style="width: 140px"
-                                  placeholder="expect SF"
-                                  @update:model-value="(v: string) => updateExpectSf(record, v)" />
-                                <a-input :model-value="record.expect?.smlIncludes" size="mini" style="flex: 1"
-                                  placeholder="SML includes..."
-                                  @update:model-value="(v: string) => updateExpectSmlIncludes(record, v)" />
-                              </template>
-                              <template v-else-if="record.type === 'delay'">
-                                <a-input-number v-model="record.ms" size="mini" :min="0" :step="100"
-                                  style="width: 120px" />
-                                <span class="unit">ms</span>
-                              </template>
-                              <template v-else-if="record.type === 'log'">
-                                <a-input v-model="record.message" size="mini" style="width: 100%"
-                                  placeholder="message..." />
-                              </template>
-                              <template v-else-if="record.type === 'end'">-</template>
-                            </div>
-                          </template>
-                        </a-table-column>
-                        <a-table-column title="Engines" :width="220">
-                          <template #cell="{ record }">
-                            <a-select
-                              v-if="record.type === 'send' || record.type === 'wait'"
-                              :model-value="record.tools || []"
-                              multiple
-                              allow-clear
-                              size="mini"
-                              style="width: 100%"
-                              placeholder="Flow engines"
-                              :disabled="runState === 'running' || !localTools.length"
-                              @update:model-value="(v: string[]) => updateStepTools(record, v)"
-                            >
-                              <a-option v-for="n in localTools" :key="n" :value="n">{{ n }}</a-option>
-                            </a-select>
-                            <template v-else>-</template>
-                          </template>
-                        </a-table-column>
-                        <a-table-column title="Timeout(ms)" :width="120">
-                          <template #cell="{ record }">
-                            <a-input-number v-if="record.type === 'send' || record.type === 'wait'"
-                              v-model="record.timeoutMs" size="mini" :min="1000" :step="1000" />
-                          </template>
-                        </a-table-column>
-                        <a-table-column title="Actions" :width="120" align="center">
-                          <template #cell="{ rowIndex }">
-                            <a-space size="mini">
-                              <a-button size="mini" type="text" @click="moveStepUp(rowIndex)"
-                                :disabled="rowIndex === 0">
-                                <icon-arrow-up />
-                              </a-button>
-                              <a-button size="mini" type="text" @click="moveStepDown(rowIndex)"
-                                :disabled="rowIndex === localSteps.length - 1">
-                                <icon-arrow-down />
-                              </a-button>
-                              <a-button size="mini" type="text" status="danger" @click="removeStep(rowIndex)">
-                                <icon-close />
-                              </a-button>
-                            </a-space>
-                          </template>
-                        </a-table-column>
-                      </template>
-                    </a-table>
+                  <div class="graph-wrapper">
+                    <FlowGraphEditor
+                      v-model:steps="localSteps"
+                      :sml-files="smlFiles"
+                      :available-tools="localTools"
+                    />
                   </div>
                 </div>
 
@@ -256,11 +160,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Message } from '@arco-design/web-vue'
-import { IconArrowUp, IconArrowDown, IconClose } from '@arco-design/web-vue/es/icon'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { ipc } from '@/utils/ipcRenderer'
 import type { AutoFlowConfig, AutoFlowStep, AutoFlowSummary, EngineData } from '../types'
 import { useAutoFlow } from '../composables/useAutoFlow'
+import FlowGraphEditor from './flow/FlowGraphEditor.vue'
 
 const props = defineProps<{
   visible: boolean
@@ -394,32 +298,6 @@ const normalizeFlowForJson = (flow: AutoFlowConfig): AutoFlowConfig => {
   if (flow.createdAt) next.createdAt = flow.createdAt
   if (flow.description) next.description = flow.description
   return next
-}
-
-const ensureExpectObject = (record: any) => {
-  if (!record.expect || typeof record.expect !== 'object') {
-    record.expect = {}
-  }
-  return record.expect
-}
-
-const updateStepTools = (record: any, value: string[]) => {
-  const allowed = new Set(localTools.value)
-  const next = uniqueNonEmptyStrings(value).filter((x) => allowed.has(x))
-  record.tools = next.length ? next : undefined
-  syncJsonFromLocal()
-}
-
-const updateExpectSf = (record: any, value: string) => {
-  const expect = ensureExpectObject(record)
-  expect.sf = value
-  syncJsonFromLocal()
-}
-
-const updateExpectSmlIncludes = (record: any, value: string) => {
-  const expect = ensureExpectObject(record)
-  expect.smlIncludes = value
-  syncJsonFromLocal()
 }
 
 const editorOptions = {
@@ -564,70 +442,6 @@ const handleRefresh = async () => {
   await loadFlows()
 }
 
-const addSendStep = () => {
-  localSteps.value = [
-    ...localSteps.value,
-    {
-      type: 'send',
-      filePath: props.smlFiles[0] || '',
-      timeoutMs: 30000
-    } as AutoFlowStep
-  ]
-  syncJsonFromLocal()
-}
-
-const addWaitStep = () => {
-  localSteps.value = [
-    ...localSteps.value,
-    {
-      type: 'wait',
-      timeoutMs: 30000,
-      expect: { sf: 'S2F41' }
-    } as AutoFlowStep
-  ]
-  syncJsonFromLocal()
-}
-
-const addDelayStep = () => {
-  localSteps.value = [...localSteps.value, { type: 'delay', ms: 1000 } as AutoFlowStep]
-  syncJsonFromLocal()
-}
-
-const addLogStep = () => {
-  localSteps.value = [...localSteps.value, { type: 'log', level: 'INFO', message: 'log...' } as AutoFlowStep]
-  syncJsonFromLocal()
-}
-
-const addEndStep = () => {
-  localSteps.value = [...localSteps.value, { type: 'end' } as AutoFlowStep]
-  syncJsonFromLocal()
-}
-
-const removeStep = (idx: number) => {
-  localSteps.value = localSteps.value.filter((_, i) => i !== idx)
-  syncJsonFromLocal()
-}
-
-const moveStepUp = (idx: number) => {
-  if (idx <= 0) return
-  const arr = [...localSteps.value]
-  const t = arr[idx - 1]
-  arr[idx - 1] = arr[idx]
-  arr[idx] = t
-  localSteps.value = arr
-  syncJsonFromLocal()
-}
-
-const moveStepDown = (idx: number) => {
-  if (idx >= localSteps.value.length - 1) return
-  const arr = [...localSteps.value]
-  const t = arr[idx + 1]
-  arr[idx + 1] = arr[idx]
-  arr[idx] = t
-  localSteps.value = arr
-  syncJsonFromLocal()
-}
-
 const handleClose = () => {
   emit('update:visible', false)
 }
@@ -706,8 +520,8 @@ onBeforeUnmount(() => {
 
 /* Left Panel */
 .left-panel {
-  flex: 0 0 280px;
-  width: 280px;
+  flex: 0 0 220px;
+  width: 220px;
   border-right: 1px solid var(--color-border);
   background: var(--color-bg-2);
   display: flex;
@@ -842,7 +656,7 @@ onBeforeUnmount(() => {
 }
 
 .steps-section {
-  flex: 3;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background: var(--color-bg-2);
@@ -852,7 +666,7 @@ onBeforeUnmount(() => {
 }
 
 .json-section {
-  flex: 2;
+  flex: 0 0 350px;
   display: flex;
   flex-direction: column;
   background: var(--color-bg-2);
@@ -876,24 +690,10 @@ onBeforeUnmount(() => {
   }
 }
 
-.table-wrapper {
+.graph-wrapper {
   flex: 1;
   overflow: hidden;
   position: relative;
-
-  :deep(.arco-table) {
-    height: 100%;
-
-    .arco-table-container {
-      height: 100%;
-    }
-
-    .arco-table-body {
-      height: calc(100% - 40px);
-      /* Adjust for header height */
-      overflow-y: auto;
-    }
-  }
 }
 
 .param-cell {
