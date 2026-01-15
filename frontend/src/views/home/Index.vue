@@ -482,7 +482,7 @@ const handleSaveEventBind = async (payload: { folderPath: string; files: { name:
 onMounted(() => {
   if (ipc) {
     let currentAutoFlowRunId = ''
-    let currentAutoFlowTool = ''
+    let currentAutoFlowTools: string[] = []
 
     ipc.on('engine/log', (_event, payload: { name: string; level: string; type: string; message: string }) => {
       // Add log
@@ -510,48 +510,57 @@ onMounted(() => {
       if (!payload || typeof payload !== 'object') return
       const type = String(payload.type || '')
       const evtRunId = String(payload.runId || '')
+      const toolsFromPayload = Array.isArray(payload.tools)
+        ? payload.tools.map((x: any) => String(x || '').trim()).filter((x: string) => x.length > 0)
+        : String(payload.tool || '').trim()
+          ? [String(payload.tool || '').trim()]
+          : []
 
       if (type === 'created') {
         currentAutoFlowRunId = evtRunId
-        currentAutoFlowTool = String(payload.tool || '')
+        currentAutoFlowTools = toolsFromPayload
 
-        const toolEngine = engineList.value.find((e) => e.name === currentAutoFlowTool)
-        if (!toolEngine?.active) return
-        addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
-        addLogEntry(
-          currentAutoFlowTool,
-          'INFO',
-          `[AutoFlow] created: ${String(payload.flowName || '')}`
-        )
+        for (const toolName of currentAutoFlowTools) {
+          const toolEngine = engineList.value.find((e) => e.name === toolName)
+          if (!toolEngine?.active) continue
+          addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
+          addLogEntry(toolName, 'INFO', `[AutoFlow] created: ${String(payload.flowName || '')}`)
+        }
         return
       }
 
       if (currentAutoFlowRunId && evtRunId && evtRunId !== currentAutoFlowRunId) return
 
-      const toolName = String(currentAutoFlowTool || payload.tool || '')
-      const toolEngine = toolName ? engineList.value.find((e) => e.name === toolName) : null
-      if (!toolEngine?.active) return
+      const tools = currentAutoFlowTools.length ? currentAutoFlowTools : toolsFromPayload
 
       if (type === 'log') {
-        addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
-        addLogEntry(
-          toolName,
-          String(payload.level || 'INFO'),
-          `[AutoFlow] ${String(payload.message ?? '')}`
-        )
+        for (const toolName of tools) {
+          const toolEngine = engineList.value.find((e) => e.name === toolName)
+          if (!toolEngine?.active) continue
+          addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
+          addLogEntry(toolName, String(payload.level || 'INFO'), `[AutoFlow] ${String(payload.message ?? '')}`)
+        }
         return
       }
       if (type === 'state') {
-        addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
-        addLogEntry(toolName, 'INFO', `[AutoFlow] state: ${String(payload.state || '')}`)
+        for (const toolName of tools) {
+          const toolEngine = engineList.value.find((e) => e.name === toolName)
+          if (!toolEngine?.active) continue
+          addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
+          addLogEntry(toolName, 'INFO', `[AutoFlow] state: ${String(payload.state || '')}`)
+        }
         return
       }
       if (type === 'stopped' || type === 'disposed') {
-        addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
-        addLogEntry(toolName, 'INFO', `[AutoFlow] ${type}`)
+        for (const toolName of tools) {
+          const toolEngine = engineList.value.find((e) => e.name === toolName)
+          if (!toolEngine?.active) continue
+          addLogPanel(toolEngine, engineList.value.indexOf(toolEngine))
+          addLogEntry(toolName, 'INFO', `[AutoFlow] ${type}`)
+        }
         if (type === 'disposed') {
           currentAutoFlowRunId = ''
-          currentAutoFlowTool = ''
+          currentAutoFlowTools = []
         }
       }
     })

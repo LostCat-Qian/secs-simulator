@@ -70,8 +70,22 @@ function validateAutoFlow(flow) {
   if (!flow.name || typeof flow.name !== 'string') {
     throw new Error('AutoFlow config must contain name (string)')
   }
-  if (!flow.tool || typeof flow.tool !== 'string') {
-    throw new Error('AutoFlow config must contain tool (engine name, string)')
+  const hasTool = typeof flow.tool === 'string' && String(flow.tool || '').trim()
+  const hasTools = Array.isArray(flow.tools)
+  if (!hasTool && !hasTools) {
+    throw new Error('AutoFlow config must contain tools (engine names, string[]) or tool (legacy string)')
+  }
+  if (hasTools) {
+    const tools = flow.tools
+    if (!Array.isArray(tools) || tools.length === 0) {
+      throw new Error('AutoFlow config tools must be a non-empty array')
+    }
+    for (let i = 0; i < tools.length; i += 1) {
+      const t = tools[i]
+      if (!t || typeof t !== 'string' || !String(t).trim()) {
+        throw new Error(`AutoFlow config tools[${i}] must be a non-empty string`)
+      }
+    }
   }
   if (flow.variables != null) {
     throw new Error('AutoFlow does not support variables field')
@@ -83,6 +97,11 @@ function validateAutoFlow(flow) {
     throw new Error('The first step of AutoFlow must be send (to trigger EAP flow start)')
   }
 
+  const flowTools = normalizeTools(flow)
+  if (flowTools.length === 0) {
+    throw new Error('AutoFlow config tools is empty')
+  }
+
   for (let i = 0; i < flow.steps.length; i += 1) {
     const step = flow.steps[i]
     if (!step || typeof step !== 'object') {
@@ -91,6 +110,21 @@ function validateAutoFlow(flow) {
     const type = step.type
     if (!['send', 'wait', 'delay', 'log', 'end'].includes(String(type))) {
       throw new Error(`Step ${i + 1} type not supported: ${String(type)}`)
+    }
+
+    if ((type === 'send' || type === 'wait') && step.tools != null) {
+      if (!Array.isArray(step.tools) || step.tools.length === 0) {
+        throw new Error(`Step ${i + 1} tools must be a non-empty array when provided`)
+      }
+      for (let j = 0; j < step.tools.length; j += 1) {
+        const t = step.tools[j]
+        if (!t || typeof t !== 'string' || !String(t).trim()) {
+          throw new Error(`Step ${i + 1} tools[${j}] must be a non-empty string`)
+        }
+        if (!flowTools.includes(String(t).trim())) {
+          throw new Error(`Step ${i + 1} tools[${j}] must be included in flow.tools`)
+        }
+      }
     }
     if (type === 'send') {
       if (!step.filePath || typeof step.filePath !== 'string') {
@@ -125,6 +159,103 @@ function validateAutoFlow(flow) {
       }
     }
   }
+}
+
+function normalizeTools(flow) {
+  const raw = Array.isArray(flow?.tools) ? flow.tools : [flow?.tool]
+  const list = raw
+    .map((x) => String(x || '').trim())
+    .filter((x) => x.length > 0)
+  const uniq = []
+  const seen = new Set()
+  for (const n of list) {
+    if (seen.has(n)) continue
+    seen.add(n)
+    uniq.push(n)
+  }
+  return uniq
+}
+
+function normalizeStepTools(step, defaultTools) {
+  const raw = Array.isArray(step?.tools) ? step.tools : null
+  const list = raw
+    ? raw.map((x) => String(x || '').trim()).filter((x) => x.length > 0)
+    : defaultTools
+  const uniq = []
+  const seen = new Set()
+  for (const n of list) {
+    if (seen.has(n)) continue
+    seen.add(n)
+    uniq.push(n)
+  }
+  return uniq
+}
+
+function normalizeStepForSave(step) {
+  const type = String(step?.type || '')
+  if (type === 'send') {
+    const next = {
+      type: 'send',
+      filePath: String(step.filePath || '')
+    }
+    const tools = normalizeStepTools(step, [])
+    if (tools.length > 0) next.tools = tools
+    if (typeof step.waitReply === 'boolean') next.waitReply = step.waitReply
+    if (step.timeoutMs != null) next.timeoutMs = Number(step.timeoutMs)
+    if (step.expect && typeof step.expect === 'object') next.expect = step.expect
+    return next
+  }
+  if (type === 'wait') {
+    const next = {
+      type: 'wait',
+      expect: step.expect
+    }
+    const tools = normalizeStepTools(step, [])
+    if (tools.length > 0) next.tools = tools
+    if (step.timeoutMs != null) next.timeoutMs = Number(step.timeoutMs)
+    return next
+  }
+  if (type === 'delay') {
+    return { type: 'delay', ms: Number(step.ms) }
+  }
+  if (type === 'log') {
+    const next = { type: 'log', message: String(step.message || '') }
+    if (step.level) next.level = String(step.level)
+    return next
+  }
+  if (type === 'end') {
+    return { type: 'end' }
+  }
+  return step
+}
+
+function normalizeFlowForSave(flow, nowIso) {
+  const tools = normalizeTools(flow)
+  if (tools.length === 0) {
+    throw new Error('AutoFlow config tools is empty')
+  }
+  const description = typeof flow.description === 'string' && flow.description.trim() ? flow.description.trim() : undefined
+  const steps = Array.isArray(flow.steps) ? flow.steps.map(normalizeStepForSave) : []
+  const createdAt = flow.createdAt || nowIso
+  const next = description
+    ? {
+        version: 2,
+        name: String(flow.name || '').trim(),
+        description,
+        tools,
+        steps,
+        createdAt,
+        updatedAt: nowIso
+      }
+    : {
+        version: 2,
+        name: String(flow.name || '').trim(),
+        tools,
+        steps,
+        createdAt,
+        updatedAt: nowIso
+      }
+  return next
 }
 
 /**
@@ -294,14 +425,26 @@ class AutoFlowRunner {
 
   _onEngineMessage(payload) {
     try {
-      if (!payload || payload.name !== this.flow.tool) return
+      const tools = this._tools
+      if (!payload || !tools || tools.length === 0) return
+      if (String(payload.direction || '') !== 'in') return
+      const engineName = String(payload.name || '')
+      if (!tools.includes(engineName)) return
       if (!this._waiting) return
       const { msg, sml } = payload
       if (!matchMessage(msg, sml, this._waiting.expect)) return
 
+      if (this._waiting.pending && this._waiting.pending.size > 0) {
+        if (!this._waiting.pending.has(engineName)) return
+        this._waiting.pending.delete(engineName)
+        this._waiting.results.set(engineName, { msg, sml })
+        if (this._waiting.pending.size > 0) return
+      }
+
       const resolve = this._waiting.resolve
+      const results = this._waiting.results
       this._waiting = null
-      if (typeof resolve === 'function') resolve({ msg, sml })
+      if (typeof resolve === 'function') resolve({ results })
     } catch (e) {
       logger.error('❌ [AutoFlowRunner] onEngineMessage error:', e)
     }
@@ -347,12 +490,12 @@ class AutoFlowRunner {
    * @param {AutoFlowExpect} expect
    * @param {number} timeoutMs
    */
-  async _waitMessage(expect, timeoutMs) {
+  async _waitMessage(expect, timeoutMs, tools) {
     if (this._stopped) throw new Error('Stopped')
     if (this._waiting) throw new Error('There is already a waiting condition, parallel waiting is not allowed')
 
     const to = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0 ? Number(timeoutMs) : 30000
-    this._log('INFO', `Waiting for message: timeout=${to}ms`)
+    this._log('INFO', `Waiting for message: engines=${tools.join(', ')} timeout=${to}ms`)
 
     return await new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -364,6 +507,8 @@ class AutoFlowRunner {
 
       this._waiting = {
         expect,
+        pending: new Set(tools),
+        results: new Map(),
         resolve: (val) => {
           clearTimeout(timer)
           resolve(val)
@@ -383,6 +528,10 @@ class AutoFlowRunner {
     this._paused = false
     this._waiting = null
     let endedByEndStep = false
+    this._tools = normalizeTools(this.flow)
+    if (this._tools.length === 0) {
+      throw new Error('Engine list is empty')
+    }
 
     this._setState('running')
     this._setProgress()
@@ -391,12 +540,14 @@ class AutoFlowRunner {
 
     try {
       const configs = await engineService.getConfig()
-      const cfg = Array.isArray(configs) ? configs.find((c) => c?.config?.name === this.flow.tool) : null
-      if (!cfg || !cfg.config) {
-        throw new Error(`Engine config not found: ${this.flow.tool}`)
-      }
-      if (String(cfg.config.simulate || '') !== 'Equipment') {
-        throw new Error('AutoFlow can only be used when simulating Equipment')
+      for (const toolName of this._tools) {
+        const cfg = Array.isArray(configs) ? configs.find((c) => c?.config?.name === toolName) : null
+        if (!cfg || !cfg.config) {
+          throw new Error(`Engine config not found: ${toolName}`)
+        }
+        if (String(cfg.config.simulate || '') !== 'Equipment') {
+          throw new Error(`AutoFlow can only be used when simulating Equipment: ${toolName}`)
+        }
       }
 
       for (this.currentStepIndex = 0; this.currentStepIndex < this.totalSteps; this.currentStepIndex += 1) {
@@ -429,25 +580,30 @@ class AutoFlowRunner {
         }
 
         if (step.type === 'wait') {
+          const stepTools = normalizeStepTools(step, this._tools)
+          if (stepTools.length === 0) throw new Error('Step tools resolved to empty')
           const timeoutMs = step.timeoutMs != null ? Number(step.timeoutMs) : 30000
           if (!isBeforeEnd) {
-            await this._waitMessage(step.expect, timeoutMs)
+            await this._waitMessage(step.expect, timeoutMs, stepTools)
             this._log('INFO', 'Condition met, continuing execution')
           }
           continue
         }
 
         if (step.type === 'send') {
+          const stepTools = normalizeStepTools(step, this._tools)
+          if (stepTools.length === 0) throw new Error('Step tools resolved to empty')
           const timeoutMs = step.timeoutMs != null ? Number(step.timeoutMs) : 30000
           const waitReply = typeof step.waitReply === 'boolean' ? step.waitReply : undefined
-          this._log('INFO', `Sending: ${String(step.filePath)}`)
+          this._log('INFO', `Sending: engines=${stepTools.join(', ')} file=${String(step.filePath)}`)
 
-          const waitPromise = step.expect && !isBeforeEnd ? this._waitMessage(step.expect, timeoutMs) : null
+          const waitPromise = step.expect && !isBeforeEnd ? this._waitMessage(step.expect, timeoutMs, stepTools) : null
 
           try {
-            await engineService.sendMessageFromFile(
-              { name: this.flow.tool, filePath: String(step.filePath), waitReply },
-              null
+            await Promise.all(
+              stepTools.map((name) =>
+                engineService.sendMessageFromFile({ name, filePath: String(step.filePath), waitReply }, null)
+              )
             )
           } catch (e) {
             if (this._waiting?.reject) {
@@ -511,9 +667,11 @@ class AutoFlowService {
       try {
         const fullPath = path.join(dir, fileName)
         const flow = await readJsonFile(fullPath)
+        const tools = normalizeTools(flow)
         result.push({
           name: String(flow?.name || fileName.replace(/\.json$/i, '')),
-          tool: String(flow?.tool || ''),
+          tool: String(tools[0] || flow?.tool || ''),
+          tools,
           fileName,
           stepCount: Array.isArray(flow?.steps) ? flow.steps.length : 0,
           updatedAt: flow?.updatedAt || null
@@ -543,6 +701,11 @@ class AutoFlowService {
     const fileName = `${toSafeBaseName(name)}.json`
     const fullPath = path.join(dir, fileName)
     const flow = await readJsonFile(fullPath)
+    const tools = normalizeTools(flow)
+    if (tools.length === 0) return flow
+    if (!Array.isArray(flow.tools)) {
+      return { ...flow, tools, tool: tools[0] }
+    }
     return flow
   }
 
@@ -561,7 +724,7 @@ class AutoFlowService {
     if (!safeName) throw new Error('name invalid')
 
     const now = new Date().toISOString()
-    const next = { ...flow, version: 1, updatedAt: now, createdAt: flow.createdAt || now }
+    const next = normalizeFlowForSave(flow, now)
 
     const fileName = `${safeName}.json`
     const fullPath = path.join(dir, fileName)
@@ -599,7 +762,8 @@ class AutoFlowService {
     const runner = new AutoFlowRunner(runId, flow, hooks)
     this.runners.set(runId, runner)
 
-    runner._emit('created', { flowName: flow.name, tool: flow.tool })
+    const tools = normalizeTools(flow)
+    runner._emit('created', { flowName: flow.name, tool: String(tools[0] || ''), tools })
 
     runner
       .run()

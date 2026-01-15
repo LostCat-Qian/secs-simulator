@@ -17,7 +17,9 @@
                   {{ item.name }}
                   <a-tag v-if="item.invalid" size="small" color="red">invalid</a-tag>
                 </div>
-                <div class="flow-sub">{{ item.tool || '-' }} · {{ item.stepCount }} steps</div>
+                <div class="flow-sub">{{ (item.tools?.length ? item.tools.join(', ') : item.tool) || '-' }} · {{
+                  item.stepCount
+                }} steps</div>
               </div>
             </a-list-item>
           </a-list>
@@ -29,7 +31,7 @@
         <!-- Toolbar -->
         <div class="top-toolbar">
           <a-space>
-            <a-select v-model="localTool" class="tool-select" placeholder="Select Engine"
+            <a-select v-model="localTools" multiple class="tool-select" placeholder="Select Engines"
               :disabled="runState === 'running'">
               <a-option v-for="e in allEngines" :key="e.fileName || e.name" :value="e.name"
                 :disabled="String(e.config?.simulate || '') !== 'Equipment'">
@@ -128,6 +130,24 @@
                             </div>
                           </template>
                         </a-table-column>
+                        <a-table-column title="Engines" :width="220">
+                          <template #cell="{ record }">
+                            <a-select
+                              v-if="record.type === 'send' || record.type === 'wait'"
+                              :model-value="record.tools || []"
+                              multiple
+                              allow-clear
+                              size="mini"
+                              style="width: 100%"
+                              placeholder="Flow engines"
+                              :disabled="runState === 'running' || !localTools.length"
+                              @update:model-value="(v: string[]) => updateStepTools(record, v)"
+                            >
+                              <a-option v-for="n in localTools" :key="n" :value="n">{{ n }}</a-option>
+                            </a-select>
+                            <template v-else>-</template>
+                          </template>
+                        </a-table-column>
                         <a-table-column title="Timeout(ms)" :width="120">
                           <template #cell="{ record }">
                             <a-input-number v-if="record.type === 'send' || record.type === 'wait'"
@@ -217,7 +237,7 @@
 
         <!-- Status Bar -->
         <div class="status-bar">
-          <span class="status-item">Engine: {{ localTool || '-' }}</span>
+          <span class="status-item">Engine: {{ localTools.length ? localTools.join(', ') : '-' }}</span>
           <a-divider direction="vertical" />
           <span class="status-item">Connection:
             <a-badge status="processing" v-if="engineStatusText === 'RUNNING'" text="RUNNING" />
@@ -275,7 +295,7 @@ const {
 const selectedFlowName = ref<string | null>(null)
 
 const localName = ref<string>('')
-const localTool = ref<string>('')
+const localTools = ref<string[]>([])
 const localSteps = ref<AutoFlowStep[]>([])
 
 const jsonText = ref<string>('')
@@ -283,10 +303,12 @@ const jsonText = ref<string>('')
 const allEngines = computed(() => props.engines)
 
 const engineStatusText = computed(() => {
-  const name = String(localTool.value || '')
-  const e = props.engines.find((x) => x.name === name)
-  if (!e) return '-'
-  return e.active ? 'RUNNING' : 'IDLE'
+  const tools = localTools.value
+  if (!tools.length) return '-'
+  const selected = props.engines.filter((x) => tools.includes(x.name))
+  if (!selected.length) return '-'
+  const activeCount = selected.filter((x) => x.active).length
+  return activeCount === selected.length ? 'RUNNING' : 'IDLE'
 })
 
 const runStateColor = computed(() => {
@@ -302,19 +324,90 @@ const runStateColor = computed(() => {
 const canEdit = computed(() => runState.value !== 'running' && runState.value !== 'paused')
 const canRun = computed(() => {
   if (!selectedFlowName.value) return false
-  if (!localTool.value) return false
-  const e = props.engines.find((x) => x.name === localTool.value)
-  return !!e && String(e.config?.simulate || '') === 'Equipment'
+  if (!localTools.value.length) return false
+  const selected = props.engines.filter((x) => localTools.value.includes(x.name))
+  if (!selected.length) return false
+  return selected.every((e) => String(e.config?.simulate || '') === 'Equipment')
 })
 const canPause = computed(() => runState.value === 'running')
 const canResume = computed(() => runState.value === 'paused')
 const canStop = computed(() => runState.value === 'running' || runState.value === 'paused')
+
+const uniqueNonEmptyStrings = (arr: unknown): string[] => {
+  if (!Array.isArray(arr)) return []
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const v of arr) {
+    const s = String(v || '').trim()
+    if (!s) continue
+    if (seen.has(s)) continue
+    seen.add(s)
+    out.push(s)
+  }
+  return out
+}
+
+const normalizeFlowForJson = (flow: AutoFlowConfig): AutoFlowConfig => {
+  const tools = uniqueNonEmptyStrings(flow.tools?.length ? flow.tools : flow.tool ? [flow.tool] : [])
+  const normalizeStepForJson = (step: AutoFlowStep): AutoFlowStep => {
+    const stepTools = uniqueNonEmptyStrings((step as any)?.tools)
+    const stepToolsField =
+      stepTools.length && !(stepTools.length === tools.length && stepTools.every((x, idx) => x === tools[idx]))
+        ? { tools: stepTools }
+        : {}
+    if (step.type === 'send') {
+      return {
+        type: 'send',
+        ...stepToolsField,
+        filePath: String(step.filePath || ''),
+        ...(typeof step.waitReply === 'boolean' ? { waitReply: step.waitReply } : {}),
+        ...(typeof step.timeoutMs === 'number' ? { timeoutMs: step.timeoutMs } : {}),
+        ...(step.expect && typeof step.expect === 'object' ? { expect: step.expect } : {})
+      }
+    }
+    if (step.type === 'wait') {
+      return {
+        type: 'wait',
+        ...stepToolsField,
+        expect: step.expect,
+        ...(typeof step.timeoutMs === 'number' ? { timeoutMs: step.timeoutMs } : {})
+      }
+    }
+    if (step.type === 'delay') {
+      return { type: 'delay', ms: step.ms }
+    }
+    if (step.type === 'log') {
+      return {
+        type: 'log',
+        ...(step.level ? { level: step.level } : {}),
+        message: String(step.message || '')
+      }
+    }
+    return { type: 'end' }
+  }
+  const next: AutoFlowConfig = {
+    name: String(flow.name || '').trim(),
+    tools,
+    steps: Array.isArray(flow.steps) ? flow.steps.map(normalizeStepForJson) : []
+  }
+  if (flow.version != null) next.version = flow.version
+  if (flow.createdAt) next.createdAt = flow.createdAt
+  if (flow.description) next.description = flow.description
+  return next
+}
 
 const ensureExpectObject = (record: any) => {
   if (!record.expect || typeof record.expect !== 'object') {
     record.expect = {}
   }
   return record.expect
+}
+
+const updateStepTools = (record: any, value: string[]) => {
+  const allowed = new Set(localTools.value)
+  const next = uniqueNonEmptyStrings(value).filter((x) => allowed.has(x))
+  record.tools = next.length ? next : undefined
+  syncJsonFromLocal()
 }
 
 const updateExpectSf = (record: any, value: string) => {
@@ -349,15 +442,18 @@ const formatTs = (ts: number) => {
 }
 
 const buildLocalFlowObject = (): AutoFlowConfig => {
+  const tools = uniqueNonEmptyStrings(localTools.value)
   return {
+    version: currentFlow.value?.version,
     name: String(localName.value || '').trim(),
-    tool: String(localTool.value || '').trim(),
+    tool: tools[0] || undefined,
+    tools,
     steps: localSteps.value
   }
 }
 
 const syncJsonFromLocal = () => {
-  const flow = buildLocalFlowObject()
+  const flow = normalizeFlowForJson(buildLocalFlowObject())
   jsonText.value = JSON.stringify(flow, null, 2)
 }
 
@@ -366,9 +462,9 @@ const applyJsonToLocal = () => {
     const obj = JSON.parse(String(jsonText.value || '{}')) as AutoFlowConfig
     if (!obj || typeof obj !== 'object') throw new Error('JSON is not an object')
     localName.value = String(obj.name || '')
-    localTool.value = String(obj.tool || '')
+    localTools.value = uniqueNonEmptyStrings(Array.isArray(obj.tools) ? obj.tools : obj.tool ? [obj.tool] : [])
     localSteps.value = Array.isArray(obj.steps) ? (obj.steps as AutoFlowStep[]) : []
-    currentFlow.value = obj
+    currentFlow.value = { ...obj, tools: localTools.value }
     currentFlowName.value = obj.name || null
     Message.success('JSON applied successfully')
   } catch (error: any) {
@@ -379,9 +475,9 @@ const applyJsonToLocal = () => {
 
 const setLocalFromFlow = (flow: AutoFlowConfig) => {
   localName.value = String(flow.name || '')
-  localTool.value = String(flow.tool || '')
+  localTools.value = uniqueNonEmptyStrings(Array.isArray(flow.tools) ? flow.tools : flow.tool ? [flow.tool] : [])
   localSteps.value = Array.isArray(flow.steps) ? [...flow.steps] : []
-  jsonText.value = JSON.stringify(flow, null, 2)
+  jsonText.value = JSON.stringify(normalizeFlowForJson(flow), null, 2)
 }
 
 const selectFlow = async (name: string) => {
@@ -399,7 +495,8 @@ const handleNewFlow = () => {
   const firstSml = props.smlFiles[0] || ''
   const flow: AutoFlowConfig = {
     name: 'NewFlow',
-    tool,
+    tool: tool || undefined,
+    tools: tool ? [tool] : [],
     steps: [
       {
         type: 'send',
@@ -419,8 +516,8 @@ const handleSave = async () => {
     Message.error('Flow name cannot be empty')
     return
   }
-  if (!flow.tool) {
-    Message.error('Please select an equipment engine')
+  if (!flow.tools.length) {
+    Message.error('Please select at least one equipment engine')
     return
   }
   if (!Array.isArray(flow.steps) || flow.steps.length === 0) {
@@ -442,7 +539,7 @@ const handleDelete = async () => {
   selectedFlowName.value = null
   currentFlow.value = null
   localName.value = ''
-  localTool.value = ''
+  localTools.value = []
   localSteps.value = []
   jsonText.value = ''
 }
@@ -452,9 +549,10 @@ const handleRun = async () => {
     Message.error('Please save and select a flow first')
     return
   }
-  const engine = props.engines.find((e) => e.name === localTool.value)
-  if (!engine?.active) {
-    Message.error(`Engine ${String(localTool.value || '')} is not active`)
+  const selected = props.engines.filter((e) => localTools.value.includes(e.name))
+  const inactive = selected.filter((e) => !e.active).map((e) => e.name)
+  if (inactive.length) {
+    Message.error(`Engine not active: ${inactive.join(', ')}`)
     return
   }
   await handleSave()
@@ -554,11 +652,22 @@ watch(
   }
 )
 
-watch([localName, localTool], () => {
-  if (props.visible && runState.value !== 'running') {
-    syncJsonFromLocal()
-  }
-})
+watch(
+  [localName, localTools],
+  () => {
+    if (props.visible && runState.value !== 'running') {
+      const allowed = new Set(localTools.value)
+      for (const s of localSteps.value as any[]) {
+        if ((s.type === 'send' || s.type === 'wait') && Array.isArray(s.tools) && s.tools.length) {
+          const filtered = uniqueNonEmptyStrings(s.tools).filter((x) => allowed.has(x))
+          s.tools = filtered.length ? filtered : undefined
+        }
+      }
+      syncJsonFromLocal()
+    }
+  },
+  { deep: true }
+)
 
 watch(
   localSteps,

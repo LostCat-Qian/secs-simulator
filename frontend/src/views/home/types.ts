@@ -67,12 +67,14 @@ export type AutoFlowStep =
   | {
       type: 'send'
       filePath: string
+      tools?: string[]
       waitReply?: boolean
       timeoutMs?: number
       expect?: AutoFlowExpect
     }
   | {
       type: 'wait'
+      tools?: string[]
       timeoutMs?: number
       expect: AutoFlowExpect
     }
@@ -93,7 +95,8 @@ export interface AutoFlowConfig {
   version?: number
   name: string
   description?: string
-  tool: string
+  tool?: string
+  tools: string[]
   steps: AutoFlowStep[]
   createdAt?: string
   updatedAt?: string
@@ -102,6 +105,7 @@ export interface AutoFlowConfig {
 export interface AutoFlowSummary {
   name: string
   tool: string
+  tools?: string[]
   fileName: string
   stepCount: number
   updatedAt: string | null
