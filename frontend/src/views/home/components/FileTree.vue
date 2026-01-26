@@ -1,19 +1,19 @@
 <template>
   <div class="file-tree-section">
     <div class="header">
-      <span class="title">SML</span>
+      <span class="title">{{ t('fileTree.title') }}</span>
       <div class="header-actions">
         <a-button size="mini" type="text" @click="emit('refresh')">
           <template #icon><icon-refresh /></template>
-          <template #default>Refresh</template>
+          <template #default>{{ t('common.refresh') }}</template>
         </a-button>
         <a-button size="mini" type="text" @click="emit('addRootFile')">
           <template #icon><icon-plus /></template>
-          <template #default>File</template>
+          <template #default>{{ t('fileTree.file') }}</template>
         </a-button>
         <a-button size="mini" type="text" @click="emit('addRootFolder')">
           <template #icon><icon-plus /></template>
-          <template #default>Folder</template>
+          <template #default>{{ t('fileTree.folder') }}</template>
         </a-button>
       </div>
     </div>
@@ -24,7 +24,7 @@
       <a-input-search
         style="margin-bottom: 8px; width: 100%"
         v-model="searchKey"
-        placeholder="Search files..."
+        :placeholder="t('fileTree.searchPlaceholder')"
         allow-clear
       />
 
@@ -65,7 +65,7 @@
                   <template v-if="!node.isFolder">
                     <a-dsubmenu value="sendto">
                       <template #icon><icon-export /></template>
-                      Send To
+                      {{ t('fileTree.sendTo') }}
                       <template #content>
                         <a-doption v-for="engine in openEngines" :key="engine.name" :value="`sendto-${engine.name}`">
                           <template #icon><icon-send /></template>
@@ -73,31 +73,31 @@
                         </a-doption>
                         <a-doption v-if="openEngines.length === 0" disabled>
                           <template #icon><icon-close-circle /></template>
-                          No Open Engines
+                          {{ t('fileTree.noOpenEngines') }}
                         </a-doption>
                       </template>
                     </a-dsubmenu>
                     <a-doption value="edit">
                       <template #icon><icon-edit /></template>
-                      Edit
+                      {{ t('common.edit') }}
                     </a-doption>
                     <a-doption value="delete">
                       <template #icon><icon-delete /></template>
-                      Delete
+                      {{ t('common.delete') }}
                     </a-doption>
                   </template>
                   <template v-else>
                     <a-doption value="addFile">
                       <template #icon><icon-plus /></template>
-                      Add File
+                      {{ t('fileTree.addFile') }}
                     </a-doption>
                     <a-doption value="addFolder">
                       <template #icon><icon-plus /></template>
-                      Add Folder
+                      {{ t('fileTree.addFolder') }}
                     </a-doption>
                     <a-doption value="delete">
                       <template #icon><icon-delete /></template>
-                      Delete Folder
+                      {{ t('fileTree.deleteFolder') }}
                     </a-doption>
                   </template>
                 </template>
@@ -107,7 +107,7 @@
               <template v-if="!node.isFolder">
                 <a-dsubmenu value="sendto">
                   <template #icon><icon-export /></template>
-                  Send To
+                  {{ t('fileTree.sendTo') }}
                   <template #content>
                     <a-doption v-for="engine in openEngines" :key="engine.name" :value="`sendto-${engine.name}`">
                       <template #icon><icon-send /></template>
@@ -115,31 +115,31 @@
                     </a-doption>
                     <a-doption v-if="openEngines.length === 0" disabled>
                       <template #icon><icon-close-circle /></template>
-                      No Open Engines
+                      {{ t('fileTree.noOpenEngines') }}
                     </a-doption>
                   </template>
                 </a-dsubmenu>
                 <a-doption value="edit">
                   <template #icon><icon-edit /></template>
-                  Edit
+                  {{ t('common.edit') }}
                 </a-doption>
                 <a-doption value="delete">
                   <template #icon><icon-delete /></template>
-                  Delete
+                  {{ t('common.delete') }}
                 </a-doption>
               </template>
               <template v-else>
                 <a-doption value="addFile">
                   <template #icon><icon-plus /></template>
-                  Add File
+                  {{ t('fileTree.addFile') }}
                 </a-doption>
                 <a-doption value="addFolder">
                   <template #icon><icon-plus /></template>
-                  Add Folder
+                  {{ t('fileTree.addFolder') }}
                 </a-doption>
                 <a-doption value="delete">
                   <template #icon><icon-delete /></template>
-                  Delete Folder
+                  {{ t('fileTree.deleteFolder') }}
                 </a-doption>
               </template>
             </template>
@@ -152,6 +152,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { TreeNodeData } from '@arco-design/web-vue'
 import {
   IconMore,
@@ -164,6 +165,8 @@ import {
   IconRefresh
 } from '@arco-design/web-vue/es/icon'
 import type { SmlTreeNode, EngineData } from '../types'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   treeData: SmlTreeNode[]

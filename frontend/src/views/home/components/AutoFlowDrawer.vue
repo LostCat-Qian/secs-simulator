@@ -1,12 +1,12 @@
 <template>
-  <a-drawer :visible="visible" title="AutoFlow" :mask-closable="true" width="90%" :footer="false" unmount-on-close
+  <a-drawer :visible="visible" :title="t('autoFlow.title')" :mask-closable="true" width="90%" :footer="false" unmount-on-close
     render-to-body @cancel="handleClose">
     <div class="autoflow-layout">
       <!-- Left Panel: Flow List -->
       <div class="left-panel">
         <div class="panel-header">
-          <span class="title">AutoFlow List</span>
-          <a-button size="mini" type="primary" @click="handleNewFlow">New</a-button>
+          <span class="title">{{ t('autoFlow.listTitle') }}</span>
+          <a-button size="mini" type="primary" @click="handleNewFlow">{{ t('autoFlow.new') }}</a-button>
         </div>
         <div class="flow-list-container">
           <a-list :bordered="false" size="small" :split="false">
@@ -15,11 +15,11 @@
               <div class="flow-item-main">
                 <div class="flow-name">
                   {{ item.name }}
-                  <a-tag v-if="item.invalid" size="small" color="red">invalid</a-tag>
+                  <a-tag v-if="item.invalid" size="small" color="red">{{ t('autoFlow.invalid') }}</a-tag>
                 </div>
                 <div class="flow-sub">{{ (item.tools?.length ? item.tools.join(', ') : item.tool) || '-' }} · {{
                   item.stepCount
-                }} steps</div>
+                }} {{ t('autoFlow.steps') }}</div>
               </div>
             </a-list-item>
           </a-list>
@@ -31,50 +31,50 @@
         <!-- Toolbar -->
         <div class="top-toolbar">
           <a-space>
-            <a-select v-model="localTools" multiple class="tool-select" placeholder="Select Engines"
+            <a-select v-model="localTools" multiple class="tool-select" :placeholder="t('autoFlow.selectEngines')"
               :disabled="runState === 'running'">
               <a-option v-for="e in allEngines" :key="e.fileName || e.name" :value="e.name"
                 :disabled="String(e.config?.simulate || '') !== 'Equipment'">
                 {{ e.name }}
-                <span v-if="String(e.config?.simulate || '') !== 'Equipment'">(Host)</span>
+                <span v-if="String(e.config?.simulate || '') !== 'Equipment'">({{ t('autoFlow.host') }})</span>
               </a-option>
             </a-select>
-            <a-input v-model="localName" class="name-input" placeholder="Flow Name"
+            <a-input v-model="localName" class="name-input" :placeholder="t('autoFlow.flowName')"
               :disabled="runState === 'running'" />
           </a-space>
 
           <a-space>
-            <a-button size="small" type="secondary" @click="handleRefresh">Refresh</a-button>
-            <a-button size="small" type="primary" @click="handleSave" :disabled="!canEdit">Save</a-button>
+            <a-button size="small" type="secondary" @click="handleRefresh">{{ t('common.refresh') }}</a-button>
+            <a-button size="small" type="primary" @click="handleSave" :disabled="!canEdit">{{ t('common.save') }}</a-button>
             <a-button size="small" status="danger" type="dashed" @click="handleDelete"
               :disabled="!canEdit || !selectedFlowName">
-              Delete
+              {{ t('common.delete') }}
             </a-button>
 
             <a-divider direction="vertical" />
 
-            <a-button size="small" type="primary" :disabled="!canRun" @click="handleRun">Run</a-button>
-            <a-button size="small" type="secondary" :disabled="!canPause" @click="pauseRun">Pause</a-button>
-            <a-button size="small" type="secondary" :disabled="!canResume" @click="resumeRun">Resume</a-button>
-            <a-button size="small" status="danger" type="dashed" :disabled="!canStop" @click="stopRun">Stop</a-button>
+            <a-button size="small" type="primary" :disabled="!canRun" @click="handleRun">{{ t('autoFlow.start') }}</a-button>
+            <a-button size="small" type="secondary" :disabled="!canPause" @click="pauseRun">{{ t('common.pause') }}</a-button>
+            <a-button size="small" type="secondary" :disabled="!canResume" @click="resumeRun">{{ t('common.resume') }}</a-button>
+            <a-button size="small" status="danger" type="dashed" :disabled="!canStop" @click="stopRun">{{ t('autoFlow.stop') }}</a-button>
           </a-space>
         </div>
 
         <!-- Main Work Area -->
         <div class="work-area">
           <a-tabs default-active-key="config" size="small" type="card-gutter">
-            <a-tab-pane key="config" title="Flow Config">
+            <a-tab-pane key="config" :title="t('autoFlow.flowConfig')">
               <div class="config-container">
                 <!-- Steps Section -->
                 <div class="steps-section">
                   <div class="section-header">
-                    <span class="title">Steps</span>
+                    <span class="title">{{ t('autoFlow.stepsSection') }}</span>
                     <a-space>
-                      <a-button size="mini" @click="addSendStep">+ Send</a-button>
-                      <a-button size="mini" @click="addWaitStep">+ Wait</a-button>
-                      <a-button size="mini" @click="addDelayStep">+ Delay</a-button>
-                      <a-button size="mini" @click="addLogStep">+ Log</a-button>
-                      <a-button size="mini" @click="addEndStep">+ End</a-button>
+                      <a-button size="mini" @click="addSendStep">{{ t('autoFlow.addSend') }}</a-button>
+                      <a-button size="mini" @click="addWaitStep">{{ t('autoFlow.addWait') }}</a-button>
+                      <a-button size="mini" @click="addDelayStep">{{ t('autoFlow.addDelay') }}</a-button>
+                      <a-button size="mini" @click="addLogStep">{{ t('autoFlow.addLog') }}</a-button>
+                      <a-button size="mini" @click="addEndStep">{{ t('autoFlow.addEnd') }}</a-button>
                     </a-space>
                   </div>
 
@@ -85,7 +85,7 @@
                         <a-table-column title="#" :width="50" align="center">
                           <template #cell="{ rowIndex }">{{ rowIndex + 1 }}</template>
                         </a-table-column>
-                        <a-table-column title="Node Type" :width="120">
+                        <a-table-column :title="t('autoFlow.nodeType')" :width="120">
                           <template #cell="{ record }">
                             <a-select v-model="record.type" size="mini" style="width: 100%"
                               :disabled="runState === 'running'">
@@ -97,24 +97,24 @@
                             </a-select>
                           </template>
                         </a-table-column>
-                        <a-table-column title="Parameters" :width="450">
+                        <a-table-column :title="t('autoFlow.parameters')" :width="450">
                           <template #cell="{ record }">
                             <div class="param-cell">
                               <template v-if="record.type === 'send'">
-                                <a-select v-model="record.filePath" size="mini" style="flex: 1" placeholder="Select SML"
+                                <a-select v-model="record.filePath" size="mini" style="flex: 1" :placeholder="t('autoFlow.selectSml')"
                                   :disabled="runState === 'running'" allow-search>
                                   <a-option v-for="p in smlFiles" :key="p" :value="p">{{ p }}</a-option>
                                 </a-select>
                                 <a-input :model-value="record.expect?.sf" size="mini" style="width: 120px"
-                                  placeholder="expect SF"
+                                  :placeholder="t('autoFlow.expectSf')"
                                   @update:model-value="(v: string) => updateExpectSf(record, v)" />
                               </template>
                               <template v-else-if="record.type === 'wait'">
                                 <a-input :model-value="record.expect?.sf" size="mini" style="width: 140px"
-                                  placeholder="expect SF"
+                                  :placeholder="t('autoFlow.expectSf')"
                                   @update:model-value="(v: string) => updateExpectSf(record, v)" />
                                 <a-input :model-value="record.expect?.smlIncludes" size="mini" style="flex: 1"
-                                  placeholder="SML includes..."
+                                  :placeholder="t('autoFlow.smlIncludes')"
                                   @update:model-value="(v: string) => updateExpectSmlIncludes(record, v)" />
                               </template>
                               <template v-else-if="record.type === 'delay'">
@@ -124,13 +124,13 @@
                               </template>
                               <template v-else-if="record.type === 'log'">
                                 <a-input v-model="record.message" size="mini" style="width: 100%"
-                                  placeholder="message..." />
+                                  :placeholder="t('autoFlow.message')" />
                               </template>
                               <template v-else-if="record.type === 'end'">-</template>
                             </div>
                           </template>
                         </a-table-column>
-                        <a-table-column title="Engines" :width="220">
+                        <a-table-column :title="t('autoFlow.flowEngines')" :width="220">
                           <template #cell="{ record }">
                             <a-select
                               v-if="record.type === 'send' || record.type === 'wait'"
@@ -139,7 +139,7 @@
                               allow-clear
                               size="mini"
                               style="width: 100%"
-                              placeholder="Flow engines"
+                              :placeholder="t('autoFlow.flowEngines')"
                               :disabled="runState === 'running' || !localTools.length"
                               @update:model-value="(v: string[]) => updateStepTools(record, v)"
                             >
@@ -148,13 +148,13 @@
                             <template v-else>-</template>
                           </template>
                         </a-table-column>
-                        <a-table-column title="Timeout(ms)" :width="120">
+                        <a-table-column :title="t('autoFlow.timeoutMs')" :width="120">
                           <template #cell="{ record }">
                             <a-input-number v-if="record.type === 'send' || record.type === 'wait'"
                               v-model="record.timeoutMs" size="mini" :min="1000" :step="1000" />
                           </template>
                         </a-table-column>
-                        <a-table-column title="Actions" :width="120" align="center">
+                        <a-table-column :title="t('autoReply.actions')" :width="120" align="center">
                           <template #cell="{ rowIndex }">
                             <a-space size="mini">
                               <a-button size="mini" type="text" @click="moveStepUp(rowIndex)"
@@ -179,10 +179,10 @@
                 <!-- JSON Section -->
                 <div class="json-section">
                   <div class="section-header">
-                    <span class="title">JSON Config</span>
+                    <span class="title">{{ t('autoFlow.jsonConfig') }}</span>
                     <a-space>
-                      <a-button size="mini" @click="syncJsonFromLocal">Refresh JSON</a-button>
-                      <a-button size="mini" type="primary" @click="applyJsonToLocal">Apply JSON</a-button>
+                      <a-button size="mini" @click="syncJsonFromLocal">{{ t('autoFlow.refreshJson') }}</a-button>
+                      <a-button size="mini" type="primary" @click="applyJsonToLocal">{{ t('autoFlow.applyJson') }}</a-button>
                     </a-space>
                   </div>
                   <div class="editor-wrapper">
@@ -193,32 +193,32 @@
               </div>
             </a-tab-pane>
 
-            <a-tab-pane key="monitor" title="Monitor">
+            <a-tab-pane key="monitor" :title="t('autoFlow.monitor')">
               <div class="monitor-container">
                 <div class="run-status-section">
                   <div class="section-header">
-                    <span class="title">Run Status</span>
+                    <span class="title">{{ t('autoFlow.runStatus') }}</span>
                   </div>
                   <div class="status-content">
                     <a-descriptions size="small" :column="2" :bordered="false">
-                      <a-descriptions-item label="Status">
+                      <a-descriptions-item :label="t('engine.status')">
                         <a-tag :color="runStateColor">{{ runState }}</a-tag>
                       </a-descriptions-item>
-                      <a-descriptions-item label="RunId">{{ runId || '-' }}</a-descriptions-item>
-                      <a-descriptions-item label="Progress">
+                      <a-descriptions-item :label="t('autoFlow.runId')">{{ runId || '-' }}</a-descriptions-item>
+                      <a-descriptions-item :label="t('autoFlow.progress')">
                         <a-progress v-if="progress" :percent="progress.currentStepIndex / progress.totalSteps"
                           :text="`${progress.currentStepIndex + 1} / ${progress.totalSteps}`" size="small"
                           style="width: 200px" />
                         <span v-else>-</span>
                       </a-descriptions-item>
-                      <a-descriptions-item label="Current Flow">{{ selectedFlowName || '-' }}</a-descriptions-item>
+                      <a-descriptions-item :label="t('autoFlow.currentFlow')">{{ selectedFlowName || '-' }}</a-descriptions-item>
                     </a-descriptions>
                   </div>
                 </div>
 
                 <div class="monitor-logs">
                   <div class="section-header">
-                    <span class="title">Execution Logs</span>
+                    <span class="title">{{ t('autoFlow.executionLogs') }}</span>
                   </div>
                   <a-list :max-height="300" size="small">
                     <a-list-item v-for="(l, idx) in runLogs" :key="idx">
@@ -237,15 +237,15 @@
 
         <!-- Status Bar -->
         <div class="status-bar">
-          <span class="status-item">Engine: {{ localTools.length ? localTools.join(', ') : '-' }}</span>
+          <span class="status-item">{{ t('autoFlow.engine') }}: {{ localTools.length ? localTools.join(', ') : '-' }}</span>
           <a-divider direction="vertical" />
-          <span class="status-item">Connection:
-            <a-badge status="processing" v-if="engineStatusText === 'RUNNING'" text="RUNNING" />
-            <a-badge status="default" v-else text="IDLE" />
+          <span class="status-item">{{ t('autoFlow.connection') }}:
+            <a-badge status="processing" v-if="engineStatusText === 'RUNNING'" :text="t('autoFlow.running')" />
+            <a-badge status="default" v-else :text="t('autoFlow.idle')" />
           </span>
           <template v-if="progress">
             <a-divider direction="vertical" />
-            <span class="status-item">Progress: {{ progress.currentStepIndex + 1 }}/{{ progress.totalSteps }}</span>
+            <span class="status-item">{{ t('autoFlow.progress') }}: {{ progress.currentStepIndex + 1 }}/{{ progress.totalSteps }}</span>
           </template>
         </div>
       </div>
@@ -255,12 +255,15 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Message } from '@arco-design/web-vue'
 import { IconArrowUp, IconArrowDown, IconClose } from '@arco-design/web-vue/es/icon'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { ipc } from '@/utils/ipcRenderer'
 import type { AutoFlowConfig, AutoFlowStep, AutoFlowSummary, EngineData } from '../types'
 import { useAutoFlow } from '../composables/useAutoFlow'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   visible: boolean
@@ -546,18 +549,18 @@ const handleDelete = async () => {
 
 const handleRun = async () => {
   if (!selectedFlowName.value) {
-    Message.error('Please save and select a flow first')
+    Message.error(t('autoFlow.saveFirst'))
     return
   }
   const selected = props.engines.filter((e) => localTools.value.includes(e.name))
   const inactive = selected.filter((e) => !e.active).map((e) => e.name)
   if (inactive.length) {
-    Message.error(`Engine not active: ${inactive.join(', ')}`)
+    Message.error(`${t('autoFlow.engineNotActive')} ${inactive.join(', ')}`)
     return
   }
   await handleSave()
   await runFlow(selectedFlowName.value)
-  Message.success('Flow started successfully')
+  Message.success(t('autoFlow.started'))
 }
 
 const handleRefresh = async () => {

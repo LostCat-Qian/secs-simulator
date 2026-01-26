@@ -26,6 +26,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n()
 
 const props = defineProps<{
   visible: boolean;
@@ -77,7 +80,7 @@ const editorOptions = {
   enableDropOperations: true
 };
 
-const modalTitle = computed(() => `Edit: ${props.fileName || 'Untitled'}`);
+const modalTitle = computed(() => `${t('fileEditor.editTitle')} ${props.fileName || t('fileEditor.untitled')}`);
 
 const isModified = computed(() => editorContent.value !== originalContent.value);
 

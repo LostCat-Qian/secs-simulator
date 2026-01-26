@@ -2,16 +2,16 @@
   <div class="engine-section">
     <!-- Header -->
     <div class="header">
-      <span class="title">Engines</span>
+      <span class="title">{{ t('engine.title') }}</span>
       <div class="actions">
-        <a-input v-model="searchText" placeholder="Search..." size="mini" allow-clear class="search-input">
+        <a-input v-model="searchText" :placeholder="t('common.search')" size="mini" allow-clear class="search-input">
           <template #prefix>
             <icon-search />
           </template>
         </a-input>
         <a-button type="primary" size="mini" @click="$emit('add')">
           <template #icon><icon-plus /></template>
-          <template #default>Add</template>
+          <template #default>{{ t('common.add') }}</template>
         </a-button>
       </div>
     </div>
@@ -35,28 +35,28 @@
               waiting: item.status === 'connecting',
               active: item.status === 'running'
             }"></span>
-            <span v-if="item.status === 'running'" class="status-text active">ACTIVE</span>
-            <span v-else-if="item.status === 'connecting'" class="status-text waiting">Waiting connect</span>
+            <span v-if="item.status === 'running'" class="status-text active">{{ t('engine.active').toUpperCase() }}</span>
+            <span v-else-if="item.status === 'connecting'" class="status-text waiting">{{ t('engine.connecting') }}</span>
           </div>
         </div>
 
         <a-dropdown @select="(value: string | number | Record<string, any>) => handleMenuSelect(value, item)"
           :popup-max-height="false">
-          <a-button size="mini" class="action-btn" @click.stop> Options <icon-down /> </a-button>
+          <a-button size="mini" class="action-btn" @click.stop> {{ t('engine.options') }} <icon-down /> </a-button>
           <template #content>
             <a-doption value="open" :disabled="item.status === 'running' || item.status === 'connecting'">
-              <icon-apps /> Open
+              <icon-apps /> {{ t('engine.open') }}
             </a-doption>
             <a-doption value="close" :disabled="item.status !== 'running' && item.status !== 'connecting'">
-              <icon-close-circle /> Close
+              <icon-close-circle /> {{ t('engine.close') }}
             </a-doption>
-            <a-doption value="viewConfig"><icon-settings /> View Config</a-doption>
+            <a-doption value="viewConfig"><icon-settings /> {{ t('engine.viewConfig') }}</a-doption>
             <a-doption value="edit" :disabled="item.status === 'running' || item.status === 'connecting'"><icon-edit />
-              Edit Config
+              {{ t('engine.editConfig') }}
             </a-doption>
             <a-doption value="delete" :disabled="item.status === 'running' || item.status === 'connecting'">
               <icon-delete />
-              Delete
+              {{ t('common.delete') }}
             </a-doption>
           </template>
         </a-dropdown>
@@ -64,7 +64,7 @@
 
       <!-- Empty State -->
       <div v-if="filteredEngines.length === 0" class="empty-state">
-        <a-empty :description="searchText ? 'No matching engines' : 'No engines found'" />
+        <a-empty :description="searchText ? t('engine.noMatching') : t('engine.noEngines')" />
       </div>
     </div>
   </div>
@@ -72,6 +72,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   IconPlus,
   IconFolder,
@@ -84,6 +85,8 @@ import {
   IconSearch
 } from '@arco-design/web-vue/es/icon'
 import type { EngineData } from '../types'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   engines: EngineData[]

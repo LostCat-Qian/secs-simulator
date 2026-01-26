@@ -7,18 +7,19 @@
           <template #icon>
             <icon-link />
           </template>
-          <template #default>EventBind</template>
+          <template #default>{{ t('toolbar.eventBind') }}</template>
         </a-button>
         <a-button type="text" @click="handleAutoFlow">
           <template #icon>
             <icon-link />
           </template>
-          <template #default>AutoFlow</template>
+          <template #default>{{ t('toolbar.autoFlow') }}</template>
         </a-button>
       </div>
       <div class="toolbar-right">
+        <LanguageSwitcher />
         <img src="../../assets/logo.png" alt="Logo" class="app-logo" />
-        <span class="app-title">SECS Simulator</span>
+        <span class="app-title">{{ t('toolbar.appTitle') }}</span>
       </div>
     </div>
 
@@ -58,7 +59,7 @@
         <!-- Logs Area -->
         <div class="logs-wrapper">
           <div class="logs-header">
-            <span class="title">Logs</span>
+            <span class="title">{{ t('logs.title') }}</span>
           </div>
           <div class="logs-container">
             <!-- Single Log Panel -->
@@ -79,7 +80,7 @@
             <!-- No Log Panels -->
             <template v-else>
               <div class="empty-logs">
-                <a-empty description="No log panel opened" />
+                <a-empty :description="t('logs.noPanel')" />
               </div>
             </template>
           </div>
@@ -116,10 +117,12 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { TreeNodeData, Message } from '@arco-design/web-vue'
 import { IconLink } from '@arco-design/web-vue/es/icon'
+import { useI18n } from 'vue-i18n'
 import { ipc } from '@/utils/ipcRenderer'
 import { ipcApiRoute } from '@/api'
 
 // Components
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import EngineList from './components/EngineList.vue'
 import FileTree from './components/FileTree.vue'
 import FilePreview from './components/FilePreview.vue'
@@ -141,6 +144,9 @@ import { useLogPanels } from './composables/useLogPanels'
 import { useFileTree } from './composables/useFileTree'
 import { useAutoReply } from './composables/useAutoReply'
 import { useEventBind } from './composables/useEventBind'
+
+// i18n
+const { t } = useI18n()
 
 // #region --- Composables Setup ---
 const { engineList, loadEngineConfigs, saveEngineConfig, deleteEngine, startEngine, stopEngine, updateEngineStatus } =
@@ -368,12 +374,12 @@ const handleSendFileTo = async (payload: { file: TreeNodeData; engineName: strin
   const filePath = String(target.key || '')
 
   if (!ipc) {
-    Message.error('Cannot send message')
+    Message.error(t('fileTree.cannotSend'))
     return
   }
 
   if (!filePath) {
-    Message.error('Invalid file path')
+    Message.error(t('fileTree.invalidPath'))
     return
   }
 
@@ -384,13 +390,13 @@ const handleSendFileTo = async (payload: { file: TreeNodeData; engineName: strin
     })
 
     if (result && result.hasReply && result.replySml) {
-      Message.success(`Sent ${target.title} to ${payload.engineName} (reply received)`)
+      Message.success(t('fileTree.sendSuccessWithReply', { file: target.title, engine: payload.engineName }))
     } else {
-      Message.success(`Sent ${target.title} to ${payload.engineName}`)
+      Message.success(t('fileTree.sendSuccess', { file: target.title, engine: payload.engineName }))
     }
   } catch (error: any) {
     console.error('Failed to send file to engine:', error)
-    const msg = error && typeof error.message === 'string' ? error.message : 'Failed to send file to engine'
+    const msg = error && typeof error.message === 'string' ? error.message : t('fileTree.cannotSend')
     Message.error(msg)
   }
 }
@@ -425,7 +431,7 @@ const editAutoReply = async (item: AutoReplyItem) => {
     autoReplyModalVisible.value = true
   } catch (error) {
     console.error('Failed to load auto reply script detail:', error)
-    Message.error('Failed to load auto reply script detail')
+    Message.error(t('autoReply.loadFailed'))
   }
 }
 
@@ -452,7 +458,7 @@ const openEventBindModal = () => {
 const handleAutoFlow = () => {
   const hasEquip = engineList.value.some((e) => String(e.config?.simulate || '') === 'Equipment')
   if (!hasEquip) {
-    Message.warning('AutoFlow 仅在模拟 Equipment 端时可用')
+    Message.warning(t('autoFlow.onlyEquipment'))
     return
   }
   autoFlowDrawerVisible.value = true
@@ -462,16 +468,15 @@ const handleSaveEventBind = async (payload: { folderPath: string; files: { name:
   try {
     const result = await saveEventBindFiles(payload.folderPath, payload.files)
     Message.success(
-      `EventBind saved successfully!\nSaved to: sml/EventBind/${payload.folderPath}/\nFiles: ${result.files?.join(
+      `${t('eventBind.saveSuccess')}\n${t('common.info')}: sml/EventBind/${payload.folderPath}/\n${t('fileTree.fileName')}: ${result.files?.join(
         ', '
       )}`
     )
-    // 刷新FileTree目录
     loadFileTree()
     return result
   } catch (error: any) {
     console.error('Failed to save EventBind:', error)
-    const msg = error?.message || 'Failed to save EventBind files'
+    const msg = error?.message || t('eventBind.saveFailed')
     Message.error(msg)
     throw error
   }

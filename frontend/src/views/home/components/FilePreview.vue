@@ -2,7 +2,7 @@
   <div class="file-preview-section">
     <!-- Header -->
     <div class="header">
-      <span class="title">File Preview</span>
+      <span class="title">{{ t('filePreview.title') }}</span>
     </div>
 
     <!-- Content Area -->
@@ -13,6 +13,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 /**
  * Component to preview file content.
  */

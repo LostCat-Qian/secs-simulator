@@ -7,7 +7,7 @@
         <a-input
           v-if="true"
           v-model="searchText"
-          placeholder="Search..."
+          :placeholder="t('common.search')"
           size="mini"
           allow-clear
           class="search-input"
@@ -34,7 +34,7 @@
 
       <!-- Empty State -->
       <div v-if="filteredLogs.length === 0" class="empty-log">
-        {{ searchText ? 'No matching logs' : 'No logs available' }}
+        {{ searchText ? t('logs.noMatching') : t('logs.noLogs') }}
       </div>
     </div>
   </div>
@@ -42,8 +42,11 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { IconRefresh, IconClose, IconSearch } from '@arco-design/web-vue/es/icon';
 import type { LogEntry } from '../types';
+
+const { t } = useI18n()
 
 const props = defineProps<{
   title?: string;

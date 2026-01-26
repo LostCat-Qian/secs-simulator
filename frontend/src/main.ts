@@ -6,6 +6,7 @@ import globalComponents from './components/global'
 import Router from './router/index'
 import ArcoVue from '@arco-design/web-vue'
 import '@arco-design/web-vue/dist/arco.css'
+import i18n from './i18n'
 import { loader } from '@guolao/vue-monaco-editor'
 import * as monaco from 'monaco-editor'
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
@@ -89,6 +90,6 @@ for (const i in globalComponents) {
 }
 
 app.use(ArcoVue)
-
+app.use(i18n)
 app.use(Router)
 app.mount('#app')

@@ -2,7 +2,7 @@
   <a-modal
     :visible="visible"
     @update:visible="(val) => $emit('update:visible', val)"
-    title="EventBind Configuration"
+    :title="t('eventBind.configuration')"
     width="85vw"
     :footer="true"
     @cancel="handleCancel"
@@ -13,7 +13,7 @@
       <!-- Editor Section -->
       <div class="editor-section">
         <div class="section-header">
-          <span class="section-title">TOML Configuration</span>
+          <span class="section-title">{{ t('eventBind.tomlConfig') }}</span>
         </div>
         <div class="editor-wrapper" :class="{ 'has-error': validationError }">
           <vue-monaco-editor
@@ -32,7 +32,7 @@
       <!-- Preview Section -->
       <div class="preview-section">
         <div class="section-header">
-          <span class="section-title">Generated SML Preview</span>
+          <span class="section-title">{{ t('eventBind.generatedPreview') }}</span>
         </div>
         <div class="preview-tabs" v-if="previewType === 'all'">
           <div
@@ -40,42 +40,42 @@
             :class="{ active: activePreviewTab === 's2f37DisableAllEvents' }"
             @click="activePreviewTab = 's2f37DisableAllEvents'"
           >
-            01: Disable All Events
+            {{ t('eventBind.tabDisableAll') }}
           </div>
           <div
             class="preview-tab"
             :class="{ active: activePreviewTab === 's2f35DisableLink' }"
             @click="activePreviewTab = 's2f35DisableLink'"
           >
-            02: Disable Link
+            {{ t('eventBind.tabDisableLink') }}
           </div>
           <div
             class="preview-tab"
             :class="{ active: activePreviewTab === 's2f33DisableReport' }"
             @click="activePreviewTab = 's2f33DisableReport'"
           >
-            03: Disable Report
+            {{ t('eventBind.tabDisableReport') }}
           </div>
           <div
             class="preview-tab"
             :class="{ active: activePreviewTab === 's2f33DefineReport' }"
             @click="activePreviewTab = 's2f33DefineReport'"
           >
-            04: Define Report
+            {{ t('eventBind.tabDefineReport') }}
           </div>
           <div
             class="preview-tab"
             :class="{ active: activePreviewTab === 's2f35EnableLinkEvent' }"
             @click="activePreviewTab = 's2f35EnableLinkEvent'"
           >
-            05: Enable Link
+            {{ t('eventBind.tabEnableLink') }}
           </div>
           <div
             class="preview-tab"
             :class="{ active: activePreviewTab === 's2f37EnableAllEvents' }"
             @click="activePreviewTab = 's2f37EnableAllEvents'"
           >
-            06: Enable All Events
+            {{ t('eventBind.tabEnableAll') }}
           </div>
         </div>
         <div class="preview-content">
@@ -95,9 +95,9 @@
           <span v-if="generatedFiles" class="file-count">
             <icon-file />
             <template v-if="previewType === 'all'">
-              Will generate: 6 files (Disable/Enable S2F37, S2F35, S2F33)
+              {{ t('eventBind.willGeneratePartial') }}
             </template>
-            <template v-else> Will generate: All 6 EventBind files </template>
+            <template v-else> {{ t('eventBind.willGenerateAll') }} </template>
           </span>
           <span v-if="savePath" class="save-path">
             <icon-folder />
@@ -109,19 +109,19 @@
             <template #icon>
               <icon-close-circle />
             </template>
-            <template #default>Cancel</template>
+            <template #default>{{ t('common.cancel') }}</template>
           </a-button>
           <a-button :disabled="!canConvert" @click="handleConvert" :loading="converting">
             <template #icon>
               <icon-swap />
             </template>
-            <template #default>Convert</template>
+            <template #default>{{ t('eventBind.convert') }}</template>
           </a-button>
           <a-button type="primary" @click="handleSave" :disabled="!canSave" :loading="saving">
             <template #icon>
               <icon-save />
             </template>
-            <template #default>Save</template>
+            <template #default>{{ t('common.save') }}</template>
           </a-button>
         </div>
       </div>
@@ -131,6 +131,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Message } from '@arco-design/web-vue'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import {
@@ -143,6 +144,8 @@ import {
 } from '@arco-design/web-vue/es/icon'
 import { validateDefineLinkToml, DEFAULT_DEFINE_LINK_TEMPLATE } from '@/utils/smlGenerator'
 import { useEventBind } from '../composables/useEventBind'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   visible: boolean
@@ -253,7 +256,7 @@ watch(activePreviewTab, () => {
 function validateContent() {
   const result = validateDefineLinkToml(tomlContent.value)
   if (!result.valid) {
-    validationError.value = result.error || 'Validation failed'
+    validationError.value = result.error || t('eventBind.validationFailed')
   } else {
     validationError.value = ''
   }
@@ -342,7 +345,7 @@ async function handleSave() {
       files
     })
   } catch (error: any) {
-    Message.error(`Save failed: ${error.message}`)
+    Message.error(`${t('eventBind.saveFailedMsg')} ${error.message}`)
   } finally {
     saving.value = false
   }

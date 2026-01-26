@@ -1,41 +1,27 @@
 <template>
-  <a-modal
-    :visible="visible"
-    @update:visible="(val) => $emit('update:visible', val)"
-    :title="modalTitle"
-    width="850px"
-    :footer="true"
-    ok-text="Save"
-    cancel-text="Cancel"
-    @cancel="handleCancel"
-    @ok="handleOk"
-    :mask-closable="false"
-    class="compact-modal"
-  >
+  <a-modal :visible="visible" @update:visible="(val) => $emit('update:visible', val)" :title="modalTitle" width="850px"
+    :footer="true" :ok-text="t('common.save')" :cancel-text="t('common.cancel')" @cancel="handleCancel" @ok="handleOk"
+    :mask-closable="false" class="compact-modal">
     <a-form :model="form" layout="vertical" class="engine-form">
       <a-row :gutter="24">
         <!-- Left Column -->
         <a-col :span="17">
           <!-- Engine Properties -->
-          <a-divider orientation="left" class="compact-divider">Engine Properties</a-divider>
+          <a-divider orientation="left" class="compact-divider">{{ t('engine.properties') }}</a-divider>
           <a-row :gutter="8">
             <a-col :span="8">
-              <a-form-item
-                label="Name"
-                field="name"
-                :validate-status="nameError ? 'error' : undefined"
-                :help="nameError || undefined"
-              >
-                <a-input v-model="form.name" placeholder="TOOL" />
+              <a-form-item :label="t('engine.name')" field="name" :validate-status="nameError ? 'error' : undefined"
+                :help="nameError || undefined">
+                <a-input v-model="form.name" :placeholder="t('engine.namePlaceholder')" />
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Device ID" field="deviceId">
-                <a-input v-model="form.deviceId" placeholder="10" />
+              <a-form-item :label="t('engine.deviceId')" field="deviceId">
+                <a-input v-model="form.deviceId" :placeholder="t('engine.deviceIdPlaceholder')" />
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Type" field="type">
+              <a-form-item :label="t('engine.type')" field="type">
                 <a-select v-model="form.type" placeholder="HSMS">
                   <a-option value="HSMS">HSMS</a-option>
                   <a-option value="SECS-I">SECS-I</a-option>
@@ -46,17 +32,17 @@
           </a-row>
 
           <!-- Communication Configuration -->
-          <a-divider orientation="left" class="compact-divider">Communication Configuration</a-divider>
+          <a-divider orientation="left" class="compact-divider">{{ t('engine.communicationConfig') }}</a-divider>
           <a-row :gutter="8">
             <a-col :span="8">
-              <a-form-item label="Serial Port" field="serialPort">
+              <a-form-item :label="t('engine.serialPort')" field="serialPort">
                 <a-select v-model="form.serialPort" placeholder="COM1">
                   <a-option v-for="port in serialPorts" :key="port" :value="port">{{ port }}</a-option>
                 </a-select>
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Baud" field="baud">
+              <a-form-item :label="t('engine.baud')" field="baud">
                 <a-select v-model="form.baud" placeholder="9600">
                   <a-option value="9600">9600</a-option>
                   <a-option value="19200">19200</a-option>
@@ -67,7 +53,7 @@
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Retry" field="retry">
+              <a-form-item :label="t('engine.retry')" field="retry">
                 <a-input-number v-model="form.retry" :min="0" :max="10" />
               </a-form-item>
             </a-col>
@@ -75,23 +61,23 @@
 
           <a-row :gutter="8">
             <a-col :span="8">
-              <a-form-item label="Master" field="master">
-                <a-select v-model="form.master" placeholder="Master">
+              <a-form-item :label="t('engine.master')" field="master">
+                <a-select v-model="form.master" :placeholder="t('engine.master')">
                   <a-option value="Master">Master</a-option>
                   <a-option value="Slave">Slave</a-option>
                 </a-select>
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="TCP Port" field="tcpPort">
+              <a-form-item :label="t('engine.tcpPort')" field="tcpPort">
                 <a-input v-model="form.tcpPort" placeholder="5001" />
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Simulate" field="simulate">
-                <a-select v-model="form.simulate" placeholder="Equipment">
-                  <a-option value="Equipment">Equipment</a-option>
-                  <a-option value="Host">Host</a-option>
+              <a-form-item :label="t('engine.simulate')" field="simulate">
+                <a-select v-model="form.simulate" :placeholder="t('engine.equipment')">
+                  <a-option value="Equipment">{{ t('engine.equipment') }}</a-option>
+                  <a-option value="Host">{{ t('engine.host') }}</a-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -99,27 +85,27 @@
 
           <a-row :gutter="8">
             <a-col :span="8">
-              <a-form-item label="Remote IP" field="remoteIp">
+              <a-form-item :label="t('engine.remoteIp')" field="remoteIp">
                 <a-input v-model="form.remoteIp" placeholder="127.0.0.1" />
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Local IP" field="localIp">
+              <a-form-item :label="t('engine.localIp')" field="localIp">
                 <a-input v-model="form.localIp" placeholder="127.0.0.1" />
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Max Length" field="maxLength">
+              <a-form-item :label="t('engine.maxLength')" field="maxLength">
                 <a-input v-model="form.maxLength" placeholder="9437184" />
               </a-form-item>
             </a-col>
           </a-row>
 
           <!-- Advanced Settings -->
-          <a-divider orientation="left" class="compact-divider">Advance setting</a-divider>
+          <a-divider orientation="left" class="compact-divider">{{ t('engine.advanceSetting') }}</a-divider>
           <a-row :gutter="8">
             <a-col :span="8">
-              <a-form-item label="Data Bit" field="dataBit">
+              <a-form-item :label="t('engine.dataBit')" field="dataBit">
                 <a-select v-model="form.dataBit" placeholder="8">
                   <a-option value="5">5</a-option>
                   <a-option value="6">6</a-option>
@@ -129,7 +115,7 @@
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Stop Bit" field="stopBit">
+              <a-form-item :label="t('engine.stopBit')" field="stopBit">
                 <a-select v-model="form.stopBit" placeholder="1">
                   <a-option value="1">1</a-option>
                   <a-option value="1.5">1.5</a-option>
@@ -138,7 +124,7 @@
               </a-form-item>
             </a-col>
             <a-col :span="8">
-              <a-form-item label="Parity" field="parity">
+              <a-form-item :label="t('engine.parity')" field="parity">
                 <a-select v-model="form.parity" placeholder="None">
                   <a-option value="None">None</a-option>
                   <a-option value="Odd">Odd</a-option>
@@ -153,7 +139,7 @@
 
         <!-- Right Column - Timeout Parameters -->
         <a-col :span="6">
-          <a-divider orientation="left" class="compact-divider">Timeout</a-divider>
+          <a-divider orientation="left" class="compact-divider">{{ t('engine.timeout') }}</a-divider>
           <a-form :model="form" layout="horizontal" class="timeout-section">
             <div v-for="i in 8" :key="i" class="timeout-item">
               <span class="timeout-label">T{{ i }}</span>
@@ -170,6 +156,9 @@
 import { ref, watch, computed } from 'vue'
 import { ipc } from '@/utils/ipcRenderer'
 import { ipcApiRoute } from '@/api'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   visible: boolean
@@ -211,7 +200,7 @@ const form = ref({ ...defaultForm })
 const nameError = ref('')
 const serialPorts = ref<string[]>([])
 
-const modalTitle = computed(() => (props.initialData ? 'Edit Engine Properties' : 'Engine Properties'))
+const modalTitle = computed(() => (props.initialData ? t('modal.editEngineTitle') : t('modal.addEngineTitle')))
 
 const loadSerialPorts = async () => {
   if (!ipc) return
@@ -223,7 +212,7 @@ const loadSerialPorts = async () => {
       serialPorts.value = []
     }
   } catch (error) {
-    console.error('Failed to load serial ports:', error)
+    console.error(t('engine.failedLoadPorts'), error)
     serialPorts.value = []
   }
 }
