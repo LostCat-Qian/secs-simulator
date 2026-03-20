@@ -10,13 +10,16 @@
 
     <div class="flow-canvas" ref="canvasRef" @drop="onDrop" @dragover="onDragOver">
       <VueFlow v-model="elements" class="flow-chart" :default-viewport="{ zoom: 1 }" :min-zoom="0.2" :max-zoom="4"
-        @pane-ready="onPaneReady" @node-click="onNodeClick">
+        @pane-ready="onPaneReady" @node-click="onNodeClick" @pane-click="onPaneClick">
         <Background pattern-color="#aaa" :gap="16" />
 
         <template #node-custom="props">
           <div class="custom-node" :class="{ selected: props.selected }">
             <NodeToolbar :is-visible="props.selected" :position="Position.Right" :align="'start'">
-              <div class="node-popover-content" v-if="selectedNodeData && selectedNodeData.type === props.data.type">
+              <div class="node-popover-content" 
+                   v-if="selectedNodeData && selectedNodeData.type === props.data.type"
+                   @wheel.stop
+                   @mousedown.stop>
                 <div class="popover-header">
                   <span>Edit {{ selectedNodeData.type.toUpperCase() }}</span>
                   <a-button size="mini" type="text" @click="selectedNodeId = null">
@@ -257,13 +260,20 @@ const graphToSteps = (): AutoFlowStep[] => {
 
 // --- Watchers & Events ---
 
-// Initial load
+// Track last loaded steps to detect external changes
+const lastLoadedSteps = ref<string>('')
+
+// Initial load and reload on external changes
 watch(() => props.steps, (newSteps) => {
-  // Only reload if we have a significant change (e.g. from parent loading a new flow)
-  // We need to avoid loops if we emit updates.
-  // For now, assume this is called when Flow is selected or reset.
-  // We'll rely on internal state for edits.
-  if (newSteps && newSteps.length && elements.value.length === 0) {
+  const newStepsJson = JSON.stringify(newSteps || [])
+  
+  // Skip if steps haven't changed (avoid loops from our own emit)
+  if (newStepsJson === lastLoadedSteps.value) return
+  
+  lastLoadedSteps.value = newStepsJson
+  selectedNodeId.value = null // Clear selection on reload
+  
+  if (newSteps && newSteps.length > 0) {
     const nodes = newSteps.map((s, i) => stepToNode(s, i))
     const edges = nodes.slice(0, -1).map((n, i) => ({
       id: `e-${n.id}-${nodes[i + 1].id}`,
@@ -271,7 +281,7 @@ watch(() => props.steps, (newSteps) => {
       target: nodes[i + 1].id
     }))
     elements.value = [...nodes, ...edges]
-  } else if (!newSteps || newSteps.length === 0) {
+  } else {
     elements.value = []
   }
 }, { immediate: true })
@@ -293,16 +303,31 @@ watch(selectedNodeData, (newData) => {
   }
 
   // Emit update
-  emit('update:steps', graphToSteps())
+  const newSteps = graphToSteps()
+  const newStepsJson = JSON.stringify(newSteps)
+  lastLoadedSteps.value = newStepsJson
+  
+  emit('update:steps', newSteps)
 }, { deep: true })
 
 // Watch edges/structure change
 watch(elements, () => {
-  emit('update:steps', graphToSteps())
+  const newSteps = graphToSteps()
+  const newStepsJson = JSON.stringify(newSteps)
+  
+  // Update tracking to prevent reload loop
+  lastLoadedSteps.value = newStepsJson
+  
+  emit('update:steps', newSteps)
 }, { deep: true })
 
 const onNodeClick = (e: any) => {
   selectedNodeId.value = e.node.id
+}
+
+const onPaneClick = () => {
+  // Close node editor when clicking on canvas
+  selectedNodeId.value = null
 }
 
 const deleteSelectedNode = () => {
@@ -415,6 +440,8 @@ const onPaneReady = (instance: any) => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: auto; /* Ensure pointer events are captured */
+  z-index: 10; /* Ensure it's above canvas */
 
   .popover-header {
     padding: 10px 12px;
@@ -424,12 +451,38 @@ const onPaneReady = (instance: any) => {
     align-items: center;
     font-weight: 600;
     background: var(--color-fill-1);
+    flex-shrink: 0;
   }
 
   .popover-body {
     padding: 12px;
     overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
+    
+    /* Custom scrollbar for better UX */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: var(--color-fill-2);
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: var(--color-fill-4);
+      border-radius: 3px;
+      
+      &:hover {
+        background: var(--color-text-4);
+      }
+    }
+  }
+  
+  /* Prevent dropdown from being cut off */
+  :deep(.arco-select-dropdown) {
+    z-index: 1000;
   }
 }
 

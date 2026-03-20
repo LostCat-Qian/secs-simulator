@@ -197,6 +197,7 @@ const {
 } = useAutoFlow()
 
 const selectedFlowName = ref<string | null>(null)
+const isNewFlow = ref(false) // Track if this is a new flow (not saved yet)
 
 const localName = ref<string>('')
 const localTools = ref<string[]>([])
@@ -398,12 +399,18 @@ const applyJsonToLocal = () => {
 const setLocalFromFlow = (flow: AutoFlowConfig) => {
   localName.value = String(flow.name || '')
   localTools.value = uniqueNonEmptyStrings(Array.isArray(flow.tools) ? flow.tools : flow.tool ? [flow.tool] : [])
-  localSteps.value = Array.isArray(flow.steps) ? [...flow.steps] : []
+  // Create a new array reference to ensure reactivity
+  localSteps.value = Array.isArray(flow.steps) ? JSON.parse(JSON.stringify(flow.steps)) : []
   jsonText.value = JSON.stringify(normalizeFlowForJson(flow), null, 2)
 }
 
 const selectFlow = async (name: string) => {
+  if (selectedFlowName.value === name && !isNewFlow.value) return // Already selected
+  
   selectedFlowName.value = name
+  isNewFlow.value = false // Selecting existing flow
+  resetRunView()
+  
   await loadFlow(name)
   if (currentFlow.value) {
     setLocalFromFlow(currentFlow.value)
@@ -413,10 +420,23 @@ const selectFlow = async (name: string) => {
 const handleNewFlow = () => {
   resetRunView()
   selectedFlowName.value = null
+  isNewFlow.value = true // Mark as new flow
+  
   const tool = props.engines.find((e) => String(e.config?.simulate || '') === 'Equipment')?.name || ''
   const firstSml = props.smlFiles[0] || ''
+  
+  // Generate unique name
+  let baseName = 'NewFlow'
+  let counter = 1
+  let uniqueName = baseName
+  
+  while (flowList.value.some(f => f.name === uniqueName)) {
+    uniqueName = `${baseName}${counter}`
+    counter++
+  }
+  
   const flow: AutoFlowConfig = {
-    name: 'NewFlow',
+    name: uniqueName,
     tool: tool || undefined,
     tools: tool ? [tool] : [],
     steps: [
@@ -438,6 +458,24 @@ const handleSave = async () => {
     Message.error('Flow name cannot be empty')
     return
   }
+  
+  // Trim flow name
+  flow.name = flow.name.trim()
+  if (!flow.name) {
+    Message.error('Flow name cannot be empty')
+    return
+  }
+  
+  // Check for name conflict when creating new flow or renaming
+  const originalName = selectedFlowName.value
+  const isRenaming = !isNewFlow.value && originalName && originalName !== flow.name
+  const nameExists = flowList.value.some(f => f.name === flow.name)
+  
+  if ((isNewFlow.value || isRenaming) && nameExists) {
+    Message.error(`Flow name "${flow.name}" already exists. Please choose a different name.`)
+    return
+  }
+  
   if (!flow.tools.length) {
     Message.error('Please select at least one equipment engine')
     return
@@ -450,8 +488,10 @@ const handleSave = async () => {
     Message.error('The first step must be send (to trigger the flow start)')
     return
   }
+  
   await saveFlow(flow)
   selectedFlowName.value = flow.name
+  isNewFlow.value = false // No longer a new flow after saving
   await loadFlows()
 }
 
@@ -459,6 +499,7 @@ const handleDelete = async () => {
   if (!selectedFlowName.value) return
   await deleteFlow(selectedFlowName.value)
   selectedFlowName.value = null
+  isNewFlow.value = false
   currentFlow.value = null
   localName.value = ''
   localTools.value = []
@@ -487,6 +528,8 @@ const handleRefresh = async () => {
 }
 
 const handleClose = () => {
+  // Reset new flow flag when closing
+  isNewFlow.value = false
   emit('update:visible', false)
 }
 
